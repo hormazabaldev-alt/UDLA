@@ -149,11 +149,25 @@ function aggregateDataRows(version: string, rows: DataRow[]): SnapshotRow[] {
 
     const g = groups.get(key)!;
     g.cargada++;
-    if (r.fechaGestion) g.recorrido++;
-    if (r.conecta === "Conecta") g.contactado++;
-    if (r.interesa?.toLowerCase().includes("viene") || r.interesa === "Agendado" || r.af || r.mc) g.citas++;
-    if (r.af) g.af++;
-    if (r.mc) g.mc++;
+
+    // RECORRIDO = Conecta + No Conecta
+    const conectaVal = r.conecta?.trim().toLowerCase() ?? "";
+    if (conectaVal === "conecta" || conectaVal === "no conecta") g.recorrido++;
+
+    // CONTACTADO = solo Conecta
+    if (conectaVal === "conecta") g.contactado++;
+
+    // CITAS = cualquier valor en Interesa
+    const interesaVal = r.interesa?.trim() ?? "";
+    if (interesaVal.length > 0) g.citas++;
+
+    // AF = A, MC, M en columna AF
+    const afVal = r.af?.trim().toUpperCase() ?? "";
+    if (afVal === "A" || afVal === "MC" || afVal === "M") g.af++;
+
+    // MC = M, MC en columna MC
+    const mcVal = r.mc?.trim().toUpperCase() ?? "";
+    if (mcVal === "M" || mcVal === "MC") g.mc++;
   }
 
   // Compute percentages

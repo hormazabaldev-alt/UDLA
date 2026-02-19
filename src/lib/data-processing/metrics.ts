@@ -21,49 +21,47 @@ export function computeTotals(rows: DataRow[]): Totals {
   let af = 0;
   let mc = 0;
 
-  const uniqueRuts = new Set<string>();
-
   for (const row of rows) {
-    if (row.rutBase) uniqueRuts.add(row.rutBase);
-    // Asumiendo Cargada = Total registros en la base (filas). 
-    // Si fuera Ruts únicos: cargada = uniqueRuts.size al final.
-    // El usuario tiene "Fecha Carga", cada fila cuenta como un registro cargado.
+    // BASE (Cargada) = total de filas
     cargada++;
 
-    if (row.fechaGestion) {
+    // RECORRIDO = contar filas donde "Conecta" es "Conecta" o "No Conecta"
+    const conectaVal = row.conecta?.trim().toLowerCase() ?? "";
+    if (conectaVal === "conecta" || conectaVal === "no conecta") {
       recorrido++;
     }
 
-    if (row.conecta?.toLowerCase() === "conecta") {
+    // CONTACTABILIDAD EXITOSA (Contactado) = contar solo "Conecta"
+    if (conectaVal === "conecta") {
       contactado++;
     }
 
-    // Lógica para Citas: "Viene" en Interesa, o tiene fecha AF/MC, o AF/MC están marcados
-    // Ajustar según reglas de negocio exactas. Por ahora:
-    if (row.interesa?.toLowerCase().includes("viene") || row.interesa?.toLowerCase() === "agendado") {
-      citas++;
-    } else if (row.af || row.mc) {
-      // Fallback: si tiene AF o MC, asumimos que hubo cita
+    // CITAS = contar filas donde "Interesa" tiene algún valor (no vacío/null)
+    const interesaVal = row.interesa?.trim() ?? "";
+    if (interesaVal.length > 0) {
       citas++;
     }
 
-    if (row.af) {
+    // AFLUENCIA (AF) = contar filas donde columna AF contiene "A", "MC" o "M"
+    const afVal = row.af?.trim().toUpperCase() ?? "";
+    if (afVal === "A" || afVal === "MC" || afVal === "M") {
       af++;
     }
 
-    if (row.mc) {
+    // MATRÍCULAS (MC) = contar filas donde columna MC contiene "M" o "MC"
+    const mcVal = row.mc?.trim().toUpperCase() ?? "";
+    if (mcVal === "M" || mcVal === "MC") {
       mc++;
     }
   }
 
+  // % Contactabilidad = Contactado / Recorrido
   const pctContactabilidad = recorrido > 0 ? contactado / recorrido : null;
-  const pctEfectividad = citas > 0 ? (af + mc) / citas : null; // Asumiendo Efectividad = (Ventas) / Citas
-  // O quizás Efectividad = Citas / Contactado?
-  // Basado en TopKpis anterior: pctEfectividad usaba (af + mc) / citas? No recuerdo exacto.
-  // Revisemos el componente TopKpis antiguo.
-  // El antiguo decía: pctEfectividadComputed = citas > 0 ? (af + mc) / citas : null;
-
+  // % Efectividad = (AF + MC) / Citas
+  const pctEfectividad = citas > 0 ? (af + mc) / citas : null;
+  // Tasa Conversión AF = AF / Citas
   const tcAf = citas > 0 ? af / citas : null;
+  // Tasa Conversión MC = MC / Citas
   const tcMc = citas > 0 ? mc / citas : null;
 
   return {
