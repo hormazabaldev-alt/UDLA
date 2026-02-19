@@ -3,7 +3,7 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 
 export function getSupabaseServerClient() {
-  const url = process.env.SUPABASE_URL;
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !serviceRoleKey) {
     // Return a dummy client or throw only on usage? 
@@ -19,7 +19,7 @@ export function getSupabaseServerClient() {
 
     // Best approach: Throw but with a very clear message about .env.local
     throw new Error(
-      "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables. \nIf running locally, ensure they are in .env.local",
+      "Missing SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL) or SUPABASE_SERVICE_ROLE_KEY environment variables. \nIf running locally, ensure they are in .env.local",
     );
   }
   return createClient(url, serviceRoleKey, {
