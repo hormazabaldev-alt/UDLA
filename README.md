@@ -35,3 +35,5 @@ pnpm dev
 - Botón `Cargar Excel` → pega tu `DASHBOARD_ADMIN_KEY` (se guarda en ese navegador) → arrastra el `.xlsx` → preview → `Reemplazar datos actuales`.
 - Cualquier persona con la URL verá el snapshot persistido desde Supabase hasta la próxima carga.
 
+
+Updated: 2026-02-19
