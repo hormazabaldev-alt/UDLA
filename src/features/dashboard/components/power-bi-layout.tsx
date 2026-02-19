@@ -1,10 +1,13 @@
 "use client";
 
+import { useState } from "react";
+
 import {
     Filter,
     Plus,
     Replace,
-    History
+    History,
+    Share2
 } from "lucide-react";
 import { DataUploadDialog } from "@/features/dashboard/components/upload/data-upload-dialog";
 import { useMetrics } from "@/features/dashboard/hooks/useMetrics";
@@ -110,6 +113,18 @@ function VerticalFilters() {
 
 export function PowerBILayout() {
     const { totals } = useMetrics();
+    const [copied, setCopied] = useState(false);
+
+    // Check if viewer mode via URL param
+    const isViewer = typeof window !== "undefined" && new URL(window.location.href).searchParams.get("mode") === "viewer";
+
+    const handleShare = () => {
+        const url = new URL(window.location.href);
+        url.searchParams.set("mode", "viewer");
+        navigator.clipboard.writeText(url.toString());
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
 
     return (
         <div className="flex h-screen w-full bg-black text-white overflow-hidden font-sans">
@@ -119,27 +134,38 @@ export function PowerBILayout() {
                     <h1 className="text-xl font-bold tracking-tighter text-white">
                         Dashboard <span className="text-[#00d4ff]">UDLA</span>
                     </h1>
-                    <p className="text-xs text-white/50 mt-1">Bienvenido David</p>
+                    <p className="text-xs text-white/50 mt-1">
+                        {isViewer ? "Vista compartida" : "Bienvenido David"}
+                    </p>
                 </div>
                 <div className="p-5 flex-1 overflow-y-auto space-y-6">
                     <VerticalFilters />
-                    <div className="border-t border-[#1f1f1f] pt-4 space-y-2">
-                        <div className="text-xs text-[#00d4ff] uppercase font-bold tracking-wider mb-2">Datos</div>
-                        <DataUploadDialog
-                            defaultMode="append"
-                            triggerLabel="Agregar Bases"
-                            triggerIcon={<Plus className="size-4" />}
-                        />
-                        <DataUploadDialog
-                            defaultMode="replace"
-                            triggerLabel="Reemplazar Data"
-                            triggerIcon={<Replace className="size-4" />}
-                        />
-                        <a href="/logs" className="flex items-center gap-2 text-xs text-white/50 hover:text-white/80 transition py-1.5 px-3">
-                            <History className="size-4" />
-                            Ver Historial de Cargas
-                        </a>
-                    </div>
+                    {!isViewer && (
+                        <div className="border-t border-[#1f1f1f] pt-4 space-y-2">
+                            <div className="text-xs text-[#00d4ff] uppercase font-bold tracking-wider mb-2">Datos</div>
+                            <DataUploadDialog
+                                defaultMode="append"
+                                triggerLabel="Agregar Bases"
+                                triggerIcon={<Plus className="size-4" />}
+                            />
+                            <DataUploadDialog
+                                defaultMode="replace"
+                                triggerLabel="Reemplazar Data"
+                                triggerIcon={<Replace className="size-4" />}
+                            />
+                            <a href="/logs" className="flex items-center gap-2 text-xs text-white/50 hover:text-white/80 transition py-1.5 px-3">
+                                <History className="size-4" />
+                                Ver Historial de Cargas
+                            </a>
+                            <button
+                                onClick={handleShare}
+                                className="flex items-center gap-2 text-xs text-white/50 hover:text-white/80 transition py-1.5 px-3 w-full text-left"
+                            >
+                                <Share2 className="size-4" />
+                                {copied ? "¡Link copiado!" : "Compartir (solo lectura)"}
+                            </button>
+                        </div>
+                    )}
                 </div>
                 <div className="p-3 border-t border-[#1f1f1f] text-[10px] text-white/30 text-center">
                     v3.0 • Dashboard Premium
