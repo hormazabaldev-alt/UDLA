@@ -140,32 +140,34 @@ export function PowerBILayout() {
 
                 {/* Charts Grid */}
                 <div className="p-5 space-y-4 flex-1">
-                    {/* Row 1: Funnel + Gauges */}
-                    <div className="grid grid-cols-[1fr_200px] gap-4 h-[350px]">
+                    {/* Row 1: Funnel full-width */}
+                    <div className="h-[300px]">
                         <ChartCard title="Embudo de Conversión">
                             <FunnelChart />
                         </ChartCard>
-                        <div className="flex flex-col gap-2">
-                            <div className="flex-1 bg-[#080808] border border-[#1f1f1f] rounded-sm relative flex flex-col items-center justify-center">
-                                <span className="absolute top-1 left-2 text-[9px] text-white/50">% Contactabilidad</span>
-                                <GaugeChart title="" value={Math.round((totals?.pctContactabilidad || 0) * 100)} />
-                            </div>
-                            <div className="flex-1 bg-[#080808] border border-[#1f1f1f] rounded-sm relative flex flex-col items-center justify-center">
-                                <span className="absolute top-1 left-2 text-[9px] text-white/50">% Efectividad</span>
-                                <GaugeChart title="" value={Math.round((totals?.pctEfectividad || 0) * 100)} />
-                            </div>
-                            <div className="flex-1 bg-[#080808] border border-[#1f1f1f] rounded-sm relative flex flex-col items-center justify-center">
-                                <span className="absolute top-1 left-2 text-[9px] text-white/50">Tc% AF</span>
-                                <GaugeChart title="" value={Math.round((totals?.tcAf || 0) * 100)} />
-                            </div>
-                            <div className="flex-1 bg-[#080808] border border-[#1f1f1f] rounded-sm relative flex flex-col items-center justify-center">
-                                <span className="absolute top-1 left-2 text-[9px] text-white/50">Tc% MC</span>
-                                <GaugeChart title="" value={Math.round((totals?.tcMc || 0) * 100)} />
-                            </div>
+                    </div>
+
+                    {/* Row 2: 4 Gauges horizontal */}
+                    <div className="grid grid-cols-4 gap-3 h-[130px]">
+                        <div className="bg-[#080808] border border-[#1f1f1f] rounded-sm relative flex flex-col items-center justify-center">
+                            <span className="absolute top-1.5 left-2.5 text-[10px] text-white/50 font-medium">% Contactabilidad</span>
+                            <GaugeChart title="" value={Math.round((totals?.pctContactabilidad || 0) * 100)} />
+                        </div>
+                        <div className="bg-[#080808] border border-[#1f1f1f] rounded-sm relative flex flex-col items-center justify-center">
+                            <span className="absolute top-1.5 left-2.5 text-[10px] text-white/50 font-medium">% Efectividad</span>
+                            <GaugeChart title="" value={Math.round((totals?.pctEfectividad || 0) * 100)} />
+                        </div>
+                        <div className="bg-[#080808] border border-[#1f1f1f] rounded-sm relative flex flex-col items-center justify-center">
+                            <span className="absolute top-1.5 left-2.5 text-[10px] text-white/50 font-medium">Tc% AF / Citas</span>
+                            <GaugeChart title="" value={Math.round((totals?.tcAf || 0) * 100)} />
+                        </div>
+                        <div className="bg-[#080808] border border-[#1f1f1f] rounded-sm relative flex flex-col items-center justify-center">
+                            <span className="absolute top-1.5 left-2.5 text-[10px] text-white/50 font-medium">Tc% MC / Citas</span>
+                            <GaugeChart title="" value={Math.round((totals?.tcMc || 0) * 100)} />
                         </div>
                     </div>
 
-                    {/* Row 2: Resultado Mensual + Evolución */}
+                    {/* Row 3: Resultado Mensual + Evolución */}
                     <div className="grid grid-cols-2 gap-4 h-[320px]">
                         <ChartCard title="Resultado Mensual (por Tipo Base)">
                             <TrendChart />
@@ -175,7 +177,7 @@ export function PowerBILayout() {
                         </ChartCard>
                     </div>
 
-                    {/* Row 3: Semanal + Diario */}
+                    {/* Row 4: Semanal + Diario */}
                     <div className="grid grid-cols-2 gap-4 h-[320px]">
                         <ChartCard title="Comparativa Semanal">
                             <WeeklyChart />

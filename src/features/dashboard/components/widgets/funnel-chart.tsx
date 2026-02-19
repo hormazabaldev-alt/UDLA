@@ -16,59 +16,71 @@ export function FunnelChart() {
         { value: totals?.mc || 0, name: "Matrículas" },
     ];
 
-    const colors = ["#00d4ff", "#0ea5e9", "#06b6d4", "#8b5cf6", "#a855f7", "#c084fc"];
+    const colors = [
+        "rgba(0, 212, 255, 0.85)",  // cyan
+        "rgba(14, 165, 233, 0.80)", // sky
+        "rgba(16, 185, 129, 0.75)", // emerald
+        "rgba(245, 158, 11, 0.75)", // amber
+        "rgba(139, 92, 246, 0.80)", // violet
+        "rgba(236, 72, 153, 0.85)", // pink
+    ];
 
     const option = {
         backgroundColor: "transparent",
         tooltip: {
             trigger: "item",
-            formatter: (params: { name: string; value: number; percent: number }) =>
-                `<strong>${params.name}</strong><br/>${formatInt(params.value)} (${params.percent?.toFixed(1)}%)`,
+            formatter: (params: { name: string; value: number }) => {
+                const base = funnelData[0]?.value || 1;
+                const pct = ((params.value / base) * 100).toFixed(1);
+                return `<strong>${params.name}</strong><br/>${formatInt(params.value)} <span style="color:#aaa">(${pct}% de Base)</span>`;
+            },
             backgroundColor: "rgba(0,0,0,0.9)",
             borderColor: "#333",
-            textStyle: { color: "#fff" },
+            textStyle: { color: "#fff", fontSize: 12 },
         },
         series: [
             {
-                name: "Embudo de Conversión",
+                name: "Embudo",
                 type: "funnel",
-                left: "5%",
-                top: 10,
-                bottom: 10,
-                width: "90%",
+                left: "15%",
+                top: 20,
+                bottom: 20,
+                width: "70%",
                 min: 0,
                 max: funnelData[0]?.value || 100,
-                minSize: "5%",
+                minSize: "8%",
                 maxSize: "100%",
                 sort: "descending",
-                gap: 3,
+                gap: 4,
                 label: {
                     show: true,
                     position: "inside",
                     color: "#fff",
                     fontSize: 11,
-                    fontWeight: "bold",
+                    fontWeight: 500,
                     formatter: (params: { name: string; value: number }) =>
-                        `${params.name}\n${formatInt(params.value)}`,
+                        `${params.name}  ${formatInt(params.value)}`,
                 },
                 labelLine: { show: false },
                 itemStyle: {
-                    borderColor: "transparent",
-                    borderWidth: 0,
+                    borderColor: "rgba(0,0,0,0.3)",
+                    borderWidth: 1,
+                    borderRadius: [4, 4, 0, 0],
+                },
+                emphasis: {
+                    label: { fontSize: 13, fontWeight: "bold" },
+                    itemStyle: { shadowBlur: 15, shadowColor: "rgba(0, 212, 255, 0.3)" },
                 },
                 data: funnelData.map((item, i) => ({
                     ...item,
-                    itemStyle: {
-                        color: colors[i],
-                        opacity: 1 - i * 0.1,
-                    },
+                    itemStyle: { color: colors[i] },
                 })),
             },
         ],
     };
 
     return (
-        <div className="h-full w-full min-h-[250px]">
+        <div className="h-full w-full min-h-[200px]">
             <ReactECharts
                 option={option}
                 style={{ height: "100%", width: "100%" }}

@@ -17,57 +17,50 @@ export function GaugeChart({ value = 75, title = "Score" }: { value?: number, ti
                     roundCap: true,
                     clip: false,
                     itemStyle: {
-                        borderWidth: 1,
-                        borderColor: '#464646'
+                        color: {
+                            type: 'linear',
+                            x: 0, y: 0, x2: 1, y2: 0,
+                            colorStops: [
+                                { offset: 0, color: '#0ea5e9' },
+                                { offset: 1, color: '#00d4ff' },
+                            ],
+                        }
                     }
                 },
                 axisLine: {
                     lineStyle: {
-                        width: 40
+                        width: 10,
+                        color: [[1, 'rgba(255,255,255,0.08)']],
                     }
                 },
-                splitLine: { show: false },
                 axisTick: { show: false },
+                splitLine: { show: false },
                 axisLabel: { show: false },
-                data: [
-                    {
-                        value: value,
-                        name: title,
-                        title: {
-                            offsetCenter: ['0%', '-20%'],
-                            fontSize: 12,
-                            color: '#fff'
-                        },
-                        detail: {
-                            valueAnimation: true,
-                            offsetCenter: ['0%', '20%'],
-                            fontSize: 20,
-                            fontWeight: 'bold',
-                            color: 'inherit',
-                            formatter: '{value}%'
-
-                        }
-                    }
-                ],
                 detail: {
-                    fontSize: 24,
-                    color: 'auto',
-                    borderColor: 'auto',
-                    borderRadius: 20,
-                    borderWidth: 1,
-                    formatter: '{value}%'
-                }
+                    fontSize: 18,
+                    fontWeight: 'bold',
+                    color: '#00d4ff',
+                    offsetCenter: [0, '10%'],
+                    formatter: '{value}%',
+                },
+                title: {
+                    show: !!title,
+                    offsetCenter: [0, '35%'],
+                    fontSize: 10,
+                    color: 'rgba(255,255,255,0.5)',
+                },
+                data: [{ value, name: title }],
+                radius: '95%',
+                center: ['50%', '65%'],
             }
         ]
     };
 
     return (
-        <div className="h-full w-full min-h-[160px]">
-            <ReactECharts
-                option={option}
-                style={{ height: '100%', width: '100%' }}
-                opts={{ renderer: 'svg' }}
-            />
-        </div>
+        <ReactECharts
+            option={option}
+            style={{ height: '100%', width: '100%' }}
+            opts={{ renderer: 'svg' }}
+        />
     );
 }
