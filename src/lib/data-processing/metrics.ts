@@ -105,33 +105,27 @@ export function computeTotals(rows: DataRow[]): Totals {
 }
 
 export function computeTrend(rows: DataRow[]) {
-  // Group by Month (using Mes field)
-  const grouped = new Map<number, { stock: number; web: number }>();
+  // Discover all unique tipoBase values
+  const allTipos = Array.from(new Set(rows.map(r => r.tipoBase).filter(v => !!v))).sort();
+
+  // Group by Month x TipoBase
+  const grouped = new Map<number, Map<string, number>>();
 
   for (const row of rows) {
-    if (row.mes) {
-      const current = grouped.get(row.mes) || { stock: 0, web: 0 };
-      if (row.tipoBase?.toLowerCase().includes("web")) {
-        current.web++;
-      } else {
-        // Assume anything not Web is Stock/Base
-        current.stock++;
-      }
-      grouped.set(row.mes, current);
+    if (row.mes && row.tipoBase) {
+      if (!grouped.has(row.mes)) grouped.set(row.mes, new Map());
+      const monthMap = grouped.get(row.mes)!;
+      monthMap.set(row.tipoBase, (monthMap.get(row.tipoBase) || 0) + 1);
     }
   }
 
-  // Sort by month
   const months = Array.from(grouped.keys()).sort((a, b) => a - b);
   const labels = months.map(m => `Mes ${m}`);
-  const dataStock = months.map(m => grouped.get(m)?.stock || 0);
-  const dataWeb = months.map(m => grouped.get(m)?.web || 0);
 
-  return {
-    labels,
-    datasets: [
-      { label: "Stock", data: dataStock },
-      { label: "Web", data: dataWeb },
-    ],
-  };
+  const datasets = allTipos.map(tipo => ({
+    label: tipo,
+    data: months.map(m => grouped.get(m)?.get(tipo) || 0),
+  }));
+
+  return { labels, datasets };
 }
