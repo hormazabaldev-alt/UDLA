@@ -168,29 +168,42 @@ function aggregateDataRows(version: string, rows: DataRow[]): SnapshotRow[] {
 }
 
 export async function getActiveSnapshot(): Promise<Dataset | null> {
-  const supabase = getSupabaseServerClient();
-  const { data: metaRow, error: metaError } = await supabase
-    .from("snapshot_meta")
-    .select("*")
-    .eq("id", 1)
-    .maybeSingle();
-  if (metaError) throw metaError;
-  if (!metaRow) return null;
+  try {
+    const supabase = getSupabaseServerClient();
+    const { data: metaRow, error: metaError } = await supabase
+      .from("snapshot_meta")
+      .select("*")
+      .eq("id", 1)
+      .maybeSingle();
 
-  const meta = toMeta(metaRow as SnapshotMetaRow);
-  const activeVersion = (metaRow as SnapshotMetaRow).active_version;
+    // If table doesn't exist or query fails, just return null (no data yet)
+    if (metaError) {
+      console.warn("snapshot_meta query failed (table may not exist yet):", metaError.message);
+      return null;
+    }
+    if (!metaRow) return null;
 
-  const { data: rows, error: rowsError } = await supabase
-    .from("snapshot_rows")
-    .select("*")
-    .eq("version", activeVersion);
+    const meta = toMeta(metaRow as SnapshotMetaRow);
+    const activeVersion = (metaRow as SnapshotMetaRow).active_version;
 
-  if (rowsError) throw rowsError;
+    const { data: rows, error: rowsError } = await supabase
+      .from("snapshot_rows")
+      .select("*")
+      .eq("version", activeVersion);
 
-  return {
-    meta,
-    rows: (rows as SnapshotRow[]).flatMap(AggregateToDataRows),
-  };
+    if (rowsError) {
+      console.warn("snapshot_rows query failed:", rowsError.message);
+      return null;
+    }
+
+    return {
+      meta,
+      rows: (rows as SnapshotRow[]).flatMap(AggregateToDataRows),
+    };
+  } catch (err) {
+    console.warn("getActiveSnapshot failed:", err);
+    return null;
+  }
 }
 
 export async function replaceSnapshot(dataset: Dataset): Promise<{ meta: DatasetMeta }> {

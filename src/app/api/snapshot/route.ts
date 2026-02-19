@@ -73,8 +73,10 @@ export async function POST(req: Request) {
       { status: 200 },
     );
   } catch (e) {
+    console.error("POST /api/snapshot error:", e);
+    const message = e instanceof Error ? e.message : typeof e === 'object' ? JSON.stringify(e) : "Unknown error";
     return NextResponse.json(
-      { ok: false, error: e instanceof Error ? e.message : "Unknown error" },
+      { ok: false, error: message },
       { status: 500 },
     );
   }
