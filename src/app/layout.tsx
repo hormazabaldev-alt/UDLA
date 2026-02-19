@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "ag-grid-community/styles/ag-grid.css";
-import "ag-grid-community/styles/ag-theme-quartz.css";
+// import "ag-grid-community/styles/ag-grid.css"; // Removed to avoid conflict with Theming API
+// import "ag-grid-community/styles/ag-theme-quartz.css"; // Removed to avoid conflict
+
 import "./globals.css";
 
 const geistSans = Geist({
