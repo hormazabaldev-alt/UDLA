@@ -1,22 +1,26 @@
-export type BaseType = "Stock" | "Web";
+export type BaseType = "Lead" | "Stock" | "Inbound" | "Outbound" | string;
 
-export type NormalizedRow = {
-  tipo: BaseType;
-  diaLabel: string | null;
-  mes: number | null;
-  diaNumero: number | null;
+export type DataRow = {
+  // Raw fields
+  tipoLlamada: string;
+  fechaCarga: Date | null;
+  rutBase: string;
+  tipoBase: string;
+  fechaGestion: Date | null;
+  conecta: "Conecta" | "No Conecta" | string | null;
+  interesa: string | null;
+  regimen: string | null;
+  sedeInteres: string | null;
+  semana: string | null;
+  af: string | null; // A, MC, M
+  fechaAf: Date | null;
+  mc: string | null; // M, MC
+  fechaMc: Date | null;
 
-  cargada: number;
-  recorrido: number;
-  contactado: number;
-  citas: number;
-  af: number;
-  mc: number;
-
-  pctContactabilidad: number | null; // 0..1
-  pctEfectividad: number | null; // 0..1
-  tcAf: number | null; // 0..1
-  tcMc: number | null; // 0..1
+  // Computed/Helper helpers for easy filtering
+  mes: number | null; // Derived from Fecha Gestion
+  diaNumero: number | null; // Derived from Fecha Gestion
+  diaSemana: string | null; // Derived from Fecha Gestion
 };
 
 export type DatasetMeta = {
@@ -28,11 +32,11 @@ export type DatasetMeta = {
 
 export type Dataset = {
   meta: DatasetMeta;
-  rows: NormalizedRow[];
+  rows: DataRow[];
 };
 
 export type ParseIssue = {
-  rowIndex?: number; // 0-based in data (excluding header)
+  rowIndex?: number;
   column?: string;
   message: string;
 };
@@ -40,4 +44,3 @@ export type ParseIssue = {
 export type ParseResult =
   | { ok: true; dataset: Dataset; preview: Record<string, unknown>[] }
   | { ok: false; issues: ParseIssue[]; preview: Record<string, unknown>[] };
-

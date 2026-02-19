@@ -1,90 +1,88 @@
-import type { BaseType, NormalizedRow, ParseIssue } from "@/lib/data-processing/types";
-import { toFiniteNumber, toPercent } from "@/lib/utils/number";
+import type { DataRow, ParseIssue } from "@/lib/data-processing/types";
+import { parse, isValid, getMonth, getDate, getDay } from "date-fns";
+import { es } from "date-fns/locale";
 
 type RawRow = Record<string, unknown>;
 
-function normalizeTipo(value: unknown): BaseType | null {
-  if (typeof value !== "string") return null;
-  const v = value.trim().toLowerCase();
-  if (v === "stock") return "Stock";
-  if (v === "web") return "Web";
+function parseDate(value: unknown): Date | null {
+  if (value instanceof Date) return value;
+  if (typeof value === "string") {
+    // Try parsing DD-MM-YYYY
+    const parsed = parse(value.trim(), "dd-MM-yyyy", new Date());
+    if (isValid(parsed)) return parsed;
+    // Try ISO or other formats if needed, or Excel serial if it comes as string
+  }
+  if (typeof value === "number") {
+    // Excel serial date handling usually done by XLSX lib if cellDates: true, 
+    // but if we get a raw number: (value - 25569) * 86400 * 1000
+    const date = new Date(Math.round((value - 25569) * 86400 * 1000));
+    if (isValid(date)) return date;
+  }
   return null;
 }
 
-function toNonNegativeInt(value: unknown): number | null {
-  const n = toFiniteNumber(value);
-  if (n === null) return null;
-  if (n < 0) return null;
-  return Math.round(n);
+function cleanString(value: unknown): string | null {
+  if (typeof value === "string" && value.trim().length > 0) return value.trim();
+  if (typeof value === "number") return String(value);
+  return null;
 }
 
+const DIAS_SEMANA = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+
 export function normalizeRow(raw: RawRow, rowIndex: number): {
-  row: NormalizedRow | null;
+  row: DataRow | null;
   issues: ParseIssue[];
 } {
   const issues: ParseIssue[] = [];
 
-  const tipo = normalizeTipo(raw["Tipo"]);
-  if (!tipo) issues.push({ rowIndex, column: "Tipo", message: "Tipo inválido" });
+  const tipoLlamada = cleanString(raw["Tipo Llamada"]);
+  // Optional: Validar Tipo Llamada si es crítico
 
-  const diaLabel =
-    typeof raw["Día"] === "string" && raw["Día"].trim() ? raw["Día"].trim() : null;
-  const mes = toNonNegativeInt(raw["Mes"]);
-  const diaNumero = toNonNegativeInt(raw["Día numérico"]);
+  const fechaCarga = parseDate(raw["Fecha Carga"]);
+  const rutBase = cleanString(raw["Rut Base"]);
+  const tipoBase = cleanString(raw["Tipo Base"]);
+  const fechaGestion = parseDate(raw["Fecha Gestion"]);
+  const conecta = cleanString(raw["Conecta"]);
+  const interesa = cleanString(raw["Interesa"]);
+  const regimen = cleanString(raw["Regimen"]);
+  const sedeInteres = cleanString(raw["Sede Interes"]);
+  const semana = cleanString(raw["Semana"]);
+  const af = cleanString(raw["AF"]);
+  const fechaAf = parseDate(raw["Fecha af"]);
+  const mc = cleanString(raw["MC"]);
+  const fechaMc = parseDate(raw["Fecha MC"]);
 
-  const cargada = toNonNegativeInt(raw["Cargada"]);
-  const recorrido = toNonNegativeInt(raw["Recorrido"]);
-  const contactado = toNonNegativeInt(raw["Contactado"]);
-  const citas = toNonNegativeInt(raw["Citas"]);
-  const af = toNonNegativeInt(raw["AF"]);
-  const mc = toNonNegativeInt(raw["MC"]);
-
-  const requiredNumbers = [
-    ["Cargada", cargada],
-    ["Recorrido", recorrido],
-    ["Contactado", contactado],
-    ["Citas", citas],
-    ["AF", af],
-    ["MC", mc],
-  ] as const;
-
-  for (const [col, val] of requiredNumbers) {
-    if (val === null) issues.push({ rowIndex, column: col, message: "Número inválido" });
+  // Validaciones críticas
+  if (!rutBase) {
+    issues.push({ rowIndex, column: "Rut Base", message: "RUT faltante" });
   }
 
-  const pctContactabilidadFile = toPercent(raw["% Contactabilidad"]);
-  const pctEfectividadFile = toPercent(raw["% Efectividad"]);
-  const tcAfFile = toPercent(raw["Tc% AF / Citas"]);
-  const tcMcFile = toPercent(raw["Tc% MC / Citas"]);
+  // Si no hay errores bloqueantes, retornamos la fila
+  // Nota: Permitimos filas con datos parciales (ej. sin fecha gestión) si cuentan para "Cargada"
 
-  if (!tipo || cargada === null || recorrido === null || contactado === null || citas === null || af === null || mc === null) {
-    return { row: null, issues };
-  }
+  if (!rutBase) return { row: null, issues };
 
-  const pctContactabilidadComputed =
-    recorrido > 0 ? contactado / recorrido : null;
-  const pctEfectividadComputed = citas > 0 ? (af + mc) / citas : null;
-  const tcAfComputed = citas > 0 ? af / citas : null;
-  const tcMcComputed = citas > 0 ? mc / citas : null;
-
-  const row: NormalizedRow = {
-    tipo,
-    diaLabel,
-    mes: mes ?? null,
-    diaNumero: diaNumero ?? null,
-    cargada,
-    recorrido,
-    contactado,
-    citas,
+  const row: DataRow = {
+    tipoLlamada: tipoLlamada ?? "Desconocido",
+    fechaCarga,
+    rutBase,
+    tipoBase: tipoBase ?? "Desconocido",
+    fechaGestion,
+    conecta,
+    interesa,
+    regimen,
+    sedeInteres,
+    semana,
     af,
+    fechaAf,
     mc,
-    pctContactabilidad:
-      pctContactabilidadFile ?? pctContactabilidadComputed,
-    pctEfectividad: pctEfectividadFile ?? pctEfectividadComputed,
-    tcAf: tcAfFile ?? tcAfComputed,
-    tcMc: tcMcFile ?? tcMcComputed,
+    fechaMc,
+
+    // Computed
+    mes: fechaGestion ? getMonth(fechaGestion) : null, // 0-11
+    diaNumero: fechaGestion ? getDate(fechaGestion) : null,
+    diaSemana: fechaGestion ? DIAS_SEMANA[getDay(fechaGestion)] : null
   };
 
   return { row, issues };
 }
-

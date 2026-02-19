@@ -1,19 +1,16 @@
 export const REQUIRED_COLUMNS = [
-  "Tipo",
-  "Día",
-  "Mes",
-  "Día numérico",
-  "Cargada",
-  "Recorrido",
-  "Contactado",
-  "% Contactabilidad",
-  "Citas",
+  "Tipo Llamada",
+  "Fecha Carga",
+  "Rut Base",
+  "Tipo Base",
+  "Fecha Gestion",
+  "Conecta",
+  "Interesa",
+  "Regimen",
+  "Sede Interes",
+  "Semana",
   "AF",
+  "Fecha af",
   "MC",
-  "% Efectividad",
-  "Tc% AF / Citas",
-  "Tc% MC / Citas",
-] as const;
-
-export type RequiredColumn = (typeof REQUIRED_COLUMNS)[number];
-
+  "Fecha MC"
+];

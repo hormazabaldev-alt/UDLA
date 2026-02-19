@@ -37,8 +37,11 @@ export function FiltersBar() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="All">Todos</SelectItem>
-                  <SelectItem value="Stock">Stock</SelectItem>
-                  <SelectItem value="Web">Web</SelectItem>
+                  {options.tipos.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

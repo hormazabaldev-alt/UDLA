@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-import type { BaseType, Dataset, NormalizedRow } from "@/lib/data-processing/types";
+import type { BaseType, Dataset, DataRow } from "@/lib/data-processing/types";
 import { computeTotals, type Totals } from "@/lib/data-processing/metrics";
 
 export type Filters = {
@@ -12,8 +12,12 @@ export type Filters = {
 export type DashboardState = {
   dataset: Dataset | null;
   filters: Filters;
+  comparisonMode: "week" | "day";
+  widgetOrder: string[];
   setDataset: (dataset: Dataset | null) => void;
   setFilters: (filters: Partial<Filters>) => void;
+  setComparisonMode: (mode: "week" | "day") => void;
+  setWidgetOrder: (order: string[]) => void;
   resetFilters: () => void;
 };
 
@@ -23,9 +27,11 @@ const DEFAULT_FILTERS: Filters = {
   diaNumero: "All",
 };
 
-export function applyFilters(rows: NormalizedRow[], filters: Filters): NormalizedRow[] {
+export function applyFilters(rows: DataRow[], filters: Filters): DataRow[] {
   return rows.filter((r) => {
-    if (filters.tipo !== "All" && r.tipo !== filters.tipo) return false;
+    // Tipo Base filtering (assuming 'tipo' in filter maps to 'tipoBase' in row)
+    // The previous code had 'tipo' in NormalizedRow. The new one has 'tipoBase'.
+    if (filters.tipo !== "All" && r.tipoBase !== filters.tipo) return false;
     if (filters.mes !== "All" && r.mes !== filters.mes) return false;
     if (filters.diaNumero !== "All" && r.diaNumero !== filters.diaNumero) return false;
     return true;
@@ -46,10 +52,14 @@ export const useDashboardStore = create<DashboardState>((set) => ({
       dataset,
       filters: DEFAULT_FILTERS,
     })),
+  comparisonMode: "week",
+  widgetOrder: ["kpi-1", "kpi-2", "kpi-3", "kpi-4", "chart-main", "gauge-group", "funnel", "table"],
   setFilters: (filters) =>
     set((state) => ({
       filters: { ...state.filters, ...filters },
     })),
+  setComparisonMode: (mode) => set(() => ({ comparisonMode: mode })),
+  setWidgetOrder: (order) => set(() => ({ widgetOrder: order })),
   resetFilters: () => set(() => ({ filters: DEFAULT_FILTERS })),
 }));
 

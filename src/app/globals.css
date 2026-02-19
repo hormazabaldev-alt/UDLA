@@ -14,7 +14,18 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  
+  --color-neon-cyan: #06d0f9;
+  --color-neon-purple: #9b51e0;
+  
+  --animate-vivo-pulse: vivo-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  
+  @keyframes vivo-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .5; }
+  }
 }
+
 
 body {
   background: var(--background);

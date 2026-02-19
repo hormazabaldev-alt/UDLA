@@ -1,4 +1,4 @@
-import type { Dataset, NormalizedRow } from "@/lib/data-processing/types";
+import type { DataRow } from "@/lib/data-processing/types";
 
 export type Totals = {
   cargada: number;
@@ -13,7 +13,7 @@ export type Totals = {
   tcMc: number | null;
 };
 
-export function computeTotals(rows: NormalizedRow[]): Totals {
+export function computeTotals(rows: DataRow[]): Totals {
   let cargada = 0;
   let recorrido = 0;
   let contactado = 0;
@@ -21,17 +21,48 @@ export function computeTotals(rows: NormalizedRow[]): Totals {
   let af = 0;
   let mc = 0;
 
-  for (const r of rows) {
-    cargada += r.cargada;
-    recorrido += r.recorrido;
-    contactado += r.contactado;
-    citas += r.citas;
-    af += r.af;
-    mc += r.mc;
+  const uniqueRuts = new Set<string>();
+
+  for (const row of rows) {
+    if (row.rutBase) uniqueRuts.add(row.rutBase);
+    // Asumiendo Cargada = Total registros en la base (filas). 
+    // Si fuera Ruts únicos: cargada = uniqueRuts.size al final.
+    // El usuario tiene "Fecha Carga", cada fila cuenta como un registro cargado.
+    cargada++;
+
+    if (row.fechaGestion) {
+      recorrido++;
+    }
+
+    if (row.conecta?.toLowerCase() === "conecta") {
+      contactado++;
+    }
+
+    // Lógica para Citas: "Viene" en Interesa, o tiene fecha AF/MC, o AF/MC están marcados
+    // Ajustar según reglas de negocio exactas. Por ahora:
+    if (row.interesa?.toLowerCase().includes("viene") || row.interesa?.toLowerCase() === "agendado") {
+      citas++;
+    } else if (row.af || row.mc) {
+      // Fallback: si tiene AF o MC, asumimos que hubo cita
+      citas++;
+    }
+
+    if (row.af) {
+      af++;
+    }
+
+    if (row.mc) {
+      mc++;
+    }
   }
 
   const pctContactabilidad = recorrido > 0 ? contactado / recorrido : null;
-  const pctEfectividad = citas > 0 ? (af + mc) / citas : null;
+  const pctEfectividad = citas > 0 ? (af + mc) / citas : null; // Asumiendo Efectividad = (Ventas) / Citas
+  // O quizás Efectividad = Citas / Contactado?
+  // Basado en TopKpis anterior: pctEfectividad usaba (af + mc) / citas? No recuerdo exacto.
+  // Revisemos el componente TopKpis antiguo.
+  // El antiguo decía: pctEfectividadComputed = citas > 0 ? (af + mc) / citas : null;
+
   const tcAf = citas > 0 ? af / citas : null;
   const tcMc = citas > 0 ? mc / citas : null;
 
@@ -48,8 +79,3 @@ export function computeTotals(rows: NormalizedRow[]): Totals {
     tcMc,
   };
 }
-
-export function computeTotalsForDataset(dataset: Dataset): Totals {
-  return computeTotals(dataset.rows);
-}
-

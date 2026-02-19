@@ -1,45 +1,132 @@
 "use client";
 
-import { BarChart3, Gauge, Layers3, Sparkles } from "lucide-react";
+import { Sparkles, BarChart3, Layers3, Gauge, Table as TableIcon } from "lucide-react";
 
-import { AppShell } from "@/components/shell/app-shell";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { DataUploadDialog } from "@/features/dashboard/components/upload/data-upload-dialog";
-import { FiltersBar } from "@/features/dashboard/components/filters-bar";
+import { DashboardShell } from "@/features/dashboard/components/dashboard-shell";
+import { DraggableGrid } from "@/features/dashboard/components/draggable-grid";
 import { TopKpis } from "@/features/dashboard/components/top-kpis";
+import { FiltersBar } from "@/features/dashboard/components/filters-bar";
+import { DataUploadDialog } from "@/features/dashboard/components/upload/data-upload-dialog";
 import { useData } from "@/features/dashboard/hooks/useData";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { WidgetCard } from "@/features/dashboard/components/widgets/widget-card";
+import { TrendChart } from "@/features/dashboard/components/widgets/trend-chart";
+import { FunnelChart } from "@/features/dashboard/components/widgets/funnel-chart";
+import { GaugeChart } from "@/features/dashboard/components/widgets/gauge-chart";
+import { useDashboardStore } from "@/store/dashboard-store";
+
+const GaugeGroup = () => (
+  <div className="h-full w-full grid grid-cols-2 gap-4 min-h-[200px]">
+    <div className="rounded-xl bg-white/5 border border-white/5 relative flex items-center justify-center p-2">
+      <GaugeChart title="Contactabilidad" value={65} />
+    </div>
+    <div className="rounded-xl bg-white/5 border border-white/5 relative flex items-center justify-center p-2">
+      <GaugeChart title="Efectividad" value={42} />
+    </div>
+    <div className="rounded-xl bg-white/5 border border-white/5 relative flex items-center justify-center p-2">
+      <GaugeChart title="Citas/AF" value={28} />
+    </div>
+    <div className="rounded-xl bg-white/5 border border-white/5 relative flex items-center justify-center p-2">
+      <GaugeChart title="Citas/MC" value={85} />
+    </div>
+  </div>
+);
+
+const TableWidget = () => (
+  <div className="h-full w-full flex items-center justify-center min-h-[300px]">
+    <div className="text-center space-y-2">
+      <TableIcon className="size-10 text-white/30 mx-auto" />
+      <p className="text-sm text-white/50">Advanced Data Grid</p>
+    </div>
+  </div>
+);
+
 
 export function DashboardPage() {
   const { meta, hydrating } = useData();
+  const { widgetOrder, setWidgetOrder, comparisonMode, setComparisonMode } = useDashboardStore();
+
+  const renderWidget = (id: string) => {
+    switch (id) {
+      case "chart-main":
+        return (
+          <WidgetCard
+            title="Tendencia de Ventas"
+            icon={<BarChart3 size={18} />}
+            className="h-full md:col-span-2 lg:col-span-3"
+            headerAction={
+              <div className="flex bg-white/5 rounded-lg p-1">
+                <button
+                  onClick={() => setComparisonMode('week')}
+                  className={`text-[10px] px-2 py-1 rounded-md transition-all ${comparisonMode === 'week' ? 'bg-[var(--color-neon-cyan)] text-black font-bold' : 'text-white/60 hover:text-white'}`}
+                >
+                  SEMANA
+                </button>
+                <button
+                  onClick={() => setComparisonMode('day')}
+                  className={`text-[10px] px-2 py-1 rounded-md transition-all ${comparisonMode === 'day' ? 'bg-[var(--color-neon-cyan)] text-black font-bold' : 'text-white/60 hover:text-white'}`}
+                >
+                  DÍA
+                </button>
+              </div>
+            }
+          >
+            <TrendChart />
+          </WidgetCard>
+        );
+      case "funnel":
+        return (
+          <WidgetCard title="Conversion Funnel" icon={<Layers3 size={18} />} className="h-full">
+            <FunnelChart />
+          </WidgetCard>
+        );
+      case "gauge-group":
+        return (
+          <WidgetCard title="Performance KPIs" icon={<Gauge size={18} />} className="h-full">
+            <GaugeGroup />
+          </WidgetCard>
+        );
+      case "table":
+        return (
+          <WidgetCard title="Detalle Diario" icon={<TableIcon size={18} />} className="h-full md:col-span-2 lg:col-span-4">
+            <TableWidget />
+          </WidgetCard>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
-    <AppShell>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <div className="inline-flex size-9 items-center justify-center rounded-2xl border border-white/10 bg-white/6 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-              <Sparkles className="size-4 text-cyan-200/90" />
-            </div>
-            <div>
-              <div className="text-base font-semibold tracking-tight">
-                Altius Analytics
-              </div>
-              <div className="text-xs text-white/55">
-                Snapshot diario · sin login · interacción tipo Power BI
-              </div>
-            </div>
+    <DashboardShell>
+      {/* Top Header Section */}
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+        <div className="flex items-center gap-3">
+          <div className="inline-flex size-10 items-center justify-center rounded-2xl border border-[var(--color-neon-cyan)]/30 bg-[var(--color-neon-cyan)]/10 shadow-[0_0_20px_rgba(6,208,249,0.2)]">
+            <Sparkles className="size-5 text-[var(--color-neon-cyan)] animate-pulse" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-white font-[family-name:var(--font-space-grotesk)]">
+              Dashboard General
+            </h1>
+            <p className="text-xs text-white/50">
+              Resumen ejecutivo en tiempo real
+            </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+            <div className="size-2 rounded-full bg-emerald-500 animate-[vivo-pulse_2s_infinite]" />
+            <span className="text-xs font-medium text-emerald-400">VIVO</span>
+          </div>
           {meta ? (
-            <Badge variant="neutral">
-              {`Última carga: ${new Date(meta.importedAtISO).toLocaleString("es-ES")}`}
+            <Badge variant="neutral" className="bg-white/5 border-white/10 hover:bg-white/10">
+              {`Actualizado: ${new Date(meta.importedAtISO).toLocaleString("es-ES")}`}
             </Badge>
           ) : hydrating ? (
-            <Badge variant="neutral">Cargando estado…</Badge>
+            <Badge variant="neutral">Cargando...</Badge>
           ) : (
             <Badge variant="neutral">Sin datos</Badge>
           )}
@@ -47,82 +134,23 @@ export function DashboardPage() {
         </div>
       </div>
 
-      <Separator className="my-5" />
-
-      <div className="space-y-3">
-        <FiltersBar />
-        <TopKpis />
-
-        <div className="grid gap-3 lg:grid-cols-[420px_1fr]">
-          <Card className="lg:row-span-2">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center justify-between">
-                <span className="text-sm">Funnel</span>
-                <Layers3 className="size-4 text-white/45" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pb-5">
-              <div className="text-xs text-white/55">
-                Próximo: embudo real (base→recorrido→contactado→citas→AF→MC) con animación progresiva.
-              </div>
-              <div className="mt-4 h-[340px] rounded-2xl border border-white/10 bg-white/3" />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center justify-between">
-                <span className="text-sm">Resultado mensual</span>
-                <BarChart3 className="size-4 text-white/45" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pb-5">
-              <div className="text-xs text-white/55">
-                Próximo: barras comparativas Stock vs Web + línea de % Contactabilidad + tooltip multi-métrica.
-              </div>
-              <div className="mt-4 h-[340px] rounded-2xl border border-white/10 bg-white/3" />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center justify-between">
-                <span className="text-sm">Gauges</span>
-                <Gauge className="size-4 text-white/45" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pb-5">
-              <div className="text-xs text-white/55">
-                Próximo: medidores premium (% Contactabilidad, % Efectividad, Tc% AF, Tc% MC).
-              </div>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <div className="h-[160px] rounded-2xl border border-white/10 bg-white/3" />
-                <div className="h-[160px] rounded-2xl border border-white/10 bg-white/3" />
-                <div className="h-[160px] rounded-2xl border border-white/10 bg-white/3" />
-                <div className="h-[160px] rounded-2xl border border-white/10 bg-white/3" />
-              </div>
-            </CardContent>
-          </Card>
+      {/* Controls & KPIs */}
+      <div className="space-y-6 mb-8">
+        <div className="p-1">
+          <FiltersBar />
         </div>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center justify-between">
-              <span className="text-sm">Tabla avanzada</span>
-              <span className="text-xs text-white/45">
-                AG Grid · virtual scroll · sticky headers
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pb-5">
-            <div className="text-xs text-white/55">
-              Próximo: búsqueda, ordenamiento, highlight dinámico, y rendimiento enterprise.
-            </div>
-            <div className="mt-4 h-[420px] rounded-2xl border border-white/10 bg-white/3" />
-          </CardContent>
-        </Card>
+        <TopKpis />
       </div>
-    </AppShell>
+
+      <Separator className="my-8 bg-white/10" />
+
+      {/* Draggable Widgets Area */}
+      <DraggableGrid
+        items={widgetOrder.filter(id => !id.startsWith('kpi'))} // KPIs are manual for now
+        onOrderChange={setWidgetOrder}
+        renderItem={renderWidget}
+        className="pb-20"
+      />
+    </DashboardShell>
   );
 }
-

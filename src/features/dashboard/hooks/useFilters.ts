@@ -22,7 +22,11 @@ export function useFilters() {
       ),
     ).sort((a, b) => a - b);
 
-    return { meses, dias };
+    const tipos = Array.from(
+      new Set(rows.map((r) => r.tipoBase).filter((v) => v))
+    ).sort();
+
+    return { meses, dias, tipos };
   }, [dataset]);
 
   const set = (partial: Partial<Filters>) => setFilters(partial);

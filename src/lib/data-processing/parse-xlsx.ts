@@ -2,7 +2,7 @@ import * as XLSX from "xlsx";
 
 import { REQUIRED_COLUMNS } from "@/lib/data-processing/columns";
 import { normalizeRow } from "@/lib/data-processing/normalize";
-import type { Dataset, ParseIssue, ParseResult } from "@/lib/data-processing/types";
+import type { Dataset, DataRow, ParseIssue, ParseResult } from "@/lib/data-processing/types";
 
 function getFirstSheet(workbook: XLSX.WorkBook) {
   const sheetName = workbook.SheetNames[0];
@@ -65,7 +65,7 @@ export async function parseXlsxFile(file: File): Promise<ParseResult> {
     issues.push({ column: col, message: `Falta la columna requerida: ${col}` });
   }
 
-  const normalizedRows = [];
+  const normalizedRows: DataRow[] = [];
   for (let i = 0; i < cleanedRows.length; i++) {
     const { row, issues: rowIssues } = normalizeRow(cleanedRows[i]!, i);
     issues.push(...rowIssues);
