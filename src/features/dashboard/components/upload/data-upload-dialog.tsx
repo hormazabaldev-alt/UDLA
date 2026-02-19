@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { AlertTriangle, FileSpreadsheet, RefreshCcw, Upload } from "lucide-react";
+import { AlertTriangle, FileSpreadsheet, Plus, Replace, Upload } from "lucide-react";
 
 import { parseXlsxFile } from "@/lib/data-processing/parse-xlsx";
 import type { ParseResult } from "@/lib/data-processing/types";
@@ -11,7 +11,6 @@ import { cn } from "@/lib/utils/cn";
 import { formatInt } from "@/lib/utils/format";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -21,18 +20,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useData } from "@/features/dashboard/hooks/useData";
 import { PreviewGrid } from "@/features/dashboard/components/upload/preview-grid";
 
 function IssueList({ result }: { result: Extract<ParseResult, { ok: false }> }) {
   const items = result.issues.slice(0, 10);
   return (
-    <div className="rounded-2xl border border-red-400/15 bg-red-400/5 p-3">
+    <div className="rounded-xl border border-red-400/15 bg-red-400/5 p-3">
       <div className="flex items-center gap-2 text-xs font-medium text-red-200">
         <AlertTriangle className="size-4" />
         {`Se detectaron ${result.issues.length} problema(s).`}
-        <span className="text-white/50">Corrige el Excel y vuelve a cargar.</span>
       </div>
       <ul className="mt-2 space-y-1 text-xs text-white/70">
         {items.map((i, idx) => (
@@ -41,281 +38,271 @@ function IssueList({ result }: { result: Extract<ParseResult, { ok: false }> }) 
               {i.rowIndex !== undefined ? `Fila ${i.rowIndex + 2}` : "Estructura"}
             </span>
             <span className="text-white/30">·</span>
-            <span className="text-white/60">{i.column ?? "—"}</span>
-            <span className="text-white/30">·</span>
             <span>{i.message}</span>
           </li>
         ))}
-        {result.issues.length > items.length ? (
-          <li className="text-white/45">{`… +${result.issues.length - items.length} más`}</li>
-        ) : null}
       </ul>
     </div>
   );
 }
 
-export function DataUploadDialog() {
-  const { meta, replaceDataset, dataset, refreshDataset } = useData();
+type UploadMode = "replace" | "append";
+
+export function DataUploadDialog({ defaultMode, triggerLabel, triggerIcon }: {
+  defaultMode?: UploadMode;
+  triggerLabel?: string;
+  triggerIcon?: React.ReactNode;
+}) {
+  const { meta, replaceDataset, refreshDataset } = useData();
 
   const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<UploadMode>(defaultMode || "replace");
   const [parsing, setParsing] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [result, setResult] = useState<ParseResult | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [results, setResults] = useState<{ file: File; result: ParseResult }[]>([]);
   const [adminKey, setAdminKey] = useState("");
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
 
   useEffect(() => {
     setAdminKey(loadAdminKey());
   }, []);
 
   const onDrop = useCallback(async (accepted: File[]) => {
-    const file = accepted[0];
-    if (!file) return;
-    setSelectedFileName(file.name);
-    setSelectedFile(file);
+    if (accepted.length === 0) return;
+    setSelectedFiles(accepted);
     setParsing(true);
     setUploadError(null);
+    setResults([]);
     try {
-      const parsed = await parseXlsxFile(file);
-      setResult(parsed);
+      const parsed: { file: File; result: ParseResult }[] = [];
+      for (const file of accepted) {
+        const result = await parseXlsxFile(file);
+        parsed.push({ file, result });
+      }
+      setResults(parsed);
     } finally {
       setParsing(false);
     }
   }, []);
 
-  const { getRootProps, getInputProps, isDragActive, fileRejections } =
-    useDropzone({
-      onDrop,
-      accept: {
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [
-          ".xlsx",
-        ],
-      },
-      maxFiles: 1,
-    });
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
+    },
+    multiple: true,
+  });
 
-  const rejectionText = useMemo(() => {
-    const first = fileRejections[0];
-    if (!first) return null;
-    return first.errors[0]?.message ?? "Archivo no válido";
-  }, [fileRejections]);
+  const allValid = results.length > 0 && results.every(r => r.result.ok);
+  const totalRows = results.reduce(
+    (sum, r) => sum + (r.result.ok ? r.result.dataset.rows.length : 0), 0
+  );
+  const canUpload = allValid && !parsing && !uploading && adminKey.trim().length > 0;
 
-  const canReplace =
-    result?.ok === true && !parsing && !uploading && adminKey.trim().length > 0;
+  const handleUpload = async () => {
+    if (!allValid) return;
+    setUploading(true);
+    setUploadError(null);
+
+    try {
+      for (let i = 0; i < results.length; i++) {
+        const { file, result } = results[i]!;
+        if (!result.ok) continue;
+
+        setUploadProgress(`Subiendo ${i + 1}/${results.length}: ${file.name}...`);
+
+        // First file uses the selected mode, subsequent files always append
+        const fileMode = i === 0 ? mode : "append";
+
+        const form = new FormData();
+        form.set("file", file);
+        const res = await fetch("/api/snapshot", {
+          method: "POST",
+          headers: {
+            "x-admin-key": adminKey.trim(),
+            "x-upload-mode": fileMode,
+          },
+          body: form,
+        });
+
+        if (!res.ok) {
+          const body = await res.json().catch(() => null);
+          setUploadError(
+            `Error en ${file.name}: ${body?.error ?? "Error desconocido"}`
+          );
+          return;
+        }
+      }
+
+      setUploadProgress(null);
+      await refreshDataset();
+      setOpen(false);
+      setResults([]);
+      setSelectedFiles([]);
+    } finally {
+      setUploading(false);
+      setUploadProgress(null);
+    }
+  };
 
   return (
-    <TooltipProvider delayDuration={120}>
-      <div className="flex items-center gap-2">
-        <Button
-          variant="secondary"
-          onClick={() => {
-            setOpen(true);
-            setResult(null);
-            setSelectedFileName(null);
-          }}
-        >
-          <Upload className="size-4" />
-          Cargar Excel
-        </Button>
-        {dataset ? (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                onClick={() => void refreshDataset()}
-                aria-label="Refrescar datos"
-              >
-                <RefreshCcw className="size-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Refrescar desde Supabase</TooltipContent>
-          </Tooltip>
-        ) : null}
-      </div>
+    <>
+      <Button
+        variant="secondary"
+        size="sm"
+        onClick={() => {
+          setOpen(true);
+          setResults([]);
+          setSelectedFiles([]);
+          setUploadError(null);
+          if (defaultMode) setMode(defaultMode);
+        }}
+        className="w-full justify-start gap-2"
+      >
+        {triggerIcon || <Upload className="size-4" />}
+        {triggerLabel || "Cargar Excel"}
+      </Button>
 
-        <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Reemplazar snapshot de datos</DialogTitle>
+            <DialogTitle>
+              {mode === "append" ? "Agregar más bases" : "Reemplazar datos"}
+            </DialogTitle>
             <DialogDescription>
-              Cada carga sobrescribe completamente los datos actuales (sin histórico).
+              {mode === "append"
+                ? "Los nuevos datos se agregarán a los existentes."
+                : "Los datos actuales serán reemplazados completamente."}
             </DialogDescription>
           </DialogHeader>
 
-          <Separator className="my-4" />
+          <Separator className="my-2" />
 
-          <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-            <div className="space-y-3">
-              <div className="rounded-2xl border border-white/10 bg-white/3 p-4">
-                <div className="text-[11px] font-medium text-white/55">
-                  Clave de carga (solo para reemplazar datos)
-                </div>
-                <div className="mt-2 flex items-center gap-2">
-                  <Input
-                    value={adminKey}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setAdminKey(v);
-                      persistAdminKey(v);
-                    }}
-                    placeholder="Pega tu DASHBOARD_ADMIN_KEY"
-                  />
-                </div>
-                <div className="mt-2 text-xs text-white/45">
-                  Se guarda en este navegador (localStorage). Compartir la URL no comparte la clave.
-                </div>
-              </div>
+          {/* Mode Selector */}
+          <div className="flex gap-2">
+            <Button
+              variant={mode === "replace" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setMode("replace")}
+              className="flex-1"
+            >
+              <Replace className="size-4 mr-1" /> Reemplazar
+            </Button>
+            <Button
+              variant={mode === "append" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setMode("append")}
+              className="flex-1"
+            >
+              <Plus className="size-4 mr-1" /> Agregar
+            </Button>
+          </div>
 
-              <div
-                {...getRootProps()}
-                className={cn(
-                  "group relative flex min-h-32 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-white/15 bg-white/3 px-5 py-5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:bg-white/5",
-                  isDragActive ? "border-cyan-400/40 bg-cyan-400/5" : null,
-                )}
-              >
-                <input {...getInputProps()} />
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  <FileSpreadsheet className="size-4 text-cyan-200/90" />
-                  Arrastra tu XLSX aquí o haz click para seleccionar
-                </div>
-                <div className="mt-1 text-xs text-white/50">
-                  Estructura fija. Validación automática + preview antes de aplicar.
-                </div>
-                {selectedFileName ? (
-                  <div className="mt-3 flex items-center justify-center gap-2">
-                    <Badge variant="info">{selectedFileName}</Badge>
-                    {parsing ? (
-                      <Badge variant="neutral">Procesando…</Badge>
-                    ) : result?.ok ? (
-                      <Badge variant="success">OK</Badge>
-                    ) : result ? (
-                      <Badge variant="danger">Con errores</Badge>
-                    ) : null}
-                  </div>
-                ) : null}
-                {rejectionText ? (
-                  <div className="mt-2 text-xs text-red-200">{rejectionText}</div>
-                ) : null}
-              </div>
-
-              {uploadError ? (
-                <div className="rounded-2xl border border-red-400/15 bg-red-400/5 p-3 text-xs text-red-200">
-                  {uploadError}
-                </div>
-              ) : null}
-
-              {result?.ok === false ? <IssueList result={result} /> : null}
-
-              {result?.preview?.length ? (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs font-medium text-white/70">
-                      Preview (primeras filas)
-                    </div>
-                    {result.ok ? (
-                      <div className="text-xs text-white/50">
-                        {`${formatInt(result.dataset.rows.length)} filas normalizadas`}
-                      </div>
-                    ) : null}
-                  </div>
-                  <PreviewGrid rows={result.preview} />
-                </div>
-              ) : null}
-            </div>
-
-            <div className="space-y-3">
-              <Card>
-                <CardContent className="pt-5">
-                  <div className="text-xs font-medium text-white/70">
-                    Snapshot actual
-                  </div>
-                  {meta ? (
-                    <div className="mt-2 space-y-1 text-xs text-white/55">
-                      <div className="flex items-center justify-between gap-3">
-                        <span>Archivo</span>
-                        <span className="truncate text-white/80">
-                          {meta.sourceFileName}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <span>Hoja</span>
-                        <span className="text-white/80">{meta.sheetName}</span>
-                      </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <span>Filas</span>
-                        <span className="text-white/80">
-                          {formatInt(meta.rowCount)}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <span>Importado</span>
-                        <span className="text-white/80">
-                          {new Date(meta.importedAtISO).toLocaleString("es-ES")}
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="mt-2 text-xs text-white/45">
-                      No hay datos cargados aún.
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <div className="rounded-2xl border border-white/10 bg-white/3 p-4">
-                <div className="text-xs text-white/60">
-                  Al aplicar, el dashboard se recalcula en tiempo real y se reemplaza el snapshot.
-                </div>
-                <Button
-                  className="mt-3 w-full"
-                  disabled={!canReplace}
-                  onClick={async () => {
-                    if (result?.ok !== true) return;
-                    if (!selectedFile) {
-                      setUploadError("No se encontró el archivo seleccionado.");
-                      return;
-                    }
-                    setUploading(true);
-                    setUploadError(null);
-                    try {
-                      const form = new FormData();
-                      form.set("file", selectedFile);
-                      const res = await fetch("/api/snapshot", {
-                        method: "POST",
-                        headers: { "x-admin-key": adminKey.trim() },
-                        body: form,
-                      });
-                      if (!res.ok) {
-                        const body = (await res.json().catch(() => null)) as
-                          | (Partial<ParseResult> & { error?: string })
-                          | null;
-                        if (body && body.ok === false && Array.isArray(body.issues)) {
-                          setResult(body as ParseResult);
-                          setUploadError("El servidor rechazó el archivo por validación.");
-                        } else {
-                          setUploadError(
-                            body?.error ?? "No se pudo reemplazar el snapshot.",
-                          );
-                        }
-                        return;
-                      }
-                      await replaceDataset(result.dataset);
-                      await refreshDataset();
-                      setOpen(false);
-                    } finally {
-                      setUploading(false);
-                    }
-                  }}
-                >
-                  {uploading ? "Subiendo…" : "Reemplazar datos actuales"}
-                </Button>
-              </div>
+          {/* Admin Key */}
+          <div className="rounded-xl border border-white/10 bg-white/3 p-3">
+            <div className="text-[11px] font-medium text-white/55">Clave de carga</div>
+            <Input
+              value={adminKey}
+              onChange={(e) => {
+                setAdminKey(e.target.value);
+                persistAdminKey(e.target.value);
+              }}
+              placeholder="admin123"
+              className="mt-1 h-8"
+            />
+            <div className="mt-1 text-[10px] text-white/40">
+              Se guarda en localStorage.
             </div>
           </div>
+
+          {/* Drop Zone */}
+          <div
+            {...getRootProps()}
+            className={cn(
+              "group flex min-h-28 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-white/15 bg-white/3 px-4 py-4 text-center transition hover:bg-white/5",
+              isDragActive ? "border-cyan-400/40 bg-cyan-400/5" : null,
+            )}
+          >
+            <input {...getInputProps()} />
+            <FileSpreadsheet className="size-5 text-cyan-200/90 mb-1" />
+            <div className="text-sm font-medium">
+              Arrastra tus XLSX aquí o haz click
+            </div>
+            <div className="text-xs text-white/50 mt-1">
+              Puedes seleccionar <strong>múltiples archivos</strong>. Todos deben tener la misma estructura.
+            </div>
+          </div>
+
+          {/* File Results */}
+          {results.length > 0 && (
+            <div className="space-y-2 max-h-[200px] overflow-y-auto">
+              {results.map(({ file, result }, idx) => (
+                <div key={idx} className="flex items-center gap-2 text-xs p-2 rounded-lg bg-white/3 border border-white/10">
+                  <FileSpreadsheet className="size-4 text-cyan-300/80 flex-shrink-0" />
+                  <span className="truncate flex-1 text-white/80">{file.name}</span>
+                  {parsing ? (
+                    <Badge variant="neutral">Procesando…</Badge>
+                  ) : result.ok ? (
+                    <Badge variant="success">{formatInt(result.dataset.rows.length)} filas</Badge>
+                  ) : (
+                    <Badge variant="danger">Error</Badge>
+                  )}
+                </div>
+              ))}
+              {allValid && (
+                <div className="text-xs text-white/50 text-right">
+                  Total: <strong className="text-white/80">{formatInt(totalRows)}</strong> filas
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Errors */}
+          {results.some(r => !r.result.ok) &&
+            results.filter(r => !r.result.ok).map((r, i) => (
+              <IssueList key={i} result={r.result as Extract<ParseResult, { ok: false }>} />
+            ))
+          }
+
+          {uploadError && (
+            <div className="rounded-xl border border-red-400/15 bg-red-400/5 p-3 text-xs text-red-200">
+              {uploadError}
+            </div>
+          )}
+
+          {/* Current Data Info */}
+          {meta && (
+            <div className="text-xs text-white/45 p-2 rounded-lg bg-white/3 border border-white/10">
+              Datos actuales: <strong>{meta.sourceFileName}</strong> · {formatInt(meta.rowCount)} filas ·
+              Importado {new Date(meta.importedAtISO).toLocaleString("es-CL")}
+            </div>
+          )}
+
+          {/* Upload Button */}
+          <Button
+            className="w-full"
+            disabled={!canUpload}
+            onClick={handleUpload}
+          >
+            {uploading
+              ? uploadProgress || "Subiendo…"
+              : mode === "append"
+                ? `Agregar ${formatInt(totalRows)} filas`
+                : `Reemplazar con ${formatInt(totalRows)} filas`
+            }
+          </Button>
+
+          {/* Preview */}
+          {results.length === 1 && results[0]!.result.preview?.length ? (
+            <div className="space-y-1">
+              <div className="text-xs text-white/70 font-medium">Preview</div>
+              <PreviewGrid rows={results[0]!.result.preview} />
+            </div>
+          ) : null}
         </DialogContent>
       </Dialog>
-    </TooltipProvider>
+    </>
   );
 }

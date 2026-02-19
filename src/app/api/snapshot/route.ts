@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { parseXlsxFile } from "@/lib/data-processing/parse-xlsx";
-import { getActiveSnapshot, replaceSnapshot } from "@/lib/supabase/snapshot";
+import { getActiveSnapshot, replaceSnapshot, appendSnapshot } from "@/lib/supabase/snapshot";
 
 export const runtime = "nodejs";
 
@@ -10,9 +10,7 @@ export async function GET() {
     const dataset = await getActiveSnapshot();
     if (!dataset) return new NextResponse(null, { status: 204 });
     return NextResponse.json(dataset, {
-      headers: {
-        "Cache-Control": "no-store",
-      },
+      headers: { "Cache-Control": "no-store" },
     });
   } catch (e) {
     return NextResponse.json(
@@ -23,7 +21,6 @@ export async function GET() {
 }
 
 function assertAdmin(req: Request) {
-  // Fallback to "admin123" if env is missing, to avoid "Server misconfigured"
   const expected = process.env.DASHBOARD_ADMIN_KEY || "admin123";
   if (!expected) {
     return { ok: false as const, status: 500, message: "Server misconfigured." };
@@ -53,6 +50,7 @@ export async function POST(req: Request) {
       );
     }
 
+    const mode = req.headers.get("x-upload-mode") === "append" ? "append" : "replace";
     const form = await req.formData();
     const file = form.get("file");
     if (!(file instanceof File)) {
@@ -67,14 +65,22 @@ export async function POST(req: Request) {
       return NextResponse.json(parsed, { status: 400 });
     }
 
-    await replaceSnapshot(parsed.dataset);
-    return NextResponse.json(
-      { ok: true, meta: parsed.dataset.meta },
-      { status: 200 },
-    );
+    if (mode === "append") {
+      const result = await appendSnapshot(parsed.dataset);
+      return NextResponse.json(
+        { ok: true, mode: "append", meta: result.meta, totalRows: result.totalRows },
+        { status: 200 },
+      );
+    } else {
+      await replaceSnapshot(parsed.dataset);
+      return NextResponse.json(
+        { ok: true, mode: "replace", meta: parsed.dataset.meta },
+        { status: 200 },
+      );
+    }
   } catch (e) {
     console.error("POST /api/snapshot error:", e);
-    const message = e instanceof Error ? e.message : typeof e === 'object' ? JSON.stringify(e) : "Unknown error";
+    const message = e instanceof Error ? e.message : typeof e === "object" ? JSON.stringify(e) : "Unknown error";
     return NextResponse.json(
       { ok: false, error: message },
       { status: 500 },
