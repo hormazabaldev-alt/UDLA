@@ -8,8 +8,8 @@ export function GaugeChart({ value = 75, title = "Score" }: { value?: number, ti
         series: [
             {
                 type: 'gauge',
-                startAngle: 90,
-                endAngle: -270,
+                startAngle: 180,
+                endAngle: 0,
                 pointer: { show: false },
                 progress: {
                     show: true,

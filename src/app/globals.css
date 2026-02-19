@@ -1,17 +1,22 @@
 @import "tailwindcss";
 
 :root {
-  --background: #050505;
-  /* Deep black for higher contrast */
-  --foreground: #eaf0ff;
-  --muted: rgba(255, 255, 255, 0.55);
+  --background: #000000;
+  /* True Black */
+  --foreground: #ffffff;
+  --muted: #a3a3a3;
 
-  /* Premium Glass Variables */
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-surface: rgba(20, 20, 25, 0.7);
-  --neon-cyan: #00f2ea;
-  --neon-purple: #b026ff;
-  --neon-blue: #2979ff;
+  /* Power BI Palette */
+  --pbi-cyan: #00b4d8;
+  --pbi-blue: #0077b6;
+  --pbi-orange: #fca311;
+  --pbi-dark-panel: #0a0a0a;
+  --pbi-grid-border: #1f1f1f;
+
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-surface: rgba(10, 10, 10, 0.95);
+
+  --neon-cyan: #00d4ff;
 }
 
 @theme inline {
@@ -19,71 +24,49 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
 
+  --color-pbi-cyan: var(--pbi-cyan);
+  --color-pbi-blue: var(--pbi-blue);
+  --color-pbi-orange: var(--pbi-orange);
+  --color-pbi-dark-panel: var(--pbi-dark-panel);
+
   --color-neon-cyan: var(--neon-cyan);
-  --color-neon-purple: var(--neon-purple);
-  --color-neon-blue: var(--neon-blue);
-
-  --animate-vivo-pulse: vivo-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-
-  @keyframes vivo-pulse {
-
-    0%,
-    100% {
-      opacity: 1;
-      box-shadow: 0 0 10px var(--neon-cyan);
-    }
-
-    50% {
-      opacity: .5;
-      box-shadow: 0 0 2px var(--neon-cyan);
-    }
-  }
 }
 
 body {
-  background: radial-gradient(circle at 50% 0%, #1a1a2e 0%, #050505 60%);
+  background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
-}
-
-/* Premium Card Style */
-.premium-card {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
-  border: 1px solid var(--glass-border);
-  backdrop-filter: blur(12px);
-  box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.2);
-}
-
-.premium-card:hover {
-  border-color: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.3);
+  font-family: "Segoe UI", var(--font-geist-sans), sans-serif;
+  /* Segoe UI is very Power BI */
+  overflow: hidden;
+  /* App-like feel */
 }
 
 /* Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #0a0a0a;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
+  background: #333;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: #444;
 }
 
 /* AG Grid theming */
 .ag-theme-quartz-dark {
-  --ag-background-color: transparent;
-  --ag-foreground-color: rgba(255, 255, 255, 0.9);
-  --ag-header-background-color: rgba(255, 255, 255, 0.02);
-  --ag-border-color: transparent;
-  --ag-row-hover-color: rgba(255, 255, 255, 0.05);
-  --ag-font-family: var(--font-geist-sans);
+  --ag-background-color: #000000;
+  --ag-foreground-color: #ffffff;
+  --ag-header-background-color: #0a0a0a;
+  --ag-border-color: #1f1f1f;
+  --ag-row-hover-color: #111111;
+  --ag-font-family: "Segoe UI", sans-serif;
+  --ag-font-size: 13px;
 }

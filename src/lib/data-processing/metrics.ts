@@ -79,3 +79,35 @@ export function computeTotals(rows: DataRow[]): Totals {
     tcMc,
   };
 }
+
+export function computeTrend(rows: DataRow[]) {
+  // Group by Month (using Mes field)
+  const grouped = new Map<number, { stock: number; web: number }>();
+
+  for (const row of rows) {
+    if (row.mes) {
+      const current = grouped.get(row.mes) || { stock: 0, web: 0 };
+      if (row.tipoBase?.toLowerCase().includes("web")) {
+        current.web++;
+      } else {
+        // Assume anything not Web is Stock/Base
+        current.stock++;
+      }
+      grouped.set(row.mes, current);
+    }
+  }
+
+  // Sort by month
+  const months = Array.from(grouped.keys()).sort((a, b) => a - b);
+  const labels = months.map(m => `Mes ${m}`);
+  const dataStock = months.map(m => grouped.get(m)?.stock || 0);
+  const dataWeb = months.map(m => grouped.get(m)?.web || 0);
+
+  return {
+    labels,
+    datasets: [
+      { label: "Stock", data: dataStock },
+      { label: "Web", data: dataWeb },
+    ],
+  };
+}
