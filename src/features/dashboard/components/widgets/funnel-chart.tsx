@@ -3,83 +3,85 @@
 import { useMetrics } from "@/features/dashboard/hooks/useMetrics";
 import { formatInt } from "@/lib/utils/format";
 
-const FUNNEL_COLORS = [
-    "#00d4ff",
-    "#0ea5e9",
-    "#10b981",
-    "#f59e0b",
-    "#8b5cf6",
-    "#ec4899",
-];
-
-type FunnelStage = {
-    name: string;
-    value: number;
-    color: string;
-    pct: string;
-};
+const STAGES = [
+    { key: "cargada", label: "Base Cargada", gradient: "from-cyan-400 to-cyan-500" },
+    { key: "recorrido", label: "Recorrido", gradient: "from-sky-400 to-sky-500" },
+    { key: "contactado", label: "Contactados", gradient: "from-emerald-400 to-emerald-500" },
+    { key: "citas", label: "Citas", gradient: "from-amber-400 to-amber-500" },
+    { key: "af", label: "Afluencias", gradient: "from-violet-400 to-violet-500" },
+    { key: "mc", label: "Matrículas", gradient: "from-pink-400 to-pink-500" },
+] as const;
 
 export function FunnelChart() {
     const { totals } = useMetrics();
 
     const base = totals?.cargada || 1;
 
-    const stages: FunnelStage[] = [
-        { name: "Base Cargada", value: totals?.cargada || 0, color: FUNNEL_COLORS[0]!, pct: "100%" },
-        { name: "Recorrido", value: totals?.recorrido || 0, color: FUNNEL_COLORS[1]!, pct: `${((totals?.recorrido || 0) / base * 100).toFixed(1)}%` },
-        { name: "Contactados", value: totals?.contactado || 0, color: FUNNEL_COLORS[2]!, pct: `${((totals?.contactado || 0) / base * 100).toFixed(1)}%` },
-        { name: "Citas", value: totals?.citas || 0, color: FUNNEL_COLORS[3]!, pct: `${((totals?.citas || 0) / base * 100).toFixed(1)}%` },
-        { name: "Afluencias", value: totals?.af || 0, color: FUNNEL_COLORS[4]!, pct: `${((totals?.af || 0) / base * 100).toFixed(1)}%` },
-        { name: "Matrículas", value: totals?.mc || 0, color: FUNNEL_COLORS[5]!, pct: `${((totals?.mc || 0) / base * 100).toFixed(1)}%` },
-    ];
+    const data = STAGES.map((s) => {
+        const value = totals?.[s.key] ?? 0;
+        const pct = (value / base) * 100;
+        return { ...s, value, pct };
+    });
 
     return (
-        <div className="h-full w-full flex items-center justify-center py-2">
-            <div className="flex flex-col items-center w-full max-w-[500px] gap-0">
-                {stages.map((stage, i) => {
-                    // Width starts at 100% and narrows proportionally
-                    const widthPct = Math.max(
-                        ((stage.value / base) * 100),
-                        8 // minimum 8% width so it's always visible
-                    );
+        <div className="h-full w-full flex flex-col justify-center gap-1.5 px-4 py-3">
+            {data.map((stage, i) => {
+                const barWidth = Math.max(stage.pct, 6); // minimum 6% so it's always visible
+                const dropPct = i === 0 ? null : data[i - 1]!.value > 0
+                    ? (((data[i - 1]!.value - stage.value) / data[i - 1]!.value) * 100).toFixed(0)
+                    : null;
 
-                    return (
-                        <div
-                            key={i}
-                            className="relative group transition-all duration-300 hover:scale-[1.02]"
-                            style={{
-                                width: `${widthPct}%`,
-                                minWidth: "80px",
-                            }}
-                        >
-                            {/* Funnel segment */}
+                return (
+                    <div key={i} className="group flex items-center gap-3">
+                        {/* Label */}
+                        <div className="w-[100px] flex-shrink-0 text-right">
+                            <span className="text-[11px] text-white/60 group-hover:text-white/90 transition">
+                                {stage.label}
+                            </span>
+                        </div>
+
+                        {/* Bar container */}
+                        <div className="flex-1 relative h-[28px]">
+                            {/* Background track */}
+                            <div className="absolute inset-0 bg-white/[0.03] rounded-md" />
+
+                            {/* Filled bar */}
                             <div
-                                className="relative flex items-center justify-between px-4 py-2.5 text-white transition-all"
-                                style={{
-                                    backgroundColor: stage.color,
-                                    opacity: 1 - i * 0.08,
-                                    clipPath: i < stages.length - 1
-                                        ? `polygon(0 0, 100% 0, ${100 - (100 - (stages[i + 1]!.value / base * 100) / (stage.value / base * 100) * 100) / 2}% 100%, ${(100 - (stages[i + 1]!.value / base * 100) / (stage.value / base * 100) * 100) / 2}% 100%)`
-                                        : `polygon(5% 0, 95% 0, 85% 100%, 15% 100%)`,
-                                    borderRadius: i === 0 ? "6px 6px 0 0" : i === stages.length - 1 ? "0 0 4px 4px" : "0",
-                                }}
+                                className={`absolute inset-y-0 left-0 bg-gradient-to-r ${stage.gradient} rounded-md transition-all duration-500 ease-out flex items-center`}
+                                style={{ width: `${barWidth}%` }}
                             >
-                                <span className="text-xs font-semibold truncate drop-shadow-sm">
-                                    {stage.name}
-                                </span>
-                                <span className="text-xs font-bold drop-shadow-sm whitespace-nowrap ml-2">
+                                {/* Subtle shine overlay */}
+                                <div className="absolute inset-0 rounded-md bg-gradient-to-b from-white/20 to-transparent" style={{ height: '50%' }} />
+                            </div>
+
+                            {/* Value text - always visible on top */}
+                            <div className="absolute inset-0 flex items-center px-3">
+                                <span className="text-xs font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
                                     {formatInt(stage.value)}
                                 </span>
                             </div>
-
-                            {/* Percentage badge on hover */}
-                            <div className="absolute -right-16 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-white/60 whitespace-nowrap">
-                                {stage.pct} de base
-                            </div>
                         </div>
-                    );
-                })}
-            </div>
+
+                        {/* Percentage */}
+                        <div className="w-[55px] flex-shrink-0 text-right">
+                            <span className="text-[11px] font-semibold text-white/50 tabular-nums">
+                                {stage.pct.toFixed(1)}%
+                            </span>
+                        </div>
+
+                        {/* Drop indicator */}
+                        <div className="w-[40px] flex-shrink-0 text-right">
+                            {dropPct !== null && Number(dropPct) > 0 ? (
+                                <span className="text-[10px] text-red-400/70">
+                                    −{dropPct}%
+                                </span>
+                            ) : i === 0 ? (
+                                <span className="text-[10px] text-white/20">—</span>
+                            ) : null}
+                        </div>
+                    </div>
+                );
+            })}
         </div>
     );
 }
