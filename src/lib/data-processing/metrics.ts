@@ -7,6 +7,14 @@ export type Totals = {
   citas: number;
   af: number;
   mc: number;
+  // 6 core rates
+  tcLlaLeads: number | null;   // Recorrido / Base
+  tcContLla: number | null;    // Contactado / Recorrido
+  cCitasCon: number | null;    // Citas / Contactado
+  tcAfCitas: number | null;    // AF / Citas
+  tcMcAf: number | null;       // MC / AF
+  cMcLeads: number | null;     // MC / Base
+  // Legacy
   pctContactabilidad: number | null;
   pctEfectividad: number | null;
   tcAf: number | null;
@@ -55,13 +63,23 @@ export function computeTotals(rows: DataRow[]): Totals {
     }
   }
 
-  // % Contactabilidad = Contactado / Recorrido
-  const pctContactabilidad = recorrido > 0 ? contactado / recorrido : null;
-  // % Efectividad = (AF + MC) / Citas
+  // TC% Lla/Leads = Recorrido / Base Cargada
+  const tcLlaLeads = cargada > 0 ? recorrido / cargada : null;
+  // TC% Cont/Lla = Contactado / Recorrido
+  const tcContLla = recorrido > 0 ? contactado / recorrido : null;
+  // C% Citas/Con = Citas / Contactado
+  const cCitasCon = contactado > 0 ? citas / contactado : null;
+  // TC% AF/Citas = AF / Citas
+  const tcAfCitas = citas > 0 ? af / citas : null;
+  // TC% MC/AF = MC / AF
+  const tcMcAf = af > 0 ? mc / af : null;
+  // C% MC/Leads = MC / Base Cargada
+  const cMcLeads = cargada > 0 ? mc / cargada : null;
+
+  // Legacy aliases (keep backward compat)
+  const pctContactabilidad = tcContLla;
   const pctEfectividad = citas > 0 ? (af + mc) / citas : null;
-  // Tasa Conversión AF = AF / Citas
-  const tcAf = citas > 0 ? af / citas : null;
-  // Tasa Conversión MC = MC / Citas
+  const tcAf = tcAfCitas;
   const tcMc = citas > 0 ? mc / citas : null;
 
   return {
@@ -71,6 +89,14 @@ export function computeTotals(rows: DataRow[]): Totals {
     citas,
     af,
     mc,
+    // New 6 rates
+    tcLlaLeads,
+    tcContLla,
+    cCitasCon,
+    tcAfCitas,
+    tcMcAf,
+    cMcLeads,
+    // Legacy
     pctContactabilidad,
     pctEfectividad,
     tcAf,

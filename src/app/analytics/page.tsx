@@ -233,7 +233,7 @@ export default function AnalyticsPage() {
         };
     }, [rows, availableWeeks, selectedWeeks, selectedMetrics]);
 
-    // --------- CHART 4: Conversion Rate Trend -----------
+    // --------- CHART 4: Conversion Rate Trend (6 correct rates) -----------
     const conversionChart = useMemo(() => {
         const months = selectedMonths.length > 0
             ? availableMonths.filter(m => selectedMonths.includes(String(m)))
@@ -242,17 +242,19 @@ export default function AnalyticsPage() {
 
         const rates = months.map(m => {
             const mRows = rows.filter(r => r.mes === m);
-            const base = mRows.length || 1;
+            const base = mRows.reduce((s, r) => s + computeRowKPI(r, "cargada"), 0);
+            const recorrido = mRows.reduce((s, r) => s + computeRowKPI(r, "recorrido"), 0);
             const contactado = mRows.reduce((s, r) => s + computeRowKPI(r, "contactado"), 0);
             const citas = mRows.reduce((s, r) => s + computeRowKPI(r, "citas"), 0);
             const afluencia = mRows.reduce((s, r) => s + computeRowKPI(r, "af"), 0);
             const mc = mRows.reduce((s, r) => s + computeRowKPI(r, "mc"), 0);
-            const recorrido = mRows.reduce((s, r) => s + computeRowKPI(r, "recorrido"), 0);
             return {
-                contactabilidad: recorrido > 0 ? (contactado / recorrido * 100) : 0,
-                citasRate: base > 0 ? (citas / base * 100) : 0,
-                afRate: citas > 0 ? (afluencia / citas * 100) : 0,
-                mcRate: citas > 0 ? (mc / citas * 100) : 0,
+                tcLlaLeads: base > 0 ? (recorrido / base * 100) : 0,
+                tcContLla: recorrido > 0 ? (contactado / recorrido * 100) : 0,
+                cCitasCon: contactado > 0 ? (citas / contactado * 100) : 0,
+                tcAfCitas: citas > 0 ? (afluencia / citas * 100) : 0,
+                tcMcAf: afluencia > 0 ? (mc / afluencia * 100) : 0,
+                cMcLeads: base > 0 ? (mc / base * 100) : 0,
             };
         });
 
@@ -265,15 +267,17 @@ export default function AnalyticsPage() {
                     return params.map(p => `${p.marker} ${p.seriesName}: ${p.value.toFixed(1)}%`).join("<br/>");
                 }
             },
-            legend: { data: ["% Contactabilidad", "% Citas/Base", "% AF/Citas", "% MC/Citas"], textStyle: { color: "#aaa", fontSize: 10 }, bottom: 0, itemWidth: 10, itemHeight: 8 },
-            grid: { left: "3%", right: "4%", bottom: "15%", top: "8%", containLabel: true },
+            legend: { data: ["TC% Lla/Leads", "TC% Cont/Lla", "C% Citas/Con", "TC% AF/Citas", "TC% MC/AF", "C% MC/Leads"], textStyle: { color: "#aaa", fontSize: 9 }, bottom: 0, itemWidth: 10, itemHeight: 8 },
+            grid: { left: "3%", right: "4%", bottom: "18%", top: "8%", containLabel: true },
             xAxis: { type: "category", data: labels, axisLine: { lineStyle: { color: "#333" } }, axisLabel: { color: "#888", fontSize: 10 }, axisTick: { show: false }, boundaryGap: false },
             yAxis: { type: "value", splitLine: { lineStyle: { color: "#1a1a1a" } }, axisLabel: { color: "#888", fontSize: 10, formatter: "{value}%" } },
             series: [
-                { name: "% Contactabilidad", type: "line", data: rates.map(r => +r.contactabilidad.toFixed(1)), itemStyle: { color: "#10b981" }, lineStyle: { width: 2 }, smooth: true, symbol: "circle", symbolSize: 5 },
-                { name: "% Citas/Base", type: "line", data: rates.map(r => +r.citasRate.toFixed(1)), itemStyle: { color: "#f59e0b" }, lineStyle: { width: 2 }, smooth: true, symbol: "circle", symbolSize: 5 },
-                { name: "% AF/Citas", type: "line", data: rates.map(r => +r.afRate.toFixed(1)), itemStyle: { color: "#8b5cf6" }, lineStyle: { width: 2 }, smooth: true, symbol: "circle", symbolSize: 5 },
-                { name: "% MC/Citas", type: "line", data: rates.map(r => +r.mcRate.toFixed(1)), itemStyle: { color: "#ec4899" }, lineStyle: { width: 2 }, smooth: true, symbol: "circle", symbolSize: 5 },
+                { name: "TC% Lla/Leads", type: "line", data: rates.map(r => +r.tcLlaLeads.toFixed(1)), itemStyle: { color: "#00d4ff" }, lineStyle: { width: 2 }, smooth: true, symbol: "circle", symbolSize: 5 },
+                { name: "TC% Cont/Lla", type: "line", data: rates.map(r => +r.tcContLla.toFixed(1)), itemStyle: { color: "#10b981" }, lineStyle: { width: 2 }, smooth: true, symbol: "circle", symbolSize: 5 },
+                { name: "C% Citas/Con", type: "line", data: rates.map(r => +r.cCitasCon.toFixed(1)), itemStyle: { color: "#f59e0b" }, lineStyle: { width: 2 }, smooth: true, symbol: "circle", symbolSize: 5 },
+                { name: "TC% AF/Citas", type: "line", data: rates.map(r => +r.tcAfCitas.toFixed(1)), itemStyle: { color: "#8b5cf6" }, lineStyle: { width: 2 }, smooth: true, symbol: "circle", symbolSize: 5 },
+                { name: "TC% MC/AF", type: "line", data: rates.map(r => +r.tcMcAf.toFixed(1)), itemStyle: { color: "#ec4899" }, lineStyle: { width: 2 }, smooth: true, symbol: "circle", symbolSize: 5 },
+                { name: "C% MC/Leads", type: "line", data: rates.map(r => +r.cMcLeads.toFixed(1)), itemStyle: { color: "#f43f5e" }, lineStyle: { width: 2, type: "dashed" }, smooth: true, symbol: "diamond", symbolSize: 5 },
             ],
         };
     }, [rows, availableMonths, selectedMonths]);

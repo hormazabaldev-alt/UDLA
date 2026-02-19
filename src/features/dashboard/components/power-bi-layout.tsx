@@ -202,22 +202,30 @@ export function PowerBILayout() {
                     </div>
 
                     {/* Row 2: 4 Gauges horizontal */}
-                    <div className="grid grid-cols-4 gap-3 h-[130px]">
+                    <div className="grid grid-cols-6 gap-2 h-[120px]">
                         <div className="bg-[#080808] border border-[#1f1f1f] rounded-sm relative flex flex-col items-center justify-center">
-                            <span className="absolute top-1.5 left-2.5 text-[10px] text-white/50 font-medium">% Contactabilidad</span>
-                            <GaugeChart title="" value={Math.round((totals?.pctContactabilidad || 0) * 100)} />
+                            <span className="absolute top-1.5 left-2 text-[9px] text-white/50 font-medium">TC% Lla/Leads</span>
+                            <GaugeChart title="" value={Math.round((totals?.tcLlaLeads || 0) * 100)} />
                         </div>
                         <div className="bg-[#080808] border border-[#1f1f1f] rounded-sm relative flex flex-col items-center justify-center">
-                            <span className="absolute top-1.5 left-2.5 text-[10px] text-white/50 font-medium">% Efectividad</span>
-                            <GaugeChart title="" value={Math.round((totals?.pctEfectividad || 0) * 100)} />
+                            <span className="absolute top-1.5 left-2 text-[9px] text-white/50 font-medium">TC% Cont/Lla</span>
+                            <GaugeChart title="" value={Math.round((totals?.tcContLla || 0) * 100)} />
                         </div>
                         <div className="bg-[#080808] border border-[#1f1f1f] rounded-sm relative flex flex-col items-center justify-center">
-                            <span className="absolute top-1.5 left-2.5 text-[10px] text-white/50 font-medium">Tc% AF / Citas</span>
-                            <GaugeChart title="" value={Math.round((totals?.tcAf || 0) * 100)} />
+                            <span className="absolute top-1.5 left-2 text-[9px] text-white/50 font-medium">C% Citas/Con</span>
+                            <GaugeChart title="" value={Math.round((totals?.cCitasCon || 0) * 100)} />
                         </div>
                         <div className="bg-[#080808] border border-[#1f1f1f] rounded-sm relative flex flex-col items-center justify-center">
-                            <span className="absolute top-1.5 left-2.5 text-[10px] text-white/50 font-medium">Tc% MC / Citas</span>
-                            <GaugeChart title="" value={Math.round((totals?.tcMc || 0) * 100)} />
+                            <span className="absolute top-1.5 left-2 text-[9px] text-white/50 font-medium">TC% AF/Citas</span>
+                            <GaugeChart title="" value={Math.round((totals?.tcAfCitas || 0) * 100)} />
+                        </div>
+                        <div className="bg-[#080808] border border-[#1f1f1f] rounded-sm relative flex flex-col items-center justify-center">
+                            <span className="absolute top-1.5 left-2 text-[9px] text-white/50 font-medium">TC% MC/AF</span>
+                            <GaugeChart title="" value={Math.round((totals?.tcMcAf || 0) * 100)} />
+                        </div>
+                        <div className="bg-[#080808] border border-[#1f1f1f] rounded-sm relative flex flex-col items-center justify-center">
+                            <span className="absolute top-1.5 left-2 text-[9px] text-white/50 font-medium">C% MC/Leads</span>
+                            <GaugeChart title="" value={Math.round((totals?.cMcLeads || 0) * 100)} />
                         </div>
                     </div>
 
