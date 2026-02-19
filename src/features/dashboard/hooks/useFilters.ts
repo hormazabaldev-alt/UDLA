@@ -26,7 +26,11 @@ export function useFilters() {
       new Set(rows.map((r) => r.tipoBase).filter((v) => v))
     ).sort();
 
-    return { meses, dias, tipos };
+    const semanas = Array.from(
+      new Set(rows.map((r) => r.semana).filter((v): v is string => v !== null && v !== undefined))
+    ).sort();
+
+    return { meses, dias, tipos, semanas };
   }, [dataset]);
 
   const set = (partial: Partial<Filters>) => setFilters(partial);

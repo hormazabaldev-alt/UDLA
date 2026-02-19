@@ -7,6 +7,7 @@ export type Filters = {
   tipo: BaseType | "All";
   mes: number | "All";
   diaNumero: number | "All";
+  semana: string | "All";
 };
 
 export type DashboardState = {
@@ -27,6 +28,7 @@ const DEFAULT_FILTERS: Filters = {
   tipo: "All",
   mes: "All",
   diaNumero: "All",
+  semana: "All",
 };
 
 export function applyFilters(rows: DataRow[], filters: Filters): DataRow[] {
@@ -36,6 +38,7 @@ export function applyFilters(rows: DataRow[], filters: Filters): DataRow[] {
     if (filters.tipo !== "All" && r.tipoBase !== filters.tipo) return false;
     if (filters.mes !== "All" && r.mes !== filters.mes) return false;
     if (filters.diaNumero !== "All" && r.diaNumero !== filters.diaNumero) return false;
+    if (filters.semana !== "All" && r.semana !== filters.semana) return false;
     return true;
   });
 }
