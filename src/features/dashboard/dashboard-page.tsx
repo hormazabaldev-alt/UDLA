@@ -144,13 +144,20 @@ export function DashboardPage() {
 
       <Separator className="my-8 bg-white/10" />
 
-      {/* Draggable Widgets Area */}
-      <DraggableGrid
-        items={widgetOrder.filter(id => !id.startsWith('kpi'))} // KPIs are manual for now
-        onOrderChange={setWidgetOrder}
-        renderItem={renderWidget}
-        className="pb-20"
-      />
+      {/* View Logic */}
+      {useDashboardStore(s => s.currentView) === 'overview' ? (
+        <DraggableGrid
+          items={widgetOrder.filter(id => !id.startsWith('kpi'))}
+          onOrderChange={setWidgetOrder}
+          renderItem={renderWidget}
+          className="pb-20"
+        />
+      ) : (
+        <div className="flex h-[400px] w-full flex-col items-center justify-center rounded-3xl border border-dashed border-white/10 bg-white/5">
+          <p className="text-lg text-white/40">Vista {useDashboardStore(s => s.currentView)} en construcción</p>
+          <p className="text-sm text-white/20">Pronto disponible con más métricas detalladas.</p>
+        </div>
+      )}
     </DashboardShell>
   );
 }

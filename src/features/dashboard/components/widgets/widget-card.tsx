@@ -21,11 +21,11 @@ export function WidgetCard({
     return (
         <div
             className={cn(
-                "relative flex flex-col overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-surface)] shadow-lg backdrop-blur-md transition-all hover:border-[var(--color-neon-cyan)]/30 group",
+                "relative flex flex-col overflow-hidden rounded-2xl premium-card transition-all hover:border-[var(--color-neon-cyan)]/30 group",
                 className
             )}
         >
-            <div className="flex items-center justify-between border-b border-[var(--glass-border)] bg-white/5 px-4 py-3">
+            <div className="flex items-center justify-between border-b border-[var(--glass-border)] bg-black/20 px-4 py-3">
                 <div className="flex items-center gap-2">
                     {icon && <span className="text-[var(--color-neon-cyan)]">{icon}</span>}
                     <h3 className="text-sm font-semibold tracking-wide text-white/90 font-[family-name:var(--font-space-grotesk)]">

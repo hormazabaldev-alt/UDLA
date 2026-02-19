@@ -8,82 +8,55 @@ export function GaugeChart({ value = 75, title = "Score" }: { value?: number, ti
         series: [
             {
                 type: 'gauge',
-                startAngle: 180,
-                endAngle: 0,
-                min: 0,
-                max: 100,
-                splitNumber: 8,
+                startAngle: 90,
+                endAngle: -270,
+                pointer: { show: false },
+                progress: {
+                    show: true,
+                    overlap: false,
+                    roundCap: true,
+                    clip: false,
+                    itemStyle: {
+                        borderWidth: 1,
+                        borderColor: '#464646'
+                    }
+                },
                 axisLine: {
                     lineStyle: {
-                        width: 6,
-                        color: [
-                            [0.25, '#FF6E76'],
-                            [0.5, '#FDDD60'],
-                            [0.75, '#58D9F9'],
-                            [1, '#7CFFB2']
-                        ]
+                        width: 40
                     }
                 },
-                pointer: {
-                    icon: 'path://M12.8,0.7l12,40.1H0.7L12.8,0.7z',
-                    length: '12%',
-                    width: 20,
-                    offsetCenter: [0, '-60%'],
-                    itemStyle: {
-                        color: 'auto'
-                    }
-                },
-                axisTick: {
-                    length: 12,
-                    lineStyle: {
-                        color: 'auto',
-                        width: 2
-                    }
-                },
-                splitLine: {
-                    length: 20,
-                    lineStyle: {
-                        color: 'auto',
-                        width: 5
-                    }
-                },
-                axisLabel: {
-                    color: '#fff', // White text
-                    fontSize: 10,
-                    distance: -40, // Move labels inside
-                    formatter: function (value: number) {
-                        if (value === 87.5) {
-                            return 'A';
-                        } else if (value === 62.5) {
-                            return 'B';
-                        } else if (value === 37.5) {
-                            return 'C';
-                        } else if (value === 12.5) {
-                            return 'D';
-                        }
-                        return '';
-                    }
-                },
-                title: {
-                    offsetCenter: [0, '-20%'],
-                    fontSize: 14,
-                    color: '#fff'
-                },
-                detail: {
-                    fontSize: 20,
-                    offsetCenter: [0, '0%'],
-                    valueAnimation: true,
-                    formatter: function (value: number) {
-                        return Math.round(value) + '%';
-                    },
-                    color: 'auto'
-                },
+                splitLine: { show: false },
+                axisTick: { show: false },
+                axisLabel: { show: false },
                 data: [
                     {
                         value: value,
-                        name: title
+                        name: title,
+                        title: {
+                            offsetCenter: ['0%', '-20%'],
+                            fontSize: 12,
+                            color: '#fff'
+                        },
+                        detail: {
+                            valueAnimation: true,
+                            offsetCenter: ['0%', '20%'],
+                            fontSize: 20,
+                            fontWeight: 'bold',
+                            color: 'inherit',
+                            formatter: '{value}%'
+
+                        }
                     }
-                ]
+                ],
+                detail: {
+                    fontSize: 24,
+                    color: 'auto',
+                    borderColor: 'auto',
+                    borderRadius: 20,
+                    borderWidth: 1,
+                    formatter: '{value}%'
+                }
             }
         ]
     };

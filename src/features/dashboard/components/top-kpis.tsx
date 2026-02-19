@@ -77,12 +77,12 @@ function KpiCard({
   return (
     <Card
       className={cn(
-        "relative overflow-hidden",
+        "relative overflow-hidden premium-card border-0",
         tone === "success"
-          ? "border-emerald-400/15 bg-emerald-400/4"
+          ? "border-emerald-500/30 bg-emerald-500/5 shadow-[0_0_20px_rgba(16,185,129,0.1)]"
           : null,
-        tone === "danger" ? "border-red-400/15 bg-red-400/4" : null,
-        tone === "info" ? "border-cyan-400/15 bg-cyan-400/4" : null,
+        tone === "danger" ? "border-red-500/30 bg-red-500/5 shadow-[0_0_20px_rgba(239,68,68,0.1)]" : null,
+        tone === "info" ? "border-cyan-500/30 bg-cyan-500/5 shadow-[0_0_20px_rgba(6,182,212,0.1)]" : null,
       )}
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(600px_260px_at_30%_0%,rgba(255,255,255,0.05),transparent_60%)]" />

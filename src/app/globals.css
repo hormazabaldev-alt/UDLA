@@ -1,59 +1,89 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0b0f17;
+  --background: #050505;
+  /* Deep black for higher contrast */
   --foreground: #eaf0ff;
   --muted: rgba(255, 255, 255, 0.55);
-  --muted-2: rgba(255, 255, 255, 0.35);
-  --panel: rgba(255, 255, 255, 0.04);
-  --panel-2: rgba(255, 255, 255, 0.06);
+
+  /* Premium Glass Variables */
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-surface: rgba(20, 20, 25, 0.7);
+  --neon-cyan: #00f2ea;
+  --neon-purple: #b026ff;
+  --neon-blue: #2979ff;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  
-  --color-neon-cyan: #06d0f9;
-  --color-neon-purple: #9b51e0;
-  
+
+  --color-neon-cyan: var(--neon-cyan);
+  --color-neon-purple: var(--neon-purple);
+  --color-neon-blue: var(--neon-blue);
+
   --animate-vivo-pulse: vivo-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  
+
   @keyframes vivo-pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: .5; }
+
+    0%,
+    100% {
+      opacity: 1;
+      box-shadow: 0 0 10px var(--neon-cyan);
+    }
+
+    50% {
+      opacity: .5;
+      box-shadow: 0 0 2px var(--neon-cyan);
+    }
   }
 }
 
-
 body {
-  background: var(--background);
+  background: radial-gradient(circle at 50% 0%, #1a1a2e 0%, #050505 60%);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system,
-    "Segoe UI", Roboto, "Helvetica Neue", Arial, "Apple Color Emoji",
-    "Segoe UI Emoji";
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
-::selection {
-  background: rgba(34, 211, 238, 0.25);
+/* Premium Card Style */
+.premium-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.2);
 }
 
-/* AG Grid theming (quartz dark baseline + subtle glass) */
-.ag-theme-quartz-dark {
-  --ag-background-color: #0b0f17;
-  --ag-foreground-color: rgba(255, 255, 255, 0.82);
-  --ag-subtle-text-color: rgba(255, 255, 255, 0.55);
-  --ag-header-background-color: rgba(255, 255, 255, 0.04);
-  --ag-border-color: rgba(255, 255, 255, 0.08);
-  --ag-row-hover-color: rgba(255, 255, 255, 0.05);
-  --ag-selected-row-background-color: rgba(34, 211, 238, 0.12);
-  --ag-font-family: var(--font-geist-sans), ui-sans-serif, system-ui;
-  --ag-control-panel-background-color: rgba(255, 255, 255, 0.03);
-  --ag-header-foreground-color: rgba(255, 255, 255, 0.7);
-  --ag-chip-background-color: rgba(255, 255, 255, 0.06);
+.premium-card:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.3);
 }
 
-.ag-theme-quartz-dark .ag-root-wrapper {
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
   background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* AG Grid theming */
+.ag-theme-quartz-dark {
+  --ag-background-color: transparent;
+  --ag-foreground-color: rgba(255, 255, 255, 0.9);
+  --ag-header-background-color: rgba(255, 255, 255, 0.02);
+  --ag-border-color: transparent;
+  --ag-row-hover-color: rgba(255, 255, 255, 0.05);
+  --ag-font-family: var(--font-geist-sans);
 }

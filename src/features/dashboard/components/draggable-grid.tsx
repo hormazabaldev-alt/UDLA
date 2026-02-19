@@ -73,7 +73,7 @@ export function DraggableGrid({ items, onOrderChange, renderItem, className }: D
             onDragEnd={handleDragEnd}
         >
             <SortableContext items={items} strategy={rectSortingStrategy}>
-                <div className={cn("grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4", className)}>
+                <div className={cn("grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6", className)}>
                     {items.map((id) => (
                         <SortableItem key={id} id={id}>
                             {renderItem(id)}

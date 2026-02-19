@@ -13,10 +13,12 @@ export type DashboardState = {
   dataset: Dataset | null;
   filters: Filters;
   comparisonMode: "week" | "day";
+  currentView: "overview" | "analytics" | "reports" | "live";
   widgetOrder: string[];
   setDataset: (dataset: Dataset | null) => void;
   setFilters: (filters: Partial<Filters>) => void;
   setComparisonMode: (mode: "week" | "day") => void;
+  setCurrentView: (view: "overview" | "analytics" | "reports" | "live") => void;
   setWidgetOrder: (order: string[]) => void;
   resetFilters: () => void;
 };
@@ -53,12 +55,14 @@ export const useDashboardStore = create<DashboardState>((set) => ({
       filters: DEFAULT_FILTERS,
     })),
   comparisonMode: "week",
+  currentView: "overview", // Default view
   widgetOrder: ["kpi-1", "kpi-2", "kpi-3", "kpi-4", "chart-main", "gauge-group", "funnel", "table"],
   setFilters: (filters) =>
     set((state) => ({
       filters: { ...state.filters, ...filters },
     })),
   setComparisonMode: (mode) => set(() => ({ comparisonMode: mode })),
+  setCurrentView: (view) => set(() => ({ currentView: view })),
   setWidgetOrder: (order) => set(() => ({ widgetOrder: order })),
   resetFilters: () => set(() => ({ filters: DEFAULT_FILTERS })),
 }));
