@@ -36,9 +36,9 @@ export function computeTotals(rows: DataRow[]): Totals {
       contactado++;
     }
 
-    // CITAS = contar filas donde "Interesa" tiene algún valor (no vacío/null)
-    const interesaVal = row.interesa?.trim() ?? "";
-    if (interesaVal.length > 0) {
+    // CITAS = contar filas donde "Interesa" = "Viene"
+    const interesaVal = row.interesa?.trim().toLowerCase() ?? "";
+    if (interesaVal === "viene") {
       citas++;
     }
 
