@@ -2,10 +2,10 @@
 
 import { useState, useMemo } from "react";
 import ReactECharts from "echarts-for-react";
-import { ArrowLeft, BarChart3, TrendingUp } from "lucide-react";
-import { useDashboardStore } from "@/store/dashboard-store";
+import { ArrowLeft, BarChart3, TrendingUp, Loader2 } from "lucide-react";
 import { formatInt } from "@/lib/utils/format";
 import type { DataRow } from "@/lib/data-processing/types";
+import { useData } from "@/features/dashboard/hooks/useData";
 
 // ---------- Types ----------
 type Metric = "cargada" | "recorrido" | "contactado" | "citas" | "af" | "mc";
@@ -75,24 +75,35 @@ function MultiSelect({ label, options, selected, onChange }: {
         }
     };
     return (
-        <div className="space-y-1.5">
+        <div className="space-y-2">
             <div className="text-[10px] text-[#00d4ff] uppercase font-bold tracking-wider">{label}</div>
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-1.5">
+                {options.length === 0 && (
+                    <span className="text-[11px] text-white/30 italic">Sin datos</span>
+                )}
                 {options.map(o => (
                     <button
                         key={o.value}
                         onClick={() => toggle(o.value)}
-                        className="px-2 py-1 rounded text-[11px] font-medium transition border"
+                        className="px-2.5 py-1.5 rounded-md text-[11px] font-medium transition border cursor-pointer"
                         style={{
-                            backgroundColor: selected.includes(o.value) ? "rgba(0,212,255,0.15)" : "transparent",
-                            borderColor: selected.includes(o.value) ? "#00d4ff" : "rgba(255,255,255,0.1)",
-                            color: selected.includes(o.value) ? "#00d4ff" : "rgba(255,255,255,0.4)",
+                            backgroundColor: selected.includes(o.value) ? "rgba(0,212,255,0.15)" : "rgba(255,255,255,0.03)",
+                            borderColor: selected.includes(o.value) ? "#00d4ff" : "rgba(255,255,255,0.08)",
+                            color: selected.includes(o.value) ? "#00d4ff" : "rgba(255,255,255,0.5)",
                         }}
                     >
                         {o.label}
                     </button>
                 ))}
             </div>
+            {selected.length > 0 && (
+                <button
+                    onClick={() => onChange([])}
+                    className="text-[10px] text-white/30 hover:text-white/60 transition"
+                >
+                    Limpiar selección
+                </button>
+            )}
         </div>
     );
 }
@@ -105,14 +116,15 @@ function ChartCard({ title, icon, children }: { title: string; icon?: React.Reac
                 {icon}
                 <span className="text-xs font-bold uppercase text-white/50 tracking-wider">{title}</span>
             </div>
-            <div className="flex-1 p-3 min-h-[300px]">{children}</div>
+            <div className="flex-1 p-3 min-h-[320px]">{children}</div>
         </div>
     );
 }
 
 // ---------- Main Analytics Page ----------
 export default function AnalyticsPage() {
-    const dataset = useDashboardStore((s) => s.dataset);
+    // Load data from Supabase/localStorage (same as dashboard)
+    const { dataset, hydrating } = useData();
     const rows = dataset?.rows ?? [];
 
     // Available options
@@ -291,8 +303,34 @@ export default function AnalyticsPage() {
         }));
     }, [filteredRows]);
 
+    // Loading state
+    if (hydrating) {
+        return (
+            <div className="min-h-screen bg-black text-white flex items-center justify-center">
+                <div className="flex items-center gap-3 text-white/50">
+                    <Loader2 className="size-5 animate-spin" />
+                    Cargando datos...
+                </div>
+            </div>
+        );
+    }
+
+    if (rows.length === 0) {
+        return (
+            <div className="min-h-screen bg-black text-white flex items-center justify-center">
+                <div className="text-center space-y-3">
+                    <h2 className="text-xl font-bold">Sin datos</h2>
+                    <p className="text-white/50 text-sm">Carga un archivo Excel primero desde el Dashboard.</p>
+                    <a href="/" className="inline-flex items-center gap-1 text-[#00d4ff] text-sm hover:underline">
+                        <ArrowLeft className="size-4" /> Ir al Dashboard
+                    </a>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="min-h-screen bg-black text-white font-sans">
+        <div className="min-h-screen bg-black text-white font-sans overflow-y-auto">
             {/* Header */}
             <div className="sticky top-0 z-20 bg-black/95 backdrop-blur-sm border-b border-[#1f1f1f]">
                 <div className="max-w-[1600px] mx-auto px-6 py-3 flex items-center justify-between">
@@ -316,11 +354,11 @@ export default function AnalyticsPage() {
                 </div>
             </div>
 
-            <div className="max-w-[1600px] mx-auto px-6 py-6">
+            <div className="max-w-[1600px] mx-auto px-6 py-6 space-y-6">
                 {/* Controls */}
-                <div className="grid grid-cols-[1fr_1fr] gap-4 mb-6">
+                <div className="grid grid-cols-[1fr_1fr] gap-4">
                     {/* Left: Dimension selectors */}
-                    <div className="bg-[#080808] border border-[#1f1f1f] rounded-lg p-4 space-y-4">
+                    <div className="bg-[#080808] border border-[#1f1f1f] rounded-lg p-4 space-y-5">
                         <div className="text-xs font-bold text-white/60 uppercase tracking-wider flex items-center gap-2">
                             <BarChart3 className="size-3.5" /> Dimensiones
                         </div>
@@ -369,8 +407,7 @@ export default function AnalyticsPage() {
                             ))}
                         </div>
                         <div className="text-[10px] text-white/30">
-                            Selecciona las métricas que deseas visualizar en los gráficos.
-                            Al menos una debe estar activa.
+                            Selecciona las métricas que deseas visualizar. Al menos una debe estar activa.
                         </div>
                         <div className="flex gap-2 mt-2">
                             <button
