@@ -36,9 +36,6 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: "Segoe UI", var(--font-geist-sans), sans-serif;
-  /* Segoe UI is very Power BI */
-  overflow: hidden;
-  /* App-like feel */
 }
 
 /* Scrollbar */
