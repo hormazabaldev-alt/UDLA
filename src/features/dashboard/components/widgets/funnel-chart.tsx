@@ -1,91 +1,85 @@
 "use client";
 
-import ReactECharts from "echarts-for-react";
 import { useMetrics } from "@/features/dashboard/hooks/useMetrics";
 import { formatInt } from "@/lib/utils/format";
+
+const FUNNEL_COLORS = [
+    "#00d4ff",
+    "#0ea5e9",
+    "#10b981",
+    "#f59e0b",
+    "#8b5cf6",
+    "#ec4899",
+];
+
+type FunnelStage = {
+    name: string;
+    value: number;
+    color: string;
+    pct: string;
+};
 
 export function FunnelChart() {
     const { totals } = useMetrics();
 
-    const funnelData = [
-        { value: totals?.cargada || 0, name: "Base Cargada" },
-        { value: totals?.recorrido || 0, name: "Recorrido" },
-        { value: totals?.contactado || 0, name: "Contactados" },
-        { value: totals?.citas || 0, name: "Citas" },
-        { value: totals?.af || 0, name: "Afluencias" },
-        { value: totals?.mc || 0, name: "Matrículas" },
-    ];
+    const base = totals?.cargada || 1;
 
-    const colors = [
-        "rgba(0, 212, 255, 0.85)",  // cyan
-        "rgba(14, 165, 233, 0.80)", // sky
-        "rgba(16, 185, 129, 0.75)", // emerald
-        "rgba(245, 158, 11, 0.75)", // amber
-        "rgba(139, 92, 246, 0.80)", // violet
-        "rgba(236, 72, 153, 0.85)", // pink
+    const stages: FunnelStage[] = [
+        { name: "Base Cargada", value: totals?.cargada || 0, color: FUNNEL_COLORS[0]!, pct: "100%" },
+        { name: "Recorrido", value: totals?.recorrido || 0, color: FUNNEL_COLORS[1]!, pct: `${((totals?.recorrido || 0) / base * 100).toFixed(1)}%` },
+        { name: "Contactados", value: totals?.contactado || 0, color: FUNNEL_COLORS[2]!, pct: `${((totals?.contactado || 0) / base * 100).toFixed(1)}%` },
+        { name: "Citas", value: totals?.citas || 0, color: FUNNEL_COLORS[3]!, pct: `${((totals?.citas || 0) / base * 100).toFixed(1)}%` },
+        { name: "Afluencias", value: totals?.af || 0, color: FUNNEL_COLORS[4]!, pct: `${((totals?.af || 0) / base * 100).toFixed(1)}%` },
+        { name: "Matrículas", value: totals?.mc || 0, color: FUNNEL_COLORS[5]!, pct: `${((totals?.mc || 0) / base * 100).toFixed(1)}%` },
     ];
-
-    const option = {
-        backgroundColor: "transparent",
-        tooltip: {
-            trigger: "item",
-            formatter: (params: { name: string; value: number }) => {
-                const base = funnelData[0]?.value || 1;
-                const pct = ((params.value / base) * 100).toFixed(1);
-                return `<strong>${params.name}</strong><br/>${formatInt(params.value)} <span style="color:#aaa">(${pct}% de Base)</span>`;
-            },
-            backgroundColor: "rgba(0,0,0,0.9)",
-            borderColor: "#333",
-            textStyle: { color: "#fff", fontSize: 12 },
-        },
-        series: [
-            {
-                name: "Embudo",
-                type: "funnel",
-                left: "15%",
-                top: 20,
-                bottom: 20,
-                width: "70%",
-                min: 0,
-                max: funnelData[0]?.value || 100,
-                minSize: "8%",
-                maxSize: "100%",
-                sort: "descending",
-                gap: 4,
-                label: {
-                    show: true,
-                    position: "inside",
-                    color: "#fff",
-                    fontSize: 11,
-                    fontWeight: 500,
-                    formatter: (params: { name: string; value: number }) =>
-                        `${params.name}  ${formatInt(params.value)}`,
-                },
-                labelLine: { show: false },
-                itemStyle: {
-                    borderColor: "rgba(0,0,0,0.3)",
-                    borderWidth: 1,
-                    borderRadius: [4, 4, 0, 0],
-                },
-                emphasis: {
-                    label: { fontSize: 13, fontWeight: "bold" },
-                    itemStyle: { shadowBlur: 15, shadowColor: "rgba(0, 212, 255, 0.3)" },
-                },
-                data: funnelData.map((item, i) => ({
-                    ...item,
-                    itemStyle: { color: colors[i] },
-                })),
-            },
-        ],
-    };
 
     return (
-        <div className="h-full w-full min-h-[200px]">
-            <ReactECharts
-                option={option}
-                style={{ height: "100%", width: "100%" }}
-                opts={{ renderer: "svg" }}
-            />
+        <div className="h-full w-full flex items-center justify-center py-2">
+            <div className="flex flex-col items-center w-full max-w-[500px] gap-0">
+                {stages.map((stage, i) => {
+                    // Width starts at 100% and narrows proportionally
+                    const widthPct = Math.max(
+                        ((stage.value / base) * 100),
+                        8 // minimum 8% width so it's always visible
+                    );
+
+                    return (
+                        <div
+                            key={i}
+                            className="relative group transition-all duration-300 hover:scale-[1.02]"
+                            style={{
+                                width: `${widthPct}%`,
+                                minWidth: "80px",
+                            }}
+                        >
+                            {/* Funnel segment */}
+                            <div
+                                className="relative flex items-center justify-between px-4 py-2.5 text-white transition-all"
+                                style={{
+                                    backgroundColor: stage.color,
+                                    opacity: 1 - i * 0.08,
+                                    clipPath: i < stages.length - 1
+                                        ? `polygon(0 0, 100% 0, ${100 - (100 - (stages[i + 1]!.value / base * 100) / (stage.value / base * 100) * 100) / 2}% 100%, ${(100 - (stages[i + 1]!.value / base * 100) / (stage.value / base * 100) * 100) / 2}% 100%)`
+                                        : `polygon(5% 0, 95% 0, 85% 100%, 15% 100%)`,
+                                    borderRadius: i === 0 ? "6px 6px 0 0" : i === stages.length - 1 ? "0 0 4px 4px" : "0",
+                                }}
+                            >
+                                <span className="text-xs font-semibold truncate drop-shadow-sm">
+                                    {stage.name}
+                                </span>
+                                <span className="text-xs font-bold drop-shadow-sm whitespace-nowrap ml-2">
+                                    {formatInt(stage.value)}
+                                </span>
+                            </div>
+
+                            {/* Percentage badge on hover */}
+                            <div className="absolute -right-16 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-white/60 whitespace-nowrap">
+                                {stage.pct} de base
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
         </div>
     );
 }

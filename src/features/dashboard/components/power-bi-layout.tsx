@@ -117,8 +117,9 @@ export function PowerBILayout() {
             <aside className="w-[240px] flex-shrink-0 bg-[#050505] border-r border-[#1f1f1f] flex flex-col">
                 <div className="p-5 border-b border-[#1f1f1f]">
                     <h1 className="text-xl font-bold tracking-tighter text-white">
-                        Altius <span className="text-[#00d4ff] block text-sm font-normal">Analytics Dashboard</span>
+                        Dashboard <span className="text-[#00d4ff]">UDLA</span>
                     </h1>
+                    <p className="text-xs text-white/50 mt-1">Bienvenido David</p>
                 </div>
                 <div className="p-5 flex-1 overflow-y-auto space-y-6">
                     <VerticalFilters />
