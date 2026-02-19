@@ -28,7 +28,11 @@ export function useFilters() {
 
     const semanas = Array.from(
       new Set(rows.map((r) => r.semana).filter((v): v is string => v !== null && v !== undefined))
-    ).sort();
+    ).sort((a, b) => {
+      const numA = parseInt(a.replace(/\D/g, ""), 10) || 0;
+      const numB = parseInt(b.replace(/\D/g, ""), 10) || 0;
+      return numA - numB;
+    });
 
     return { meses, dias, tipos, semanas };
   }, [dataset]);

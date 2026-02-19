@@ -7,7 +7,8 @@ import {
     Plus,
     Replace,
     History,
-    Share2
+    Share2,
+    BarChart3
 } from "lucide-react";
 import { DataUploadDialog } from "@/features/dashboard/components/upload/data-upload-dialog";
 import { useMetrics } from "@/features/dashboard/hooks/useMetrics";
@@ -153,6 +154,10 @@ export function PowerBILayout() {
                                 triggerLabel="Reemplazar Data"
                                 triggerIcon={<Replace className="size-4" />}
                             />
+                            <a href="/analytics" className="flex items-center gap-2 text-xs text-white/50 hover:text-white/80 transition py-1.5 px-3">
+                                <BarChart3 className="size-4" />
+                                Análisis Avanzado
+                            </a>
                             <a href="/logs" className="flex items-center gap-2 text-xs text-white/50 hover:text-white/80 transition py-1.5 px-3">
                                 <History className="size-4" />
                                 Ver Historial de Cargas

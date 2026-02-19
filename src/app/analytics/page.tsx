@@ -1,0 +1,410 @@
+"use client";
+
+import { useState, useMemo } from "react";
+import ReactECharts from "echarts-for-react";
+import { ArrowLeft, BarChart3, TrendingUp } from "lucide-react";
+import { useDashboardStore } from "@/store/dashboard-store";
+import { formatInt } from "@/lib/utils/format";
+import type { DataRow } from "@/lib/data-processing/types";
+
+// ---------- Types ----------
+type Metric = "cargada" | "recorrido" | "contactado" | "citas" | "af" | "mc";
+
+const METRIC_INFO: Record<Metric, { label: string; color: string }> = {
+    cargada: { label: "Base Cargada", color: "#00d4ff" },
+    recorrido: { label: "Recorrido", color: "#0ea5e9" },
+    contactado: { label: "Contactados", color: "#10b981" },
+    citas: { label: "Citas", color: "#f59e0b" },
+    af: { label: "Afluencias", color: "#8b5cf6" },
+    mc: { label: "Matrículas", color: "#ec4899" },
+};
+
+const ALL_METRICS: Metric[] = ["cargada", "recorrido", "contactado", "citas", "af", "mc"];
+
+// ---------- KPI computation per row ----------
+function computeRowKPI(row: DataRow, metric: Metric): number {
+    switch (metric) {
+        case "cargada": return 1;
+        case "recorrido": {
+            const v = row.conecta?.trim().toLowerCase() ?? "";
+            return (v === "conecta" || v === "no conecta") ? 1 : 0;
+        }
+        case "contactado": return row.conecta?.trim().toLowerCase() === "conecta" ? 1 : 0;
+        case "citas": return row.interesa?.trim().toLowerCase() === "viene" ? 1 : 0;
+        case "af": {
+            const v = row.af?.trim().toUpperCase() ?? "";
+            return (v === "A" || v === "MC" || v === "M") ? 1 : 0;
+        }
+        case "mc": {
+            const v = row.mc?.trim().toUpperCase() ?? "";
+            return (v === "M" || v === "MC") ? 1 : 0;
+        }
+    }
+}
+
+// ---------- Toggle Button ----------
+function Toggle({ label, active, color, onClick }: { label: string; active: boolean; color: string; onClick: () => void }) {
+    return (
+        <button
+            onClick={onClick}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition border"
+            style={{
+                backgroundColor: active ? `${color}20` : "transparent",
+                borderColor: active ? color : "rgba(255,255,255,0.1)",
+                color: active ? color : "rgba(255,255,255,0.4)",
+            }}
+        >
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: active ? color : "rgba(255,255,255,0.2)" }} />
+            {label}
+        </button>
+    );
+}
+
+// ---------- Multi Select Pills ----------
+function MultiSelect({ label, options, selected, onChange }: {
+    label: string;
+    options: { value: string; label: string }[];
+    selected: string[];
+    onChange: (v: string[]) => void;
+}) {
+    const toggle = (val: string) => {
+        if (selected.includes(val)) {
+            onChange(selected.filter(v => v !== val));
+        } else {
+            onChange([...selected, val]);
+        }
+    };
+    return (
+        <div className="space-y-1.5">
+            <div className="text-[10px] text-[#00d4ff] uppercase font-bold tracking-wider">{label}</div>
+            <div className="flex flex-wrap gap-1">
+                {options.map(o => (
+                    <button
+                        key={o.value}
+                        onClick={() => toggle(o.value)}
+                        className="px-2 py-1 rounded text-[11px] font-medium transition border"
+                        style={{
+                            backgroundColor: selected.includes(o.value) ? "rgba(0,212,255,0.15)" : "transparent",
+                            borderColor: selected.includes(o.value) ? "#00d4ff" : "rgba(255,255,255,0.1)",
+                            color: selected.includes(o.value) ? "#00d4ff" : "rgba(255,255,255,0.4)",
+                        }}
+                    >
+                        {o.label}
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+// ---------- Chart Card ----------
+function ChartCard({ title, icon, children }: { title: string; icon?: React.ReactNode; children: React.ReactNode }) {
+    return (
+        <div className="bg-[#080808] border border-[#1f1f1f] rounded-lg overflow-hidden flex flex-col">
+            <div className="px-4 py-2.5 border-b border-[#1f1f1f] flex items-center gap-2">
+                {icon}
+                <span className="text-xs font-bold uppercase text-white/50 tracking-wider">{title}</span>
+            </div>
+            <div className="flex-1 p-3 min-h-[300px]">{children}</div>
+        </div>
+    );
+}
+
+// ---------- Main Analytics Page ----------
+export default function AnalyticsPage() {
+    const dataset = useDashboardStore((s) => s.dataset);
+    const rows = dataset?.rows ?? [];
+
+    // Available options
+    const availableMonths = useMemo(() => {
+        return Array.from(new Set(rows.map(r => r.mes).filter((v): v is number => v !== null))).sort((a, b) => a - b);
+    }, [rows]);
+
+    const availableDays = useMemo(() => {
+        const dayOrder = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+        const days = Array.from(new Set(rows.map(r => r.diaSemana).filter((v): v is string => !!v)));
+        return days.sort((a, b) => dayOrder.indexOf(a) - dayOrder.indexOf(b));
+    }, [rows]);
+
+    const availableWeeks = useMemo(() => {
+        return Array.from(new Set(rows.map(r => r.semana).filter((v): v is string => !!v)))
+            .sort((a, b) => (parseInt(a.replace(/\D/g, "")) || 0) - (parseInt(b.replace(/\D/g, "")) || 0));
+    }, [rows]);
+
+    // State
+    const [selectedMetrics, setSelectedMetrics] = useState<Metric[]>(["recorrido", "contactado", "citas", "af", "mc"]);
+    const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
+    const [selectedDays, setSelectedDays] = useState<string[]>([]);
+    const [selectedWeeks, setSelectedWeeks] = useState<string[]>([]);
+
+    // Filtered rows based on selections
+    const filteredRows = useMemo(() => {
+        let r = rows;
+        if (selectedMonths.length > 0) r = r.filter(row => row.mes !== null && selectedMonths.includes(String(row.mes)));
+        if (selectedDays.length > 0) r = r.filter(row => row.diaSemana !== null && selectedDays.includes(row.diaSemana));
+        if (selectedWeeks.length > 0) r = r.filter(row => row.semana !== null && selectedWeeks.includes(row.semana));
+        return r;
+    }, [rows, selectedMonths, selectedDays, selectedWeeks]);
+
+    // --------- CHART 1: Monthly Comparison -----------
+    const monthlyChart = useMemo(() => {
+        const months = selectedMonths.length > 0
+            ? availableMonths.filter(m => selectedMonths.includes(String(m)))
+            : availableMonths;
+
+        const labels = months.map(m => `Mes ${m}`);
+        const series = selectedMetrics.map(metric => ({
+            name: METRIC_INFO[metric].label,
+            type: "bar" as const,
+            data: months.map(m => {
+                const monthRows = rows.filter(r => r.mes === m);
+                return monthRows.reduce((sum, r) => sum + computeRowKPI(r, metric), 0);
+            }),
+            itemStyle: { color: METRIC_INFO[metric].color },
+            barMaxWidth: 25,
+        }));
+
+        return {
+            backgroundColor: "transparent",
+            tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, backgroundColor: "rgba(0,0,0,0.9)", borderColor: "#333", textStyle: { color: "#fff" } },
+            legend: { data: series.map(s => s.name), textStyle: { color: "#aaa", fontSize: 10 }, bottom: 0, itemWidth: 10, itemHeight: 8 },
+            grid: { left: "3%", right: "4%", bottom: "15%", top: "8%", containLabel: true },
+            xAxis: { type: "category", data: labels, axisLine: { lineStyle: { color: "#333" } }, axisLabel: { color: "#888", fontSize: 10 }, axisTick: { show: false } },
+            yAxis: { type: "value", splitLine: { lineStyle: { color: "#1a1a1a" } }, axisLabel: { color: "#888", fontSize: 10 } },
+            series,
+        };
+    }, [rows, availableMonths, selectedMonths, selectedMetrics]);
+
+    // --------- CHART 2: Day comparison -----------
+    const dailyChart = useMemo(() => {
+        const dayOrder = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+        const days = selectedDays.length > 0 ? dayOrder.filter(d => selectedDays.includes(d)) : availableDays;
+
+        const series = selectedMetrics.map(metric => ({
+            name: METRIC_INFO[metric].label,
+            type: "bar" as const,
+            data: days.map(d => {
+                const dayRows = filteredRows.filter(r => r.diaSemana === d);
+                return dayRows.reduce((sum, r) => sum + computeRowKPI(r, metric), 0);
+            }),
+            itemStyle: { color: METRIC_INFO[metric].color },
+            barMaxWidth: 30,
+        }));
+
+        return {
+            backgroundColor: "transparent",
+            tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, backgroundColor: "rgba(0,0,0,0.9)", borderColor: "#333", textStyle: { color: "#fff" } },
+            legend: { data: series.map(s => s.name), textStyle: { color: "#aaa", fontSize: 10 }, bottom: 0, itemWidth: 10, itemHeight: 8 },
+            grid: { left: "3%", right: "4%", bottom: "15%", top: "8%", containLabel: true },
+            xAxis: { type: "category", data: days, axisLine: { lineStyle: { color: "#333" } }, axisLabel: { color: "#888", fontSize: 11 }, axisTick: { show: false } },
+            yAxis: { type: "value", splitLine: { lineStyle: { color: "#1a1a1a" } }, axisLabel: { color: "#888", fontSize: 10 } },
+            series,
+        };
+    }, [filteredRows, availableDays, selectedDays, selectedMetrics]);
+
+    // --------- CHART 3: Weekly Trend -----------
+    const weeklyTrend = useMemo(() => {
+        const weeks = selectedWeeks.length > 0
+            ? availableWeeks.filter(w => selectedWeeks.includes(w))
+            : availableWeeks;
+
+        const series = selectedMetrics.map(metric => ({
+            name: METRIC_INFO[metric].label,
+            type: "line" as const,
+            data: weeks.map(w => {
+                const weekRows = rows.filter(r => r.semana === w);
+                return weekRows.reduce((sum, r) => sum + computeRowKPI(r, metric), 0);
+            }),
+            itemStyle: { color: METRIC_INFO[metric].color },
+            lineStyle: { width: 2 },
+            smooth: true,
+            symbol: "circle",
+            symbolSize: 5,
+        }));
+
+        return {
+            backgroundColor: "transparent",
+            tooltip: { trigger: "axis", backgroundColor: "rgba(0,0,0,0.9)", borderColor: "#333", textStyle: { color: "#fff" } },
+            legend: { data: series.map(s => s.name), textStyle: { color: "#aaa", fontSize: 10 }, bottom: 0, itemWidth: 10, itemHeight: 8 },
+            grid: { left: "3%", right: "4%", bottom: "15%", top: "8%", containLabel: true },
+            xAxis: { type: "category", data: weeks, axisLine: { lineStyle: { color: "#333" } }, axisLabel: { color: "#888", fontSize: 10, rotate: 30 }, axisTick: { show: false }, boundaryGap: false },
+            yAxis: { type: "value", splitLine: { lineStyle: { color: "#1a1a1a" } }, axisLabel: { color: "#888", fontSize: 10 } },
+            series,
+        };
+    }, [rows, availableWeeks, selectedWeeks, selectedMetrics]);
+
+    // --------- CHART 4: Conversion Rate Trend -----------
+    const conversionChart = useMemo(() => {
+        const months = selectedMonths.length > 0
+            ? availableMonths.filter(m => selectedMonths.includes(String(m)))
+            : availableMonths;
+        const labels = months.map(m => `Mes ${m}`);
+
+        const rates = months.map(m => {
+            const mRows = rows.filter(r => r.mes === m);
+            const base = mRows.length || 1;
+            const contactado = mRows.reduce((s, r) => s + computeRowKPI(r, "contactado"), 0);
+            const citas = mRows.reduce((s, r) => s + computeRowKPI(r, "citas"), 0);
+            const afluencia = mRows.reduce((s, r) => s + computeRowKPI(r, "af"), 0);
+            const mc = mRows.reduce((s, r) => s + computeRowKPI(r, "mc"), 0);
+            const recorrido = mRows.reduce((s, r) => s + computeRowKPI(r, "recorrido"), 0);
+            return {
+                contactabilidad: recorrido > 0 ? (contactado / recorrido * 100) : 0,
+                citasRate: base > 0 ? (citas / base * 100) : 0,
+                afRate: citas > 0 ? (afluencia / citas * 100) : 0,
+                mcRate: citas > 0 ? (mc / citas * 100) : 0,
+            };
+        });
+
+        return {
+            backgroundColor: "transparent",
+            tooltip: {
+                trigger: "axis",
+                backgroundColor: "rgba(0,0,0,0.9)", borderColor: "#333", textStyle: { color: "#fff" },
+                formatter: (params: Array<{ seriesName: string; value: number; marker: string }>) => {
+                    return params.map(p => `${p.marker} ${p.seriesName}: ${p.value.toFixed(1)}%`).join("<br/>");
+                }
+            },
+            legend: { data: ["% Contactabilidad", "% Citas/Base", "% AF/Citas", "% MC/Citas"], textStyle: { color: "#aaa", fontSize: 10 }, bottom: 0, itemWidth: 10, itemHeight: 8 },
+            grid: { left: "3%", right: "4%", bottom: "15%", top: "8%", containLabel: true },
+            xAxis: { type: "category", data: labels, axisLine: { lineStyle: { color: "#333" } }, axisLabel: { color: "#888", fontSize: 10 }, axisTick: { show: false }, boundaryGap: false },
+            yAxis: { type: "value", splitLine: { lineStyle: { color: "#1a1a1a" } }, axisLabel: { color: "#888", fontSize: 10, formatter: "{value}%" } },
+            series: [
+                { name: "% Contactabilidad", type: "line", data: rates.map(r => +r.contactabilidad.toFixed(1)), itemStyle: { color: "#10b981" }, lineStyle: { width: 2 }, smooth: true, symbol: "circle", symbolSize: 5 },
+                { name: "% Citas/Base", type: "line", data: rates.map(r => +r.citasRate.toFixed(1)), itemStyle: { color: "#f59e0b" }, lineStyle: { width: 2 }, smooth: true, symbol: "circle", symbolSize: 5 },
+                { name: "% AF/Citas", type: "line", data: rates.map(r => +r.afRate.toFixed(1)), itemStyle: { color: "#8b5cf6" }, lineStyle: { width: 2 }, smooth: true, symbol: "circle", symbolSize: 5 },
+                { name: "% MC/Citas", type: "line", data: rates.map(r => +r.mcRate.toFixed(1)), itemStyle: { color: "#ec4899" }, lineStyle: { width: 2 }, smooth: true, symbol: "circle", symbolSize: 5 },
+            ],
+        };
+    }, [rows, availableMonths, selectedMonths]);
+
+    // Summary KPIs for filtered data
+    const summaryKPIs = useMemo(() => {
+        return ALL_METRICS.map(metric => ({
+            metric,
+            ...METRIC_INFO[metric],
+            value: filteredRows.reduce((sum, r) => sum + computeRowKPI(r, metric), 0),
+        }));
+    }, [filteredRows]);
+
+    return (
+        <div className="min-h-screen bg-black text-white font-sans">
+            {/* Header */}
+            <div className="sticky top-0 z-20 bg-black/95 backdrop-blur-sm border-b border-[#1f1f1f]">
+                <div className="max-w-[1600px] mx-auto px-6 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <a href="/" className="flex items-center gap-1 text-xs text-white/50 hover:text-white/80 transition">
+                            <ArrowLeft className="size-4" /> Dashboard
+                        </a>
+                        <h1 className="text-lg font-bold tracking-tight">
+                            Análisis <span className="text-[#00d4ff]">Avanzado</span>
+                        </h1>
+                    </div>
+                    {/* Summary KPIs */}
+                    <div className="flex gap-5">
+                        {summaryKPIs.map(kpi => (
+                            <div key={kpi.metric} className="text-center">
+                                <div className="text-lg font-bold" style={{ color: kpi.color }}>{formatInt(kpi.value)}</div>
+                                <div className="text-[9px] text-white/40 uppercase">{kpi.label}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            <div className="max-w-[1600px] mx-auto px-6 py-6">
+                {/* Controls */}
+                <div className="grid grid-cols-[1fr_1fr] gap-4 mb-6">
+                    {/* Left: Dimension selectors */}
+                    <div className="bg-[#080808] border border-[#1f1f1f] rounded-lg p-4 space-y-4">
+                        <div className="text-xs font-bold text-white/60 uppercase tracking-wider flex items-center gap-2">
+                            <BarChart3 className="size-3.5" /> Dimensiones
+                        </div>
+                        <MultiSelect
+                            label="Meses a comparar"
+                            options={availableMonths.map(m => ({ value: String(m), label: `Mes ${m}` }))}
+                            selected={selectedMonths}
+                            onChange={setSelectedMonths}
+                        />
+                        <MultiSelect
+                            label="Días de semana"
+                            options={availableDays.map(d => ({ value: d, label: d }))}
+                            selected={selectedDays}
+                            onChange={setSelectedDays}
+                        />
+                        <MultiSelect
+                            label="Semanas"
+                            options={availableWeeks.map(w => ({ value: w, label: w }))}
+                            selected={selectedWeeks}
+                            onChange={setSelectedWeeks}
+                        />
+                    </div>
+
+                    {/* Right: Metric selector */}
+                    <div className="bg-[#080808] border border-[#1f1f1f] rounded-lg p-4 space-y-4">
+                        <div className="text-xs font-bold text-white/60 uppercase tracking-wider flex items-center gap-2">
+                            <TrendingUp className="size-3.5" /> Variables a mostrar
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                            {ALL_METRICS.map(metric => (
+                                <Toggle
+                                    key={metric}
+                                    label={METRIC_INFO[metric].label}
+                                    color={METRIC_INFO[metric].color}
+                                    active={selectedMetrics.includes(metric)}
+                                    onClick={() => {
+                                        if (selectedMetrics.includes(metric)) {
+                                            if (selectedMetrics.length > 1) {
+                                                setSelectedMetrics(selectedMetrics.filter(m => m !== metric));
+                                            }
+                                        } else {
+                                            setSelectedMetrics([...selectedMetrics, metric]);
+                                        }
+                                    }}
+                                />
+                            ))}
+                        </div>
+                        <div className="text-[10px] text-white/30">
+                            Selecciona las métricas que deseas visualizar en los gráficos.
+                            Al menos una debe estar activa.
+                        </div>
+                        <div className="flex gap-2 mt-2">
+                            <button
+                                onClick={() => setSelectedMetrics([...ALL_METRICS])}
+                                className="text-[10px] text-[#00d4ff] hover:underline"
+                            >
+                                Seleccionar todas
+                            </button>
+                            <span className="text-white/20">|</span>
+                            <button
+                                onClick={() => { setSelectedMonths([]); setSelectedDays([]); setSelectedWeeks([]); setSelectedMetrics([...ALL_METRICS]); }}
+                                className="text-[10px] text-white/40 hover:text-white/70"
+                            >
+                                Reset todo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Charts Grid */}
+                <div className="grid grid-cols-2 gap-4">
+                    <ChartCard title="Comparativa Mensual" icon={<BarChart3 className="size-3.5 text-white/30" />}>
+                        <ReactECharts option={monthlyChart} style={{ height: "100%", width: "100%" }} />
+                    </ChartCard>
+
+                    <ChartCard title="Comparativa por Día" icon={<BarChart3 className="size-3.5 text-white/30" />}>
+                        <ReactECharts option={dailyChart} style={{ height: "100%", width: "100%" }} />
+                    </ChartCard>
+
+                    <ChartCard title="Tendencia Semanal" icon={<TrendingUp className="size-3.5 text-white/30" />}>
+                        <ReactECharts option={weeklyTrend} style={{ height: "100%", width: "100%" }} />
+                    </ChartCard>
+
+                    <ChartCard title="Tasas de Conversión (Mensual)" icon={<TrendingUp className="size-3.5 text-white/30" />}>
+                        <ReactECharts option={conversionChart} style={{ height: "100%", width: "100%" }} />
+                    </ChartCard>
+                </div>
+            </div>
+        </div>
+    );
+}
