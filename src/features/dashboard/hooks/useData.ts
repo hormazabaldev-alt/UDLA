@@ -15,6 +15,22 @@ export function useData() {
   const setDataset = useDashboardStore((s) => s.setDataset);
   const [hydrating, setHydrating] = useState(true);
 
+  const refreshDataset = useCallback(async () => {
+    const res = await fetch("/api/snapshot", { cache: "no-store" });
+    if (res.status === 204) {
+      setDataset(null);
+      await clearPersistedDataset();
+      return null;
+    }
+    if (!res.ok) {
+      return null;
+    }
+    const ds = (await res.json()) as Dataset;
+    setDataset(ds);
+    await persistDataset(ds);
+    return ds;
+  }, [setDataset]);
+
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -22,6 +38,7 @@ export function useData() {
         const persisted = await loadPersistedDataset();
         if (!alive) return;
         if (persisted) setDataset(persisted);
+        await refreshDataset();
       } finally {
         if (alive) setHydrating(false);
       }
@@ -29,7 +46,7 @@ export function useData() {
     return () => {
       alive = false;
     };
-  }, [setDataset]);
+  }, [refreshDataset, setDataset]);
 
   const replaceDataset = useCallback(
     async (next: Dataset) => {
@@ -50,8 +67,8 @@ export function useData() {
     dataset,
     meta,
     hydrating,
+    refreshDataset,
     replaceDataset,
     clearDataset,
   };
 }
-

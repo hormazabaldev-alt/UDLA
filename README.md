@@ -1,36 +1,37 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Altius Analytics (PowerBI-web)
 
-## Getting Started
+Dashboard analítico premium (snapshot diario, sin histórico) con carga de Excel y persistencia en Supabase para que cualquier persona con la URL vea el mismo snapshot hasta que se reemplace.
 
-First, run the development server:
+## Stack
+- Next.js (App Router) + TypeScript strict
+- TailwindCSS + UI custom (shadcn-style)
+- ECharts (próximo), AG Grid (preview/tabla)
+- Zustand (estado global)
+- Supabase (persistencia del snapshot)
 
+## Setup (Supabase)
+1) Ejecuta la migración SQL en tu proyecto Supabase:
+- `supabase/migrations/001_snapshot.sql`
+
+2) Configura variables de entorno (Vercel + local):
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+SUPABASE_URL=...
+SUPABASE_SERVICE_ROLE_KEY=...
+
+# Protege el endpoint de carga (sin login)
+DASHBOARD_ADMIN_KEY=una-clave-larga
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Notas:
+- `SUPABASE_SERVICE_ROLE_KEY` **solo server-side** (ya lo usamos únicamente en API Routes).
+- No hay auth de lectura: el dashboard consume `/api/snapshot` (servidor) y se comparte por URL.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Desarrollo
+```bash
+pnpm dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Uso
+- Botón `Cargar Excel` → pega tu `DASHBOARD_ADMIN_KEY` (se guarda en ese navegador) → arrastra el `.xlsx` → preview → `Reemplazar datos actuales`.
+- Cualquier persona con la URL verá el snapshot persistido desde Supabase hasta la próxima carga.
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

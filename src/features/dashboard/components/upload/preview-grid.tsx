@@ -3,6 +3,9 @@
 import { useMemo } from "react";
 import { AgGridReact } from "ag-grid-react";
 import type { ColDef } from "ag-grid-community";
+import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
+
+ModuleRegistry.registerModules([AllCommunityModule]);
 
 export function PreviewGrid({
   rows,
@@ -46,4 +49,3 @@ export function PreviewGrid({
     </div>
   );
 }
-

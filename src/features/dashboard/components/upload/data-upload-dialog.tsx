@@ -1,16 +1,18 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { AlertTriangle, FileSpreadsheet, Trash2, Upload } from "lucide-react";
+import { AlertTriangle, FileSpreadsheet, RefreshCcw, Upload } from "lucide-react";
 
 import { parseXlsxFile } from "@/lib/data-processing/parse-xlsx";
 import type { ParseResult } from "@/lib/data-processing/types";
+import { loadAdminKey, persistAdminKey } from "@/lib/persistence/admin-key";
 import { cn } from "@/lib/utils/cn";
 import { formatInt } from "@/lib/utils/format";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -53,18 +55,28 @@ function IssueList({ result }: { result: Extract<ParseResult, { ok: false }> }) 
 }
 
 export function DataUploadDialog() {
-  const { meta, replaceDataset, clearDataset, dataset } = useData();
+  const { meta, replaceDataset, dataset, refreshDataset } = useData();
 
   const [open, setOpen] = useState(false);
   const [parsing, setParsing] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [result, setResult] = useState<ParseResult | null>(null);
+  const [adminKey, setAdminKey] = useState("");
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setAdminKey(loadAdminKey());
+  }, []);
 
   const onDrop = useCallback(async (accepted: File[]) => {
     const file = accepted[0];
     if (!file) return;
     setSelectedFileName(file.name);
+    setSelectedFile(file);
     setParsing(true);
+    setUploadError(null);
     try {
       const parsed = await parseXlsxFile(file);
       setResult(parsed);
@@ -90,7 +102,8 @@ export function DataUploadDialog() {
     return first.errors[0]?.message ?? "Archivo no válido";
   }, [fileRejections]);
 
-  const canReplace = result?.ok === true && !parsing;
+  const canReplace =
+    result?.ok === true && !parsing && !uploading && adminKey.trim().length > 0;
 
   return (
     <TooltipProvider delayDuration={120}>
@@ -111,18 +124,18 @@ export function DataUploadDialog() {
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
-                onClick={() => void clearDataset()}
-                aria-label="Limpiar datos"
+                onClick={() => void refreshDataset()}
+                aria-label="Refrescar datos"
               >
-                <Trash2 className="size-4" />
+                <RefreshCcw className="size-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Eliminar snapshot actual (local)</TooltipContent>
+            <TooltipContent>Refrescar desde Supabase</TooltipContent>
           </Tooltip>
         ) : null}
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Reemplazar snapshot de datos</DialogTitle>
@@ -135,6 +148,26 @@ export function DataUploadDialog() {
 
           <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
             <div className="space-y-3">
+              <div className="rounded-2xl border border-white/10 bg-white/3 p-4">
+                <div className="text-[11px] font-medium text-white/55">
+                  Clave de carga (solo para reemplazar datos)
+                </div>
+                <div className="mt-2 flex items-center gap-2">
+                  <Input
+                    value={adminKey}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setAdminKey(v);
+                      persistAdminKey(v);
+                    }}
+                    placeholder="Pega tu DASHBOARD_ADMIN_KEY"
+                  />
+                </div>
+                <div className="mt-2 text-xs text-white/45">
+                  Se guarda en este navegador (localStorage). Compartir la URL no comparte la clave.
+                </div>
+              </div>
+
               <div
                 {...getRootProps()}
                 className={cn(
@@ -166,6 +199,12 @@ export function DataUploadDialog() {
                   <div className="mt-2 text-xs text-red-200">{rejectionText}</div>
                 ) : null}
               </div>
+
+              {uploadError ? (
+                <div className="rounded-2xl border border-red-400/15 bg-red-400/5 p-3 text-xs text-red-200">
+                  {uploadError}
+                </div>
+              ) : null}
 
               {result?.ok === false ? <IssueList result={result} /> : null}
 
@@ -234,11 +273,43 @@ export function DataUploadDialog() {
                   disabled={!canReplace}
                   onClick={async () => {
                     if (result?.ok !== true) return;
-                    await replaceDataset(result.dataset);
-                    setOpen(false);
+                    if (!selectedFile) {
+                      setUploadError("No se encontró el archivo seleccionado.");
+                      return;
+                    }
+                    setUploading(true);
+                    setUploadError(null);
+                    try {
+                      const form = new FormData();
+                      form.set("file", selectedFile);
+                      const res = await fetch("/api/snapshot", {
+                        method: "POST",
+                        headers: { "x-admin-key": adminKey.trim() },
+                        body: form,
+                      });
+                      if (!res.ok) {
+                        const body = (await res.json().catch(() => null)) as
+                          | (Partial<ParseResult> & { error?: string })
+                          | null;
+                        if (body && body.ok === false && Array.isArray(body.issues)) {
+                          setResult(body as ParseResult);
+                          setUploadError("El servidor rechazó el archivo por validación.");
+                        } else {
+                          setUploadError(
+                            body?.error ?? "No se pudo reemplazar el snapshot.",
+                          );
+                        }
+                        return;
+                      }
+                      await replaceDataset(result.dataset);
+                      await refreshDataset();
+                      setOpen(false);
+                    } finally {
+                      setUploading(false);
+                    }
                   }}
                 >
-                  Reemplazar datos actuales
+                  {uploading ? "Subiendo…" : "Reemplazar datos actuales"}
                 </Button>
               </div>
             </div>
@@ -248,4 +319,3 @@ export function DataUploadDialog() {
     </TooltipProvider>
   );
 }
-
