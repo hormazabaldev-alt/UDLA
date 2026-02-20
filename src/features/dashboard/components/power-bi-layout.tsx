@@ -381,7 +381,7 @@ export function PowerBILayout() {
                     </div>
 
                     {/* Row 5: Nuevo chart semanal */}
-                    <div className="h-[360px]">
+                    <div className="h-[520px]">
                         <ChartCard title="KPIs por Semana (Nuevo)" tooltip="Gráfico detallado de las métricas agrupadas por semana específica con metas comparativas.">
                             <SemanaKpisChart />
                         </ChartCard>
