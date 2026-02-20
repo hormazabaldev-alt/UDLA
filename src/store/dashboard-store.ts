@@ -4,10 +4,12 @@ import type { BaseType, Dataset, DataRow } from "@/lib/data-processing/types";
 import { computeTotals, type Totals } from "@/lib/data-processing/metrics";
 
 export type Filters = {
-  tipo: BaseType | "All";
-  mes: number | "All";
-  diaNumero: number | "All";
-  semanas: string[]; // multi-select
+  tipo: BaseType[];
+  mes: number[];
+  diaNumero: number[];
+  semanas: string[];
+  campus: string[];
+  regimen: string[];
 };
 
 export type DashboardState = {
@@ -25,23 +27,35 @@ export type DashboardState = {
 };
 
 const DEFAULT_FILTERS: Filters = {
-  tipo: "All",
-  mes: "All",
-  diaNumero: "All",
+  tipo: [],
+  mes: [],
+  diaNumero: [],
   semanas: [],
+  campus: [],
+  regimen: [],
 };
 
 export function applyFilters(rows: DataRow[], filters: Filters): DataRow[] {
   return rows.filter((r) => {
-    // Tipo Base filtering (assuming 'tipo' in filter maps to 'tipoBase' in row)
-    // The previous code had 'tipo' in NormalizedRow. The new one has 'tipoBase'.
-    if (filters.tipo !== "All" && r.tipoBase !== filters.tipo) return false;
-    if (filters.mes !== "All" && r.mes !== filters.mes) return false;
-    if (filters.diaNumero !== "All" && r.diaNumero !== filters.diaNumero) return false;
+    if (filters.tipo.length > 0 && r.tipoBase && !filters.tipo.includes(r.tipoBase)) return false;
+    if (filters.mes.length > 0 && r.mes && !filters.mes.includes(r.mes)) return false;
+    if (filters.diaNumero.length > 0 && r.diaNumero && !filters.diaNumero.includes(r.diaNumero)) return false;
+
     if (filters.semanas.length > 0) {
       const semana = r.semana ?? "";
       if (!filters.semanas.includes(semana)) return false;
     }
+
+    if (filters.campus.length > 0) {
+      const campus = r.sedeInteres ?? "";
+      if (!filters.campus.includes(campus)) return false;
+    }
+
+    if (filters.regimen.length > 0) {
+      const regimen = r.regimen ?? "";
+      if (!filters.regimen.includes(regimen)) return false;
+    }
+
     return true;
   });
 }

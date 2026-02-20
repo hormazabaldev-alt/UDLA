@@ -75,13 +75,6 @@ export function SemanaKpisChart() {
         barMaxWidth: 18,
       },
       {
-        name: "Usables",
-        type: "bar",
-        data: resumen.rows.map((r) => r.usables),
-        itemStyle: { color: "#10b981" },
-        barMaxWidth: 18,
-      },
-      {
         name: "Afluencias",
         type: "bar",
         data: resumen.rows.map((r) => r.afluencias),

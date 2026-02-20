@@ -60,9 +60,6 @@ export function ResumenSemanalTable() {
                 RECORRIDO
               </th>
               <th className="text-right px-3 py-2 font-bold text-white/70 tracking-wider uppercase">
-                USABLES
-              </th>
-              <th className="text-right px-3 py-2 font-bold text-white/70 tracking-wider uppercase">
                 AFLUENCIAS
               </th>
               <th className="text-right px-3 py-2 font-bold text-white/70 tracking-wider uppercase">
@@ -70,9 +67,6 @@ export function ResumenSemanalTable() {
               </th>
               <th className="text-right px-3 py-2 font-bold text-white/70 tracking-wider uppercase">
                 % RECORRIDO
-              </th>
-              <th className="text-right px-3 py-2 font-bold text-white/70 tracking-wider uppercase">
-                % USABLES
               </th>
               <th className="text-right px-3 py-2 font-bold text-white/70 tracking-wider uppercase">
                 % AFLUENCIA
@@ -94,9 +88,6 @@ export function ResumenSemanalTable() {
                   {formatInt(r.recorrido)}
                 </td>
                 <td className="px-3 py-2 text-right tabular-nums text-white/70">
-                  {formatInt(r.usables)}
-                </td>
-                <td className="px-3 py-2 text-right tabular-nums text-white/70">
                   {formatInt(r.afluencias)}
                 </td>
                 <td className="px-3 py-2 text-right tabular-nums text-white/70">
@@ -104,9 +95,6 @@ export function ResumenSemanalTable() {
                 </td>
                 <td className="px-3 py-2 text-right tabular-nums text-white/70">
                   {formatPct(r.pctRecorrido, 0)}
-                </td>
-                <td className="px-3 py-2 text-right tabular-nums text-white/70">
-                  {formatPct(r.pctUsables, 0)}
                 </td>
                 <td className="px-3 py-2 text-right tabular-nums text-white/70">
                   {formatPct(r.pctAfluencia, 0)}
@@ -128,9 +116,6 @@ export function ResumenSemanalTable() {
                 {formatInt(resumen.totals.recorrido)}
               </td>
               <td className="px-3 py-2 text-right tabular-nums font-bold text-white/90">
-                {formatInt(resumen.totals.usables)}
-              </td>
-              <td className="px-3 py-2 text-right tabular-nums font-bold text-white/90">
                 {formatInt(resumen.totals.afluencias)}
               </td>
               <td className="px-3 py-2 text-right tabular-nums font-bold text-white/90">
@@ -138,9 +123,6 @@ export function ResumenSemanalTable() {
               </td>
               <td className="px-3 py-2 text-right tabular-nums font-bold text-white/90">
                 {formatPct(resumen.totals.pctRecorrido, 1)}
-              </td>
-              <td className="px-3 py-2 text-right tabular-nums font-bold text-white/90">
-                {formatPct(resumen.totals.pctUsables, 0)}
               </td>
               <td className="px-3 py-2 text-right tabular-nums font-bold text-white/90">
                 {formatPct(resumen.totals.pctAfluencia, 0)}

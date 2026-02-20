@@ -22,6 +22,8 @@ import { KpiCardsExtra } from "@/features/dashboard/components/widgets/kpi-cards
 import { ResumenSemanalTable } from "@/features/dashboard/components/widgets/resumen-semanal-table";
 import { SemanaKpisChart } from "@/features/dashboard/components/widgets/semana-kpis-chart";
 import { DetalleRegistrosTable } from "@/features/dashboard/components/widgets/detalle-registros-table";
+import { RegimenBreakdownChart } from "@/features/dashboard/components/widgets/regimen-breakdown-chart";
+import { CampusBreakdownChart } from "@/features/dashboard/components/widgets/campus-breakdown-chart";
 import { useFilters } from "@/features/dashboard/hooks/useFilters";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BaseType } from "@/lib/data-processing/types";
@@ -50,100 +52,123 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
     );
 }
 
+function MultiSelectGroup({
+    label,
+    options,
+    selected,
+    onToggle,
+    onClear,
+    getDisplayLabel = (v) => v
+}: {
+    label: string;
+    options: (string | number)[];
+    selected: (string | number)[];
+    onToggle: (val: string | number) => void;
+    onClear: () => void;
+    getDisplayLabel?: (val: string | number) => React.ReactNode;
+}) {
+    return (
+        <div className="space-y-2">
+            <label className="text-xs text-[#00d4ff] uppercase font-bold tracking-wider">{label}</label>
+            <div className="rounded-md border border-[#333] bg-[#1a1a1a] p-2">
+                <div className="flex flex-wrap gap-1.5">
+                    {options.length === 0 ? (
+                        <span className="text-[11px] text-white/35 italic">Sin datos</span>
+                    ) : (
+                        options.map((opt) => {
+                            const active = selected.includes(opt);
+                            return (
+                                <button
+                                    key={opt}
+                                    type="button"
+                                    onClick={() => onToggle(opt)}
+                                    className="px-2.5 py-1.5 rounded-md text-[11px] font-medium transition border"
+                                    style={{
+                                        backgroundColor: active ? "rgba(0,212,255,0.15)" : "rgba(255,255,255,0.03)",
+                                        borderColor: active ? "#00d4ff" : "rgba(255,255,255,0.08)",
+                                        color: active ? "#00d4ff" : "rgba(255,255,255,0.55)",
+                                    }}
+                                >
+                                    {getDisplayLabel(opt)}
+                                </button>
+                            );
+                        })
+                    )}
+                </div>
+                {selected.length > 0 ? (
+                    <button
+                        type="button"
+                        onClick={onClear}
+                        className="mt-2 text-[10px] text-white/35 hover:text-white/60 transition"
+                    >
+                        Limpiar selección ({selected.length})
+                    </button>
+                ) : (
+                    <div className="mt-2 text-[10px] text-white/35">Todos seleccionados</div>
+                )}
+            </div>
+        </div>
+    );
+}
+
 function VerticalFilters() {
     const { filters, set, resetFilters, options } = useFilters();
 
-    const selectedWeeks = filters.semanas;
-    const toggleWeek = (week: string) => {
-        if (selectedWeeks.includes(week)) {
-            set({ semanas: selectedWeeks.filter(w => w !== week) });
+    const toggleFilter = (key: keyof typeof filters, val: string | number) => {
+        const current = filters[key] as (string | number)[];
+        if (current.includes(val)) {
+            set({ [key]: current.filter(v => v !== val) });
         } else {
-            set({ semanas: [...selectedWeeks, week] });
+            set({ [key]: [...current, val] });
         }
     };
 
     return (
         <div className="flex flex-col gap-6 w-full">
-            <div className="space-y-2">
-                <label className="text-xs text-[#00d4ff] uppercase font-bold tracking-wider">Tipo de Base</label>
-                <Select value={filters.tipo} onValueChange={(v) => set({ tipo: v as BaseType | "All" })}>
-                    <SelectTrigger className="w-full bg-[#1a1a1a] border-[#333] text-white h-9">
-                        <SelectValue placeholder="Todas" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-[#1a1a1a] border-[#333] text-white">
-                        <SelectItem value="All">Todas</SelectItem>
-                        {options.tipos.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-            </div>
-
-            <div className="space-y-2">
-                <label className="text-xs text-[#00d4ff] uppercase font-bold tracking-wider">Mes</label>
-                <Select value={String(filters.mes)} onValueChange={(v) => set({ mes: v === "All" ? "All" : Number(v) })}>
-                    <SelectTrigger className="w-full bg-[#1a1a1a] border-[#333] text-white h-9">
-                        <SelectValue placeholder="Todos" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-[#1a1a1a] border-[#333] text-white">
-                        <SelectItem value="All">Todos</SelectItem>
-                        {options.meses.map(m => <SelectItem key={m} value={String(m)}>{`Mes ${m}`}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-            </div>
-
-            <div className="space-y-2">
-                <label className="text-xs text-[#00d4ff] uppercase font-bold tracking-wider">Día</label>
-                <Select value={String(filters.diaNumero)} onValueChange={(v) => set({ diaNumero: v === "All" ? "All" : Number(v) })}>
-                    <SelectTrigger className="w-full bg-[#1a1a1a] border-[#333] text-white h-9">
-                        <SelectValue placeholder="Todos" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-[#1a1a1a] border-[#333] text-white">
-                        <SelectItem value="All">Todos</SelectItem>
-                        {options.dias.map(d => <SelectItem key={d} value={String(d)}>{`Día ${d}`}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-            </div>
-
-            <div className="space-y-2">
-                <label className="text-xs text-[#00d4ff] uppercase font-bold tracking-wider">Semana</label>
-                <div className="rounded-md border border-[#333] bg-[#1a1a1a] p-2">
-                    <div className="flex flex-wrap gap-1.5">
-                        {(options.semanas ?? []).length === 0 ? (
-                            <span className="text-[11px] text-white/35 italic">Sin datos</span>
-                        ) : (
-                            (options.semanas ?? []).map((w) => {
-                                const active = selectedWeeks.includes(w);
-                                return (
-                                    <button
-                                        key={w}
-                                        type="button"
-                                        onClick={() => toggleWeek(w)}
-                                        className="px-2.5 py-1.5 rounded-md text-[11px] font-medium transition border"
-                                        style={{
-                                            backgroundColor: active ? "rgba(0,212,255,0.15)" : "rgba(255,255,255,0.03)",
-                                            borderColor: active ? "#00d4ff" : "rgba(255,255,255,0.08)",
-                                            color: active ? "#00d4ff" : "rgba(255,255,255,0.55)",
-                                        }}
-                                    >
-                                        {w}
-                                    </button>
-                                );
-                            })
-                        )}
-                    </div>
-
-                    {selectedWeeks.length > 0 ? (
-                        <button
-                            type="button"
-                            onClick={() => set({ semanas: [] })}
-                            className="mt-2 text-[10px] text-white/35 hover:text-white/60 transition"
-                        >
-                            Limpiar selección ({selectedWeeks.length})
-                        </button>
-                    ) : (
-                        <div className="mt-2 text-[10px] text-white/35">Todas las semanas</div>
-                    )}
-                </div>
-            </div>
+            <MultiSelectGroup
+                label="Tipo de Base"
+                options={options.tipos}
+                selected={filters.tipo}
+                onToggle={(v) => toggleFilter("tipo", v)}
+                onClear={() => set({ tipo: [] })}
+            />
+            <MultiSelectGroup
+                label="Mes"
+                options={options.meses}
+                selected={filters.mes}
+                onToggle={(v) => toggleFilter("mes", v)}
+                onClear={() => set({ mes: [] })}
+                getDisplayLabel={(v) => `Mes ${v}`}
+            />
+            <MultiSelectGroup
+                label="Día"
+                options={options.dias}
+                selected={filters.diaNumero}
+                onToggle={(v) => toggleFilter("diaNumero", v)}
+                onClear={() => set({ diaNumero: [] })}
+                getDisplayLabel={(v) => `Día ${v}`}
+            />
+            <MultiSelectGroup
+                label="Semana"
+                options={options.semanas}
+                selected={filters.semanas}
+                onToggle={(v) => toggleFilter("semanas", v)}
+                onClear={() => set({ semanas: [] })}
+            />
+            <MultiSelectGroup
+                label="Campus (Sede)"
+                options={options.campus ?? []}
+                selected={filters.campus}
+                onToggle={(v) => toggleFilter("campus", v)}
+                onClear={() => set({ campus: [] })}
+            />
+            <MultiSelectGroup
+                label="Régimen"
+                options={options.regimen ?? []}
+                selected={filters.regimen}
+                onToggle={(v) => toggleFilter("regimen", v)}
+                onClear={() => set({ regimen: [] })}
+            />
 
             <Button onClick={() => resetFilters()} variant="outline" className="mt-4 border-[#333] hover:bg-[#222] text-white/70">
                 Limpiar Filtros
@@ -306,7 +331,17 @@ export function PowerBILayout() {
                         </ChartCard>
                     </div>
 
-                    {/* Row 7: Detalle */}
+                    {/* Row 7: Desglose por Campus y Regimen */}
+                    <div className="grid grid-cols-2 gap-4 h-[360px]">
+                        <ChartCard title="Matrículas y Afluencias por Campus">
+                            <CampusBreakdownChart />
+                        </ChartCard>
+                        <ChartCard title="Matrículas y Afluencias por Régimen">
+                            <RegimenBreakdownChart />
+                        </ChartCard>
+                    </div>
+
+                    {/* Row 8: Detalle */}
                     <div className="h-[620px]">
                         <ChartCard title="Detalle de Registros (Nuevo)">
                             <DetalleRegistrosTable height={560} />

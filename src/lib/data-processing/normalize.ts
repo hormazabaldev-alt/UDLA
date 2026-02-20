@@ -6,10 +6,34 @@ type RawRow = Record<string, unknown>;
 function parseDate(value: unknown): Date | null {
   if (value instanceof Date) return value;
   if (typeof value === "string") {
-    // Try parsing DD-MM-YYYY
-    const parsed = parse(value.trim(), "dd-MM-yyyy", new Date());
-    if (isValid(parsed)) return parsed;
-    // Try ISO or other formats if needed, or Excel serial if it comes as string
+    const s = value.trim();
+    if (!s) return null;
+
+    // Try multiple formats
+    const formats = [
+      "dd-MM-yyyy",
+      "dd/MM/yyyy",
+      "yyyy-MM-dd",
+      "MM/dd/yyyy",
+      "dd-MM-yy",
+      "dd/MM/yy"
+    ];
+
+    for (const fmt of formats) {
+      const parsed = parse(s, fmt, new Date());
+      if (isValid(parsed)) return parsed;
+    }
+
+    // Try native Date parser as last resort
+    const fallback = new Date(s);
+    if (!Number.isNaN(fallback.getTime())) return fallback;
+
+    // Check if it's a string representation of an Excel serial number
+    const num = Number(s);
+    if (!Number.isNaN(num) && num > 10000 && num < 100000) {
+      const date = new Date(Math.round((num - 25569) * 86400 * 1000));
+      if (isValid(date)) return date;
+    }
   }
   if (typeof value === "number") {
     // Excel serial date handling usually done by XLSX lib if cellDates: true, 
@@ -82,7 +106,7 @@ export function normalizeRow(raw: RawRow, rowIndex: number): {
     fechaMc,
 
     // Computed
-    mes: fechaGestion ? getMonth(fechaGestion) : null, // 0-11
+    mes: fechaGestion ? getMonth(fechaGestion) + 1 : null, // 1-12
     diaNumero: fechaGestion ? getDate(fechaGestion) : null,
     diaSemana: fechaGestion ? DIAS_SEMANA[getDay(fechaGestion)] : null
   };

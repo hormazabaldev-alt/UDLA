@@ -34,7 +34,15 @@ export function useFilters() {
       return numA - numB;
     });
 
-    return { meses, dias, tipos, semanas };
+    const campus = Array.from(
+      new Set(rows.map((r) => r.sedeInteres).filter((v): v is string => !!v))
+    ).sort();
+
+    const regimen = Array.from(
+      new Set(rows.map((r) => r.regimen).filter((v): v is string => !!v))
+    ).sort();
+
+    return { meses, dias, tipos, semanas, campus, regimen };
   }, [dataset]);
 
   const set = (partial: Partial<Filters>) => setFilters(partial);

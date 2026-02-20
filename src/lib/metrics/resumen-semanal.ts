@@ -4,11 +4,9 @@ export type ResumenSemanalRow = {
   semana: string;
   citas: number;
   recorrido: number;
-  usables: number;
   afluencias: number;
   matriculas: number;
   pctRecorrido: number; // 0..1
-  pctUsables: number; // 0..1
   pctAfluencia: number; // 0..1
   pctMatriculas: number; // 0..1
 };
@@ -49,10 +47,6 @@ export function isRecorridoRow(row: DataRow) {
   return isValidDate(row.fechaGestion);
 }
 
-export function isUsableRow(row: DataRow) {
-  return equalsCi(row.conecta, "Conecta");
-}
-
 export function isAfluenciaRow(row: DataRow, values: ReadonlySet<string> = new Set(["viene"])) {
   const interesa = row.interesa?.trim().toLocaleLowerCase() ?? "";
   if (!interesa) return false;
@@ -81,7 +75,7 @@ export function calcResumenSemanal(
   const afluenciaValues = opts?.afluenciaValues ?? new Set(["viene"]);
 
   const excluded: ResumenExclusion = { invalidCitas: 0, missingSemana: 0 };
-  const groups = new Map<string, Omit<ResumenSemanalRow, "semana" | "pctRecorrido" | "pctUsables" | "pctAfluencia" | "pctMatriculas">>();
+  const groups = new Map<string, Omit<ResumenSemanalRow, "semana" | "pctRecorrido" | "pctAfluencia" | "pctMatriculas">>();
 
   for (const r of rows) {
     if (!isValidCitaRow(r)) {
@@ -97,13 +91,12 @@ export function calcResumenSemanal(
 
     const key = semana ?? "Semana N/A";
     if (!groups.has(key)) {
-      groups.set(key, { citas: 0, recorrido: 0, usables: 0, afluencias: 0, matriculas: 0 });
+      groups.set(key, { citas: 0, recorrido: 0, afluencias: 0, matriculas: 0 });
     }
 
     const g = groups.get(key)!;
     g.citas++;
     if (isRecorridoRow(r)) g.recorrido++;
-    if (isUsableRow(r)) g.usables++;
     if (isAfluenciaRow(r, afluenciaValues)) g.afluencias++;
     if (isMatriculaRow(r)) g.matriculas++;
   }
@@ -123,11 +116,9 @@ export function calcResumenSemanal(
       semana,
       citas: g.citas,
       recorrido: g.recorrido,
-      usables: g.usables,
       afluencias: g.afluencias,
       matriculas: g.matriculas,
       pctRecorrido: safeDiv(g.recorrido, g.citas),
-      pctUsables: safeDiv(g.usables, g.recorrido),
       pctAfluencia: safeDiv(g.afluencias, g.recorrido),
       pctMatriculas: safeDiv(g.matriculas, g.recorrido),
     };
@@ -137,19 +128,17 @@ export function calcResumenSemanal(
     (acc, r) => {
       acc.citas += r.citas;
       acc.recorrido += r.recorrido;
-      acc.usables += r.usables;
       acc.afluencias += r.afluencias;
       acc.matriculas += r.matriculas;
       return acc;
     },
-    { citas: 0, recorrido: 0, usables: 0, afluencias: 0, matriculas: 0 },
+    { citas: 0, recorrido: 0, afluencias: 0, matriculas: 0 },
   );
 
   const totals: ResumenSemanalRow = {
     semana: "TOTALES",
     ...totalsCounts,
     pctRecorrido: safeDiv(totalsCounts.recorrido, totalsCounts.citas),
-    pctUsables: safeDiv(totalsCounts.usables, totalsCounts.recorrido),
     pctAfluencia: safeDiv(totalsCounts.afluencias, totalsCounts.recorrido),
     pctMatriculas: safeDiv(totalsCounts.matriculas, totalsCounts.recorrido),
   };
@@ -162,18 +151,16 @@ export function runResumenSemanalSanityChecks(res: ResumenSemanalResult) {
     (acc, r) => {
       acc.citas += r.citas;
       acc.recorrido += r.recorrido;
-      acc.usables += r.usables;
       acc.afluencias += r.afluencias;
       acc.matriculas += r.matriculas;
       return acc;
     },
-    { citas: 0, recorrido: 0, usables: 0, afluencias: 0, matriculas: 0 },
+    { citas: 0, recorrido: 0, afluencias: 0, matriculas: 0 },
   );
 
   const ok =
     sum.citas === res.totals.citas &&
     sum.recorrido === res.totals.recorrido &&
-    sum.usables === res.totals.usables &&
     sum.afluencias === res.totals.afluencias &&
     sum.matriculas === res.totals.matriculas;
 
@@ -182,11 +169,10 @@ export function runResumenSemanalSanityChecks(res: ResumenSemanalResult) {
     message: ok
       ? "ResumenSemanal sanity OK"
       : `ResumenSemanal mismatch: sum=${JSON.stringify(sum)} totals=${JSON.stringify({
-          citas: res.totals.citas,
-          recorrido: res.totals.recorrido,
-          usables: res.totals.usables,
-          afluencias: res.totals.afluencias,
-          matriculas: res.totals.matriculas,
-        })}`,
+        citas: res.totals.citas,
+        recorrido: res.totals.recorrido,
+        afluencias: res.totals.afluencias,
+        matriculas: res.totals.matriculas,
+      })}`,
   };
 }

@@ -5,7 +5,6 @@ import {
   CalendarCheck2,
   Route,
   PhoneCall,
-  UserCheck,
   GraduationCap,
   Percent,
 } from "lucide-react";
@@ -61,18 +60,16 @@ export function KpiCardsExtra() {
   const hint =
     excludedTotal > 0
       ? `Excluidos: ${formatInt(excludedTotal)} (sin Semana: ${formatInt(
-          resumen.excluded.missingSemana,
-        )}, sin Fecha Carga: ${formatInt(resumen.excluded.invalidCitas)})`
+        resumen.excluded.missingSemana,
+      )}, sin Fecha Carga: ${formatInt(resumen.excluded.invalidCitas)})`
       : undefined;
 
   const cards = [
     { label: "Citas", value: formatInt(t.citas), icon: CalendarCheck2 },
     { label: "Recorrido", value: formatInt(t.recorrido), icon: Route },
-    { label: "Usables", value: formatInt(t.usables), icon: UserCheck },
     { label: "Afluencias", value: formatInt(t.afluencias), icon: PhoneCall },
     { label: "Matrículas", value: formatInt(t.matriculas), icon: GraduationCap },
     { label: "% Recorrido", value: formatPct(t.pctRecorrido, 1), icon: Percent },
-    { label: "% Usables", value: formatPct(t.pctUsables, 0), icon: Percent },
     { label: "% Afluencia", value: formatPct(t.pctAfluencia, 0), icon: Percent },
     { label: "% Matrículas", value: formatPct(t.pctMatriculas, 0), icon: Percent },
   ] as const;
