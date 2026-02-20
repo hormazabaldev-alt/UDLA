@@ -35,6 +35,12 @@ import { useFilters } from "@/features/dashboard/hooks/useFilters";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BaseType } from "@/lib/data-processing/types";
 import { Button } from "@/components/ui/button";
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from "@/components/ui/accordion";
 
 function MetricItem({ label, value, subValue, tooltip }: { label: string; value: string; subValue?: string; tooltip?: string }) {
     return (
@@ -158,55 +164,77 @@ function VerticalFilters() {
         }
     };
 
+    const temporalActiveCount = filters.mes.length + filters.diaNumero.length + filters.semanas.length;
+
     return (
         <div className="flex flex-col gap-6 w-full">
-            <MultiSelectGroup
-                label="Tipo de Base"
-                options={options.tipos}
-                selected={filters.tipo}
-                onToggle={(v) => toggleFilter("tipo", v)}
-                onClear={() => set({ tipo: [] })}
-            />
-            <MultiSelectGroup
-                label="Mes"
-                options={options.meses}
-                selected={filters.mes}
-                onToggle={(v) => toggleFilter("mes", v)}
-                onClear={() => set({ mes: [] })}
-                getDisplayLabel={(v) => `Mes ${v}`}
-            />
-            <MultiSelectGroup
-                label="Día"
-                options={options.dias}
-                selected={filters.diaNumero}
-                onToggle={(v) => toggleFilter("diaNumero", v)}
-                onClear={() => set({ diaNumero: [] })}
-                getDisplayLabel={(v) => `Día ${v}`}
-            />
-            <MultiSelectGroup
-                label="Semana"
-                options={options.semanas}
-                selected={filters.semanas}
-                onToggle={(v) => toggleFilter("semanas", v)}
-                onClear={() => set({ semanas: [] })}
-            />
-            <MultiSelectGroup
-                label="Campus (Sede)"
-                options={options.campus ?? []}
-                selected={filters.campus}
-                onToggle={(v) => toggleFilter("campus", v)}
-                onClear={() => set({ campus: [] })}
-            />
-            <MultiSelectGroup
-                label="Régimen"
-                options={options.regimen ?? []}
-                selected={filters.regimen}
-                onToggle={(v) => toggleFilter("regimen", v)}
-                onClear={() => set({ regimen: [] })}
-            />
+            {/* Filtros Base (Siempre visibles) */}
+            <div className="space-y-6">
+                <MultiSelectGroup
+                    label="Tipo de Base"
+                    options={options.tipos}
+                    selected={filters.tipo}
+                    onToggle={(v) => toggleFilter("tipo", v)}
+                    onClear={() => set({ tipo: [] })}
+                />
+                <MultiSelectGroup
+                    label="Campus (Sede)"
+                    options={options.campus ?? []}
+                    selected={filters.campus}
+                    onToggle={(v) => toggleFilter("campus", v)}
+                    onClear={() => set({ campus: [] })}
+                />
+                <MultiSelectGroup
+                    label="Régimen"
+                    options={options.regimen ?? []}
+                    selected={filters.regimen}
+                    onToggle={(v) => toggleFilter("regimen", v)}
+                    onClear={() => set({ regimen: [] })}
+                />
+            </div>
+            {/* Filtros Temporales (Colapsables) */}
+            <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="temporales" className="border-t border-[#1f1f1f]/50 border-b-0 pt-2">
+                    <AccordionTrigger className="py-2 hover:no-underline">
+                        <div className="flex items-center gap-2">
+                            <span>Filtros Temporales</span>
+                            {temporalActiveCount > 0 && (
+                                <span className="flex items-center justify-center bg-[#00d4ff]/20 text-[#00d4ff] text-[10px] h-4 min-w-4 px-1 rounded-full">
+                                    {temporalActiveCount}
+                                </span>
+                            )}
+                        </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-4 pb-2 space-y-6">
+                        <MultiSelectGroup
+                            label="Mes"
+                            options={options.meses}
+                            selected={filters.mes}
+                            onToggle={(v) => toggleFilter("mes", v)}
+                            onClear={() => set({ mes: [] })}
+                            getDisplayLabel={(v) => `Mes ${v}`}
+                        />
+                        <MultiSelectGroup
+                            label="Semana"
+                            options={options.semanas}
+                            selected={filters.semanas}
+                            onToggle={(v) => toggleFilter("semanas", v)}
+                            onClear={() => set({ semanas: [] })}
+                        />
+                        <MultiSelectGroup
+                            label="Día"
+                            options={options.dias}
+                            selected={filters.diaNumero}
+                            onToggle={(v) => toggleFilter("diaNumero", v)}
+                            onClear={() => set({ diaNumero: [] })}
+                            getDisplayLabel={(v) => `Día ${v}`}
+                        />
+                    </AccordionContent>
+                </AccordionItem>
+            </Accordion>
 
-            <Button onClick={() => resetFilters()} variant="outline" className="mt-4 border-[#333] hover:bg-[#222] text-white/70">
-                Limpiar Filtros
+            <Button onClick={() => resetFilters()} variant="outline" className="mt-2 border-[#333] hover:bg-[#222] text-white/70">
+                Limpiar Todos los Filtros
             </Button>
         </div>
     )
