@@ -7,8 +7,15 @@ import {
     Replace,
     History,
     Share2,
-    BarChart3
+    BarChart3,
+    Info
 } from "lucide-react";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { DataUploadDialog } from "@/features/dashboard/components/upload/data-upload-dialog";
 import { useMetrics } from "@/features/dashboard/hooks/useMetrics";
 import { formatInt } from "@/lib/utils/format";
@@ -29,23 +36,51 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { BaseType } from "@/lib/data-processing/types";
 import { Button } from "@/components/ui/button";
 
-function MetricItem({ label, value, subValue }: { label: string; value: string; subValue?: string }) {
+function MetricItem({ label, value, subValue, tooltip }: { label: string; value: string; subValue?: string; tooltip?: string }) {
     return (
-        <div className="flex flex-col">
-            <span className="text-3xl font-bold text-[#00d4ff] tracking-tighter leading-none">{value}</span>
-            <span className="text-xs text-white/60 uppercase tracking-wide font-semibold mt-1">{label}</span>
-            {subValue && <span className="text-[10px] text-white/40">{subValue}</span>}
-        </div>
+        <TooltipProvider>
+            <Tooltip delayDuration={300}>
+                <TooltipTrigger asChild>
+                    <div className="flex flex-col cursor-help">
+                        <span className="text-3xl font-bold text-[#00d4ff] tracking-tighter leading-none">{value}</span>
+                        <div className="flex items-center gap-1.5 mt-1.5">
+                            <span className="text-[13px] text-white/90 uppercase tracking-wide font-bold">{label}</span>
+                            {tooltip && <Info className="size-3.5 text-white/40 hover:text-white/80 transition-colors" />}
+                        </div>
+                        {subValue && <span className="text-[10px] text-white/40 mt-1">{subValue}</span>}
+                    </div>
+                </TooltipTrigger>
+                {tooltip && (
+                    <TooltipContent>
+                        <p className="max-w-[200px] text-center">{tooltip}</p>
+                    </TooltipContent>
+                )}
+            </Tooltip>
+        </TooltipProvider>
     );
 }
 
-function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
+function ChartCard({ title, children, tooltip }: { title: string; children: React.ReactNode; tooltip?: string }) {
     return (
-        <div className="bg-[#080808] border border-[#1f1f1f] rounded-sm relative overflow-hidden flex flex-col">
-            <div className="px-3 py-2 text-xs font-bold uppercase text-white/40 tracking-wider border-b border-[#1f1f1f] flex-shrink-0">
-                {title}
+        <div className="bg-[#080808] border border-[#1f1f1f] rounded-lg relative overflow-hidden flex flex-col">
+            <div className="px-4 py-3 border-b border-[#1f1f1f] flex-shrink-0 flex items-center justify-between gap-2">
+                <span className="text-sm font-bold uppercase text-white/90 tracking-wider">
+                    {title}
+                </span>
+                {tooltip && (
+                    <TooltipProvider>
+                        <Tooltip delayDuration={300}>
+                            <TooltipTrigger asChild>
+                                <Info className="size-4 text-white/40 cursor-help hover:text-white/80 transition-colors" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p className="max-w-[250px]">{tooltip}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                )}
             </div>
-            <div className="flex-1 p-2 min-h-0">
+            <div className="flex-1 p-3 min-h-0">
                 {children}
             </div>
         </div>
@@ -82,11 +117,11 @@ function MultiSelectGroup({
                                     key={opt}
                                     type="button"
                                     onClick={() => onToggle(opt)}
-                                    className="px-2.5 py-1.5 rounded-md text-[11px] font-medium transition border"
+                                    className="px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors border hover:bg-white/5 hover:text-white"
                                     style={{
-                                        backgroundColor: active ? "rgba(0,212,255,0.15)" : "rgba(255,255,255,0.03)",
+                                        backgroundColor: active ? "rgba(0,212,255,0.15)" : "rgba(255,255,255,0.04)",
                                         borderColor: active ? "#00d4ff" : "rgba(255,255,255,0.08)",
-                                        color: active ? "#00d4ff" : "rgba(255,255,255,0.55)",
+                                        color: active ? "#00d4ff" : "rgba(255,255,255,0.65)",
                                     }}
                                 >
                                     {getDisplayLabel(opt)}
@@ -196,8 +231,8 @@ export function PowerBILayout() {
     return (
         <div className="flex h-screen w-full bg-black text-white overflow-hidden font-sans">
             {/* Sidebar Panel */}
-            <aside className="w-[240px] flex-shrink-0 bg-[#050505] border-r border-[#1f1f1f] flex flex-col">
-                <div className="p-5 border-b border-[#1f1f1f]">
+            <aside className="w-[280px] flex-shrink-0 bg-[#050505] border-r border-[#1f1f1f] flex flex-col">
+                <div className="p-6 border-b border-[#1f1f1f]">
                     <h1 className="text-xl font-bold tracking-tighter text-white">
                         Dashboard <span className="text-[#00d4ff]">UDLA</span>
                     </h1>
@@ -205,7 +240,7 @@ export function PowerBILayout() {
                         {isViewer ? "Vista compartida" : "Bienvenido David"}
                     </p>
                 </div>
-                <div className="p-5 flex-1 overflow-y-auto space-y-6">
+                <div className="p-6 flex-1 overflow-y-auto space-y-7">
                     <VerticalFilters />
                     {!isViewer && (
                         <div className="border-t border-[#1f1f1f] pt-4 space-y-2">
@@ -248,13 +283,13 @@ export function PowerBILayout() {
                 {/* Top Metrics Row - Sticky */}
                 <div className="sticky top-0 z-10 bg-black border-b border-[#1f1f1f]/50 px-5 py-3">
                     <div className="grid grid-cols-7 gap-6 items-start">
-                        <MetricItem label="Base Cargada" value={formatInt(totals?.cargada || 0)} />
-                        <MetricItem label="Recorrido" value={formatInt(totals?.recorrido || 0)} />
-                        <MetricItem label="Contactado" value={formatInt(totals?.contactado || 0)} />
-                        <MetricItem label="% Contact." value={`${((totals?.pctContactabilidad || 0) * 100).toFixed(1)}%`} />
-                        <MetricItem label="Citas" value={formatInt(totals?.citas || 0)} />
-                        <MetricItem label="AF (Afluencias)" value={formatInt(totals?.af || 0)} />
-                        <MetricItem label="MC (Matrículas)" value={formatInt(totals?.mc || 0)} />
+                        <MetricItem label="Base Cargada" value={formatInt(totals?.cargada || 0)} tooltip="Total de leads cargados en la base de datos." />
+                        <MetricItem label="Recorrido" value={formatInt(totals?.recorrido || 0)} tooltip="Leads que han sido gestionados o contactados de alguna forma." />
+                        <MetricItem label="Contactado" value={formatInt(totals?.contactado || 0)} tooltip="Leads con los que se logró contacto efectivo." />
+                        <MetricItem label="% Contact." value={`${((totals?.pctContactabilidad || 0) * 100).toFixed(1)}%`} tooltip="Porcentaje de leads contactados sobre el total recorrido." />
+                        <MetricItem label="Citas" value={formatInt(totals?.citas || 0)} tooltip="Citas agendadas con éxito producto del contacto." />
+                        <MetricItem label="AF (Afluencias)" value={formatInt(totals?.af || 0)} tooltip="Leads que efectivamente asistieron (Afluencias)." />
+                        <MetricItem label="MC (Matrículas)" value={formatInt(totals?.mc || 0)} tooltip="Matrículas concretadas finales." />
                     </div>
                 </div>
 
@@ -264,7 +299,7 @@ export function PowerBILayout() {
 
                     {/* Row 1: Funnel full-width */}
                     <div className="h-[300px]">
-                        <ChartCard title="Embudo de Conversión">
+                        <ChartCard title="Embudo de Conversión" tooltip="Visualiza la pérdida de leads en cada etapa del funnel: desde Carga hasta Matrícula.">
                             <FunnelChart />
                         </ChartCard>
                     </div>
@@ -299,51 +334,51 @@ export function PowerBILayout() {
 
                     {/* Row 3: Resultado Mensual + Evolución */}
                     <div className="grid grid-cols-2 gap-4 h-[320px]">
-                        <ChartCard title="Resultado Mensual (por Tipo Base)">
+                        <ChartCard title="Resultado Mensual (por Tipo Base)" tooltip="Comportamiento y rendimiento histórico por tipo de base a lo largo de los meses.">
                             <TrendChart />
                         </ChartCard>
-                        <ChartCard title="Evolución Mensual (KPIs)">
+                        <ChartCard title="Evolución Mensual (KPIs)" tooltip="Muestra cómo varían las métricas clave porcentuales (ej. % Contactabilidad, Cierre) mensualmente.">
                             <EvolutionChart />
                         </ChartCard>
                     </div>
 
                     {/* Row 4: Semanal + Diario */}
                     <div className="grid grid-cols-2 gap-4 h-[320px]">
-                        <ChartCard title="Comparativa Semanal">
+                        <ChartCard title="Comparativa Semanal" tooltip="Volumen de Citas, AF y MC consolidado por semana del año.">
                             <WeeklyChart />
                         </ChartCard>
-                        <ChartCard title="Comparativa por Día">
+                        <ChartCard title="Comparativa por Día" tooltip="Distribución del rendimiento según los días calendario.">
                             <DailyChart />
                         </ChartCard>
                     </div>
 
                     {/* Row 5: Nuevo chart semanal */}
                     <div className="h-[360px]">
-                        <ChartCard title="KPIs por Semana (Nuevo)">
+                        <ChartCard title="KPIs por Semana (Nuevo)" tooltip="Gráfico detallado de las métricas agrupadas por semana específica con metas comparativas.">
                             <SemanaKpisChart />
                         </ChartCard>
                     </div>
 
                     {/* Row 6: Resumen Semanal */}
                     <div className="h-[420px]">
-                        <ChartCard title="Resumen Semanal">
+                        <ChartCard title="Resumen Semanal" tooltip="Tabla consolidada que muestra el rendimiento detallado semana a semana.">
                             <ResumenSemanalTable />
                         </ChartCard>
                     </div>
 
                     {/* Row 7: Desglose por Campus y Regimen */}
                     <div className="grid grid-cols-2 gap-4 h-[360px]">
-                        <ChartCard title="Matrículas y Afluencias por Campus">
+                        <ChartCard title="Matrículas y Afluencias por Campus" tooltip="Distribución geográfica u organizacional por sede (Campus) de los leads efectivos.">
                             <CampusBreakdownChart />
                         </ChartCard>
-                        <ChartCard title="Matrículas y Afluencias por Régimen">
+                        <ChartCard title="Matrículas y Afluencias por Régimen" tooltip="Rendimiento segmentado por régimen de estudio.">
                             <RegimenBreakdownChart />
                         </ChartCard>
                     </div>
 
                     {/* Row 8: Detalle */}
                     <div className="h-[620px]">
-                        <ChartCard title="Detalle de Registros (Nuevo)">
+                        <ChartCard title="Detalle de Registros (Nuevo)" tooltip="Tabla de datos granulares para revisión uno a uno de los registros que componen los KPIs.">
                             <DetalleRegistrosTable height={560} />
                         </ChartCard>
                     </div>
