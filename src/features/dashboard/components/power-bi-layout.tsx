@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { cn } from "@/lib/utils/cn";
 
 import {
     Plus,
@@ -66,9 +67,9 @@ function MetricItem({ label, value, subValue, tooltip }: { label: string; value:
     );
 }
 
-function ChartCard({ title, children, tooltip }: { title: string; children: React.ReactNode; tooltip?: string }) {
+function ChartCard({ title, children, tooltip, className }: { title: string; children: React.ReactNode; tooltip?: string; className?: string }) {
     return (
-        <div className="bg-[#080808] border border-[#1f1f1f] rounded-lg relative overflow-hidden flex flex-col">
+        <div className={cn("bg-[#080808] border border-[#1f1f1f] rounded-lg relative overflow-hidden flex flex-col", className)}>
             <div className="px-4 py-3 border-b border-[#1f1f1f] flex-shrink-0 flex items-center justify-between gap-2">
                 <span className="text-sm font-bold uppercase text-white/90 tracking-wider">
                     {title}
@@ -382,7 +383,7 @@ export function PowerBILayout() {
 
                     {/* Row 5: Nuevo chart semanal */}
                     <div className="h-[520px]">
-                        <ChartCard title="KPIs por Semana (Nuevo)" tooltip="Gráfico detallado de las métricas agrupadas por semana específica con metas comparativas.">
+                        <ChartCard title="KPIs por Semana (Nuevo)" tooltip="Gráfico detallado de las métricas agrupadas por semana específica con metas comparativas." className="h-full">
                             <SemanaKpisChart />
                         </ChartCard>
                     </div>
