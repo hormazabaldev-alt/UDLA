@@ -52,28 +52,34 @@ function cleanString(value: unknown): string | null {
 
 const DIAS_SEMANA = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
+function getValue(raw: RawRow, key: string): unknown {
+  const lowerKey = key.toLowerCase();
+  for (const [k, v] of Object.entries(raw)) {
+    if (k.toLowerCase() === lowerKey) return v;
+  }
+  return undefined;
+}
+
 export function normalizeRow(raw: RawRow, rowIndex: number): {
   row: DataRow | null;
   issues: ParseIssue[];
 } {
   const issues: ParseIssue[] = [];
 
-  const tipoLlamada = cleanString(raw["Tipo Llamada"]);
-  // Optional: Validar Tipo Llamada si es crítico
-
-  const fechaCarga = parseDate(raw["Fecha Carga"]);
-  const rutBase = cleanString(raw["Rut Base"]);
-  const tipoBase = cleanString(raw["Tipo Base"]);
-  const fechaGestion = parseDate(raw["Fecha Gestion"]);
-  const conecta = cleanString(raw["Conecta"]);
-  const interesa = cleanString(raw["Interesa"]);
-  const regimen = cleanString(raw["Regimen"]);
-  const sedeInteres = cleanString(raw["Sede Interes"]);
-  const semana = cleanString(raw["Semana"]);
-  const af = cleanString(raw["AF"]);
-  const fechaAfRaw = parseDate(raw["Fecha af"]);
-  const mc = cleanString(raw["MC"]);
-  const fechaMcRaw = parseDate(raw["Fecha MC"]);
+  const tipoLlamada = cleanString(getValue(raw, "Tipo Llamada"));
+  const fechaCarga = parseDate(getValue(raw, "Fecha Carga"));
+  const rutBase = cleanString(getValue(raw, "Rut Base"));
+  const tipoBase = cleanString(getValue(raw, "Tipo Base"));
+  const fechaGestion = parseDate(getValue(raw, "Fecha Gestion"));
+  const conecta = cleanString(getValue(raw, "Conecta"));
+  const interesa = cleanString(getValue(raw, "Interesa"));
+  const regimen = cleanString(getValue(raw, "Regimen"));
+  const sedeInteres = cleanString(getValue(raw, "Sede Interes"));
+  const semana = cleanString(getValue(raw, "Semana"));
+  const af = cleanString(getValue(raw, "AF"));
+  const fechaAfRaw = parseDate(getValue(raw, "Fecha af"));
+  const mc = cleanString(getValue(raw, "MC"));
+  const fechaMcRaw = parseDate(getValue(raw, "Fecha MC"));
 
   // Reglas: si AF/MC vienen vacíos, sus fechas asociadas deben quedar null.
   const fechaAf = af ? fechaAfRaw : null;

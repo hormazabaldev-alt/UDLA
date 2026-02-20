@@ -7,6 +7,7 @@ import {
   clearPersistedDataset,
   loadPersistedDataset,
   persistDataset,
+  reviveDataset,
 } from "@/lib/persistence/dataset";
 import { useDashboardStore } from "@/store/dashboard-store";
 
@@ -25,7 +26,8 @@ export function useData() {
     if (!res.ok) {
       return null;
     }
-    const ds = (await res.json()) as Dataset;
+    const rawDs = (await res.json()) as Dataset;
+    const ds = reviveDataset(rawDs);
     setDataset(ds);
     await persistDataset(ds);
     return ds;
