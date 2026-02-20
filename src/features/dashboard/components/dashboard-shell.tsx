@@ -10,6 +10,7 @@ import {
     PieChart,
     Activity
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils/cn";
 import { AppShell } from "@/components/shell/app-shell";
@@ -111,7 +112,7 @@ function NavItem({
     active,
     onClick
 }: {
-    icon: any;
+    icon: LucideIcon;
     label: string;
     collapsed: boolean;
     active?: boolean;

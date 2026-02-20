@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import ReactECharts from "echarts-for-react";
 import { ArrowLeft, BarChart3, TrendingUp, Loader2 } from "lucide-react";
 import { formatInt } from "@/lib/utils/format";
@@ -321,9 +322,9 @@ export default function AnalyticsPage() {
                 <div className="text-center space-y-3">
                     <h2 className="text-xl font-bold">Sin datos</h2>
                     <p className="text-white/50 text-sm">Carga un archivo Excel primero desde el Dashboard.</p>
-                    <a href="/" className="inline-flex items-center gap-1 text-[#00d4ff] text-sm hover:underline">
+                    <Link href="/" className="inline-flex items-center gap-1 text-[#00d4ff] text-sm hover:underline">
                         <ArrowLeft className="size-4" /> Ir al Dashboard
-                    </a>
+                    </Link>
                 </div>
             </div>
         );
@@ -335,9 +336,9 @@ export default function AnalyticsPage() {
             <div className="sticky top-0 z-20 bg-black/95 backdrop-blur-sm border-b border-[#1f1f1f]">
                 <div className="max-w-[1600px] mx-auto px-6 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <a href="/" className="flex items-center gap-1 text-xs text-white/50 hover:text-white/80 transition">
+                        <Link href="/" className="flex items-center gap-1 text-xs text-white/50 hover:text-white/80 transition">
                             <ArrowLeft className="size-4" /> Dashboard
-                        </a>
+                        </Link>
                         <h1 className="text-lg font-bold tracking-tight">
                             Análisis <span className="text-[#00d4ff]">Avanzado</span>
                         </h1>
@@ -430,19 +431,19 @@ export default function AnalyticsPage() {
                 {/* Charts Grid */}
                 <div className="grid grid-cols-2 gap-4">
                     <ChartCard title="Comparativa Mensual" icon={<BarChart3 className="size-3.5 text-white/30" />}>
-                        <ReactECharts option={monthlyChart} style={{ height: "100%", width: "100%" }} />
+                        <ReactECharts option={monthlyChart} notMerge={true} style={{ height: "100%", width: "100%" }} />
                     </ChartCard>
 
                     <ChartCard title="Comparativa por Día" icon={<BarChart3 className="size-3.5 text-white/30" />}>
-                        <ReactECharts option={dailyChart} style={{ height: "100%", width: "100%" }} />
+                        <ReactECharts option={dailyChart} notMerge={true} style={{ height: "100%", width: "100%" }} />
                     </ChartCard>
 
                     <ChartCard title="Tendencia Semanal" icon={<TrendingUp className="size-3.5 text-white/30" />}>
-                        <ReactECharts option={weeklyTrend} style={{ height: "100%", width: "100%" }} />
+                        <ReactECharts option={weeklyTrend} notMerge={true} style={{ height: "100%", width: "100%" }} />
                     </ChartCard>
 
                     <ChartCard title="Tasas de Conversión (Mensual)" icon={<TrendingUp className="size-3.5 text-white/30" />}>
-                        <ReactECharts option={conversionChart} style={{ height: "100%", width: "100%" }} />
+                        <ReactECharts option={conversionChart} notMerge={true} style={{ height: "100%", width: "100%" }} />
                     </ChartCard>
                 </div>
             </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { ArrowLeft, FileSpreadsheet, Plus, Replace } from "lucide-react";
 import { formatInt } from "@/lib/utils/format";
 
@@ -30,13 +31,13 @@ export default function LogsPage() {
             <div className="max-w-4xl mx-auto px-6 py-8">
                 {/* Header */}
                 <div className="flex items-center gap-4 mb-8">
-                    <a
+                    <Link
                         href="/"
                         className="flex items-center gap-1 text-xs text-white/50 hover:text-white/80 transition"
                     >
                         <ArrowLeft className="size-4" />
                         Volver al Dashboard
-                    </a>
+                    </Link>
                 </div>
 
                 <h1 className="text-2xl font-bold tracking-tight mb-1">

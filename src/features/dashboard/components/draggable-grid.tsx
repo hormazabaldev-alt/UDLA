@@ -9,7 +9,9 @@ import {
     useSensors,
     DragOverlay,
     defaultDropAnimationSideEffects,
-    type DropAnimation
+    type DropAnimation,
+    type DragEndEvent,
+    type DragStartEvent,
 } from "@dnd-kit/core";
 import {
     arrayMove,
@@ -19,7 +21,7 @@ import {
     useSortable
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useState, useId } from "react";
+import { useState } from "react";
 import { cn } from "@/lib/utils/cn";
 
 interface DraggableGridProps {
@@ -49,16 +51,18 @@ export function DraggableGrid({ items, onOrderChange, renderItem, className }: D
         })
     );
 
-    const handleDragStart = (event: any) => {
-        setActiveId(event.active.id);
+    const handleDragStart = (event: DragStartEvent) => {
+        setActiveId(String(event.active.id));
     };
 
-    const handleDragEnd = (event: any) => {
+    const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
+        const activeKey = String(active.id);
+        const overKey = over?.id !== undefined ? String(over.id) : null;
 
-        if (active.id !== over?.id) {
-            const oldIndex = items.indexOf(active.id);
-            const newIndex = items.indexOf(over.id);
+        if (overKey && activeKey !== overKey) {
+            const oldIndex = items.indexOf(activeKey);
+            const newIndex = items.indexOf(overKey);
             onOrderChange(arrayMove(items, oldIndex, newIndex));
         }
 

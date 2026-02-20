@@ -1,6 +1,5 @@
 import type { DataRow, ParseIssue } from "@/lib/data-processing/types";
 import { parse, isValid, getMonth, getDate, getDay } from "date-fns";
-import { es } from "date-fns/locale";
 
 type RawRow = Record<string, unknown>;
 
@@ -48,9 +47,13 @@ export function normalizeRow(raw: RawRow, rowIndex: number): {
   const sedeInteres = cleanString(raw["Sede Interes"]);
   const semana = cleanString(raw["Semana"]);
   const af = cleanString(raw["AF"]);
-  const fechaAf = parseDate(raw["Fecha af"]);
+  const fechaAfRaw = parseDate(raw["Fecha af"]);
   const mc = cleanString(raw["MC"]);
-  const fechaMc = parseDate(raw["Fecha MC"]);
+  const fechaMcRaw = parseDate(raw["Fecha MC"]);
+
+  // Reglas: si AF/MC vienen vacíos, sus fechas asociadas deben quedar null.
+  const fechaAf = af ? fechaAfRaw : null;
+  const fechaMc = mc ? fechaMcRaw : null;
 
   // Validaciones críticas
   if (!rutBase) {

@@ -7,7 +7,7 @@ export type Filters = {
   tipo: BaseType | "All";
   mes: number | "All";
   diaNumero: number | "All";
-  semana: string | "All";
+  semanas: string[]; // multi-select
 };
 
 export type DashboardState = {
@@ -28,7 +28,7 @@ const DEFAULT_FILTERS: Filters = {
   tipo: "All",
   mes: "All",
   diaNumero: "All",
-  semana: "All",
+  semanas: [],
 };
 
 export function applyFilters(rows: DataRow[], filters: Filters): DataRow[] {
@@ -38,7 +38,10 @@ export function applyFilters(rows: DataRow[], filters: Filters): DataRow[] {
     if (filters.tipo !== "All" && r.tipoBase !== filters.tipo) return false;
     if (filters.mes !== "All" && r.mes !== filters.mes) return false;
     if (filters.diaNumero !== "All" && r.diaNumero !== filters.diaNumero) return false;
-    if (filters.semana !== "All" && r.semana !== filters.semana) return false;
+    if (filters.semanas.length > 0) {
+      const semana = r.semana ?? "";
+      if (!filters.semanas.includes(semana)) return false;
+    }
     return true;
   });
 }
@@ -69,4 +72,3 @@ export const useDashboardStore = create<DashboardState>((set) => ({
   setWidgetOrder: (order) => set(() => ({ widgetOrder: order })),
   resetFilters: () => set(() => ({ filters: DEFAULT_FILTERS })),
 }));
-

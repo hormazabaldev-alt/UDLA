@@ -3,7 +3,6 @@
 import { useState } from "react";
 
 import {
-    Filter,
     Plus,
     Replace,
     History,
@@ -19,6 +18,10 @@ import { GaugeChart } from "@/features/dashboard/components/widgets/gauge-chart"
 import { WeeklyChart } from "@/features/dashboard/components/widgets/weekly-chart";
 import { DailyChart } from "@/features/dashboard/components/widgets/daily-chart";
 import { EvolutionChart } from "@/features/dashboard/components/widgets/evolution-chart";
+import { KpiCardsExtra } from "@/features/dashboard/components/widgets/kpi-cards-extra";
+import { ResumenSemanalTable } from "@/features/dashboard/components/widgets/resumen-semanal-table";
+import { SemanaKpisChart } from "@/features/dashboard/components/widgets/semana-kpis-chart";
+import { DetalleRegistrosTable } from "@/features/dashboard/components/widgets/detalle-registros-table";
 import { useFilters } from "@/features/dashboard/hooks/useFilters";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BaseType } from "@/lib/data-processing/types";
@@ -49,6 +52,15 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
 
 function VerticalFilters() {
     const { filters, set, resetFilters, options } = useFilters();
+
+    const selectedWeeks = filters.semanas;
+    const toggleWeek = (week: string) => {
+        if (selectedWeeks.includes(week)) {
+            set({ semanas: selectedWeeks.filter(w => w !== week) });
+        } else {
+            set({ semanas: [...selectedWeeks, week] });
+        }
+    };
 
     return (
         <div className="flex flex-col gap-6 w-full">
@@ -93,15 +105,44 @@ function VerticalFilters() {
 
             <div className="space-y-2">
                 <label className="text-xs text-[#00d4ff] uppercase font-bold tracking-wider">Semana</label>
-                <Select value={String(filters.semana ?? "All")} onValueChange={(v) => set({ semana: v === "All" ? "All" : v })}>
-                    <SelectTrigger className="w-full bg-[#1a1a1a] border-[#333] text-white h-9">
-                        <SelectValue placeholder="Todas" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-[#1a1a1a] border-[#333] text-white">
-                        <SelectItem value="All">Todas</SelectItem>
-                        {options.semanas?.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>) || null}
-                    </SelectContent>
-                </Select>
+                <div className="rounded-md border border-[#333] bg-[#1a1a1a] p-2">
+                    <div className="flex flex-wrap gap-1.5">
+                        {(options.semanas ?? []).length === 0 ? (
+                            <span className="text-[11px] text-white/35 italic">Sin datos</span>
+                        ) : (
+                            (options.semanas ?? []).map((w) => {
+                                const active = selectedWeeks.includes(w);
+                                return (
+                                    <button
+                                        key={w}
+                                        type="button"
+                                        onClick={() => toggleWeek(w)}
+                                        className="px-2.5 py-1.5 rounded-md text-[11px] font-medium transition border"
+                                        style={{
+                                            backgroundColor: active ? "rgba(0,212,255,0.15)" : "rgba(255,255,255,0.03)",
+                                            borderColor: active ? "#00d4ff" : "rgba(255,255,255,0.08)",
+                                            color: active ? "#00d4ff" : "rgba(255,255,255,0.55)",
+                                        }}
+                                    >
+                                        {w}
+                                    </button>
+                                );
+                            })
+                        )}
+                    </div>
+
+                    {selectedWeeks.length > 0 ? (
+                        <button
+                            type="button"
+                            onClick={() => set({ semanas: [] })}
+                            className="mt-2 text-[10px] text-white/35 hover:text-white/60 transition"
+                        >
+                            Limpiar selección ({selectedWeeks.length})
+                        </button>
+                    ) : (
+                        <div className="mt-2 text-[10px] text-white/35">Todas las semanas</div>
+                    )}
+                </div>
             </div>
 
             <Button onClick={() => resetFilters()} variant="outline" className="mt-4 border-[#333] hover:bg-[#222] text-white/70">
@@ -194,6 +235,8 @@ export function PowerBILayout() {
 
                 {/* Charts Grid */}
                 <div className="p-5 space-y-4 flex-1">
+                    <KpiCardsExtra />
+
                     {/* Row 1: Funnel full-width */}
                     <div className="h-[300px]">
                         <ChartCard title="Embudo de Conversión">
@@ -246,6 +289,27 @@ export function PowerBILayout() {
                         </ChartCard>
                         <ChartCard title="Comparativa por Día">
                             <DailyChart />
+                        </ChartCard>
+                    </div>
+
+                    {/* Row 5: Nuevo chart semanal */}
+                    <div className="h-[360px]">
+                        <ChartCard title="KPIs por Semana (Nuevo)">
+                            <SemanaKpisChart />
+                        </ChartCard>
+                    </div>
+
+                    {/* Row 6: Resumen Semanal */}
+                    <div className="h-[420px]">
+                        <ChartCard title="Resumen Semanal">
+                            <ResumenSemanalTable />
+                        </ChartCard>
+                    </div>
+
+                    {/* Row 7: Detalle */}
+                    <div className="h-[620px]">
+                        <ChartCard title="Detalle de Registros (Nuevo)">
+                            <DetalleRegistrosTable height={560} />
                         </ChartCard>
                     </div>
                 </div>
