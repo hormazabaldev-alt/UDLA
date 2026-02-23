@@ -8,6 +8,7 @@ import { formatInt } from "@/lib/utils/format";
 import type { DataRow } from "@/lib/data-processing/types";
 import { useData } from "@/features/dashboard/hooks/useData";
 import { normalizeRut } from "@/lib/utils/rut";
+import { isInteresaViene } from "@/lib/utils/interesa";
 
 // ---------- Types ----------
 type Metric = "cargada" | "recorrido" | "contactado" | "citas" | "af" | "mc";
@@ -32,7 +33,7 @@ function computeRowKPI(row: DataRow, metric: Metric): number {
             return (v === "conecta" || v === "no conecta") ? 1 : 0;
         }
         case "contactado": return row.conecta?.trim().toLowerCase() === "conecta" ? 1 : 0;
-        case "citas": return row.interesa?.trim().toLowerCase() === "viene" ? 1 : 0;
+        case "citas": return isInteresaViene(row.interesa) ? 1 : 0;
         case "af": {
             const v = row.af?.trim().toUpperCase() ?? "";
             return (v === "A" || v === "MC" || v === "M") ? 1 : 0;
@@ -50,8 +51,9 @@ function computeMetricTotal(rows: DataRow[], metric: Metric) {
     }
     const ruts = new Set<string>();
     for (const r of rows) {
-        if (r.interesa?.trim().toLowerCase() !== "viene") continue;
-        ruts.add(normalizeRut(r.rutBase));
+        if (!isInteresaViene(r.interesa)) continue;
+        const rut = normalizeRut(r.rutBase);
+        if (rut) ruts.add(rut);
     }
     return ruts.size;
 }

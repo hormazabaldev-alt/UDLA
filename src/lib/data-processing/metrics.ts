@@ -1,5 +1,6 @@
 import type { DataRow } from "@/lib/data-processing/types";
 import { normalizeRut } from "@/lib/utils/rut";
+import { isInteresaViene } from "@/lib/utils/interesa";
 
 export type Totals = {
   cargada: number;
@@ -46,9 +47,9 @@ export function computeTotals(rows: DataRow[]): Totals {
     }
 
     // CITAS = contar filas donde "Interesa" = "Viene"
-    const interesaVal = row.interesa?.trim().toLowerCase() ?? "";
-    if (interesaVal === "viene") {
-      citasRuts.add(normalizeRut(row.rutBase));
+    if (isInteresaViene(row.interesa)) {
+      const rut = normalizeRut(row.rutBase);
+      if (rut) citasRuts.add(rut);
     }
 
     // AFLUENCIA (AF) = contar filas donde columna AF contiene "A", "MC" o "M"

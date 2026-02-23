@@ -4,6 +4,7 @@ import ReactECharts from "echarts-for-react";
 import { useMemo } from "react";
 import { useMetrics } from "@/features/dashboard/hooks/useMetrics";
 import { normalizeRut } from "@/lib/utils/rut";
+import { isInteresaViene } from "@/lib/utils/interesa";
 
 /**
  * Weekly evolution chart: shows KPI metrics grouped by "Semana" field.
@@ -29,7 +30,7 @@ export function WeeklyChart() {
             const c = r.conecta?.trim().toLowerCase() ?? "";
             if (c === "conecta" || c === "no conecta") g.recorrido++;
             if (c === "conecta") g.contactado++;
-            if (r.interesa?.trim().toLowerCase() === "viene") g.citasRuts.add(normalizeRut(r.rutBase));
+            if (isInteresaViene(r.interesa)) g.citasRuts.add(normalizeRut(r.rutBase));
             const afVal = r.af?.trim().toUpperCase() ?? "";
             if (afVal === "A" || afVal === "MC" || afVal === "M") g.af++;
             const mcVal = r.mc?.trim().toUpperCase() ?? "";
