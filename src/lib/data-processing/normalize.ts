@@ -81,7 +81,9 @@ export function normalizeRow(raw: RawRow, rowIndex: number): {
   const tipoBase = cleanString(getValue(raw, "Tipo Base"));
   const fechaGestion = parseDate(getValue(raw, "Fecha Gestion"));
   const conecta = cleanString(getValue(raw, "Conecta"));
-  const interesa = cleanString(getValue(raw, "Interesa"));
+  // Some files may carry the appointment intent under a dedicated "Citas" column.
+  // Prefer it when present, fallback to "Interesa".
+  const interesa = cleanString(getValueAny(raw, ["Citas", "Cita", "Interesa"]));
   const regimen = cleanString(getValue(raw, "Regimen"));
   const sedeInteresRaw = cleanString(getValue(raw, "Sede Interes"));
   const sedeInteres = sedeInteresRaw ? toCampusCode(sedeInteresRaw) : null;

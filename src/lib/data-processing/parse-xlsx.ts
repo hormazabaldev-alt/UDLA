@@ -4,13 +4,6 @@ import { REQUIRED_COLUMNS } from "@/lib/data-processing/columns";
 import { normalizeRow } from "@/lib/data-processing/normalize";
 import type { Dataset, DataRow, ParseIssue, ParseResult } from "@/lib/data-processing/types";
 
-function getFirstSheet(workbook: XLSX.WorkBook) {
-  const sheetName = workbook.SheetNames[0];
-  const sheet = sheetName ? workbook.Sheets[sheetName] : undefined;
-  if (!sheetName || !sheet) return null;
-  return { sheetName, sheet };
-}
-
 function cleanKey(key: string) {
   return key.replace(/\s+/g, " ").trim();
 }
@@ -27,14 +20,53 @@ function getPresentColumns(rows: Record<string, unknown>[]) {
   return set;
 }
 
+function scoreSheet(present: Set<string>, rowCount: number) {
+  const missing = REQUIRED_COLUMNS.filter((c) => !present.has(c));
+  const hasAllRequired = missing.length === 0;
+  return {
+    missing,
+    hasAllRequired,
+    // Prefer sheets that match required columns, then largest.
+    score: (hasAllRequired ? 1_000_000 : 0) + rowCount,
+  };
+}
+
 export async function parseXlsxFile(file: File): Promise<ParseResult> {
   const arrayBuffer = await file.arrayBuffer();
   const workbook = XLSX.read(arrayBuffer, {
     type: "array",
     cellDates: false,
   });
-  const first = getFirstSheet(workbook);
-  if (!first) {
+
+  const issues: ParseIssue[] = [];
+
+  const candidates = workbook.SheetNames
+    .map((sheetName) => {
+      const sheet = workbook.Sheets[sheetName];
+      if (!sheet) return null;
+
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+        defval: null,
+        raw: false,
+      });
+      const cleanedRows = rows.map(cleanRowKeys);
+      const present = getPresentColumns(cleanedRows);
+      const scored = scoreSheet(present, cleanedRows.length);
+
+      return {
+        sheetName,
+        sheet,
+        cleanedRows,
+        present,
+        missing: scored.missing,
+        score: scored.score,
+      };
+    })
+    .filter((c): c is NonNullable<typeof c> => !!c);
+
+  const best = candidates.sort((a, b) => b.score - a.score)[0] ?? null;
+
+  if (!best) {
     return {
       ok: false,
       issues: [{ message: "No se encontró ninguna hoja en el Excel." }],
@@ -42,16 +74,8 @@ export async function parseXlsxFile(file: File): Promise<ParseResult> {
     };
   }
 
-  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(first.sheet, {
-    defval: null,
-    raw: true,
-  });
-
-  const cleanedRows = rows.map(cleanRowKeys);
+  const cleanedRows = best.cleanedRows;
   const preview = cleanedRows.slice(0, 25);
-  const present = getPresentColumns(cleanedRows);
-  const missing = REQUIRED_COLUMNS.filter((c) => !present.has(c));
-  const issues: ParseIssue[] = [];
 
   if (cleanedRows.length === 0) {
     return {
@@ -61,7 +85,7 @@ export async function parseXlsxFile(file: File): Promise<ParseResult> {
     };
   }
 
-  for (const col of missing) {
+  for (const col of best.missing) {
     issues.push({ column: col, message: `Falta la columna requerida: ${col}` });
   }
 
@@ -80,7 +104,7 @@ export async function parseXlsxFile(file: File): Promise<ParseResult> {
     meta: {
       importedAtISO: new Date().toISOString(),
       sourceFileName: file.name,
-      sheetName: first.sheetName,
+      sheetName: best.sheetName,
       rowCount: normalizedRows.length,
     },
     rows: normalizedRows,

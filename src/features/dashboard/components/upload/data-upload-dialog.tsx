@@ -9,6 +9,8 @@ import type { ParseResult } from "@/lib/data-processing/types";
 import { loadAdminKey, persistAdminKey } from "@/lib/persistence/admin-key";
 import { cn } from "@/lib/utils/cn";
 import { formatInt } from "@/lib/utils/format";
+import { normalizeRut } from "@/lib/utils/rut";
+import { isInteresaViene } from "@/lib/utils/interesa";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -101,6 +103,21 @@ export function DataUploadDialog({ defaultMode, triggerLabel, triggerIcon }: {
     (sum, r) => sum + (r.result.ok ? r.result.dataset.rows.length : 0), 0
   );
   const canUpload = allValid && !parsing && !uploading && adminKey.trim().length > 0;
+
+  const vieneStats = useMemo(() => {
+    return results.map((r) => {
+      if (!r.result.ok) return null;
+      let vieneRows = 0;
+      const ruts = new Set<string>();
+      for (const row of r.result.dataset.rows) {
+        if (!isInteresaViene(row.interesa)) continue;
+        vieneRows++;
+        const rut = normalizeRut(row.rutBase);
+        if (rut) ruts.add(rut);
+      }
+      return { vieneRows, uniqueRutViene: ruts.size };
+    });
+  }, [results]);
 
   const handleUpload = async () => {
     if (!allValid) return;
@@ -245,7 +262,15 @@ export function DataUploadDialog({ defaultMode, triggerLabel, triggerIcon }: {
                   {parsing ? (
                     <Badge variant="neutral">Procesando…</Badge>
                   ) : result.ok ? (
-                    <Badge variant="success">{formatInt(result.dataset.rows.length)} filas</Badge>
+                    <>
+                      <Badge variant="success">{formatInt(result.dataset.rows.length)} filas</Badge>
+                      <Badge variant="neutral">
+                        Viene: {formatInt(vieneStats[idx]?.vieneRows ?? 0)}
+                      </Badge>
+                      <Badge variant="neutral">
+                        RUT Viene: {formatInt(vieneStats[idx]?.uniqueRutViene ?? 0)}
+                      </Badge>
+                    </>
                   ) : (
                     <Badge variant="danger">Error</Badge>
                   )}
