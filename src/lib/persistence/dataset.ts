@@ -1,16 +1,31 @@
 import { get, set, del } from "idb-keyval";
+import { getMonth, getDate, getDay } from "date-fns";
 
 import type { Dataset } from "@/lib/data-processing/types";
+import { parseLooseDate } from "@/lib/utils/date";
 
 const KEY = "powerbi-web:dataset:v1";
+
+const DIAS_SEMANA = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
 export function reviveDataset(ds: Dataset): Dataset {
   if (!ds || !ds.rows) return ds;
   for (const r of ds.rows) {
-    if (typeof r.fechaCarga === "string") r.fechaCarga = new Date(r.fechaCarga);
-    if (typeof r.fechaGestion === "string") r.fechaGestion = new Date(r.fechaGestion);
-    if (typeof r.fechaAf === "string") r.fechaAf = new Date(r.fechaAf);
-    if (typeof r.fechaMc === "string") r.fechaMc = new Date(r.fechaMc);
+    r.fechaCarga = parseLooseDate(r.fechaCarga) ?? null;
+    r.fechaGestion = parseLooseDate(r.fechaGestion) ?? null;
+    r.fechaAf = parseLooseDate(r.fechaAf) ?? null;
+    r.fechaMc = parseLooseDate(r.fechaMc) ?? null;
+
+    // Recompute derived fields from Fecha Gestion to keep filters/charts consistent.
+    if (r.fechaGestion) {
+      r.mes = getMonth(r.fechaGestion) + 1;
+      r.diaNumero = getDate(r.fechaGestion);
+      r.diaSemana = DIAS_SEMANA[getDay(r.fechaGestion)] ?? null;
+    } else {
+      r.mes = null;
+      r.diaNumero = null;
+      r.diaSemana = null;
+    }
   }
   return ds;
 }
@@ -28,4 +43,3 @@ export async function persistDataset(dataset: Dataset): Promise<void> {
 export async function clearPersistedDataset(): Promise<void> {
   await del(KEY);
 }
-
