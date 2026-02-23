@@ -19,17 +19,23 @@ export function FunnelChart() {
 
     const data = STAGES.map((s) => {
         const value = totals?.[s.key] ?? 0;
-        const pct = (value / base) * 100;
-        return { ...s, value, pct };
+        const pctOfBase = (value / base) * 100;
+
+        const pctStep =
+            s.key === "cargada" ? 100
+                : s.key === "recorrido" ? ((totals?.tcLlaLeads ?? 0) * 100)
+                    : s.key === "contactado" ? ((totals?.tcContLla ?? 0) * 100)
+                        : s.key === "citas" ? ((totals?.cCitasCon ?? 0) * 100)
+                            : s.key === "af" ? ((totals?.tcAfCitas ?? 0) * 100)
+                                : ((totals?.tcMcAf ?? 0) * 100);
+
+        return { ...s, value, pctOfBase, pctStep };
     });
 
     return (
         <div className="h-full w-full flex flex-col justify-center gap-1.5 px-4 py-3">
             {data.map((stage, i) => {
-                const barWidth = Math.max(stage.pct, 6); // minimum 6% so it's always visible
-                const dropPct = i === 0 ? null : data[i - 1]!.value > 0
-                    ? (((data[i - 1]!.value - stage.value) / data[i - 1]!.value) * 100).toFixed(0)
-                    : null;
+                const barWidth = Math.max(stage.pctOfBase, 6); // minimum 6% so it's always visible
 
                 return (
                     <div key={i} className="group flex items-center gap-3">
@@ -65,19 +71,8 @@ export function FunnelChart() {
                         {/* Percentage */}
                         <div className="w-[55px] flex-shrink-0 text-right">
                             <span className="text-[11px] font-semibold text-white/50 tabular-nums">
-                                {stage.pct.toFixed(1)}%
+                                {stage.pctStep.toFixed(1)}%
                             </span>
-                        </div>
-
-                        {/* Drop indicator */}
-                        <div className="w-[40px] flex-shrink-0 text-right">
-                            {dropPct !== null && Number(dropPct) > 0 ? (
-                                <span className="text-[10px] text-red-400/70">
-                                    −{dropPct}%
-                                </span>
-                            ) : i === 0 ? (
-                                <span className="text-[10px] text-white/20">—</span>
-                            ) : null}
                         </div>
                     </div>
                 );

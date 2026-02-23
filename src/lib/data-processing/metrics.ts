@@ -20,7 +20,7 @@ export type Totals = {
   pctContactabilidad: number | null;
   pctEfectividad: number | null;
   tcAf: number | null;
-  tcMc: number | null;
+  tcMc: number | null; // Alias of tcMcAf
 };
 
 export function computeTotals(rows: DataRow[]): Totals {
@@ -84,7 +84,7 @@ export function computeTotals(rows: DataRow[]): Totals {
   const pctContactabilidad = tcContLla;
   const pctEfectividad = citas > 0 ? (af + mc) / citas : null;
   const tcAf = tcAfCitas;
-  const tcMc = citas > 0 ? mc / citas : null;
+  const tcMc = tcMcAf;
 
   return {
     cargada,
