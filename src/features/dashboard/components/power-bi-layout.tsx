@@ -379,7 +379,8 @@ export function PowerBILayout() {
                     </div>
 
                     {/* Row 2: Gauges */}
-                    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-7 gap-2 h-[120px]">
+                    <div className="overflow-x-auto">
+                        <div className="grid grid-cols-7 gap-2 h-[120px] min-w-[980px]">
                         <div className="bg-[#080808] border border-[#1f1f1f] rounded-sm relative flex flex-col items-center justify-center">
                             <span className="absolute top-1.5 left-2 text-[9px] text-white/50 font-medium">TC% Lla/Leads</span>
                             <GaugeChart title="" value={Math.round((totals?.tcLlaLeads || 0) * 100)} />
@@ -407,6 +408,7 @@ export function PowerBILayout() {
                         <div className="bg-[#080808] border border-[#1f1f1f] rounded-sm relative flex flex-col items-center justify-center">
                             <span className="absolute top-1.5 left-2 text-[9px] text-white/50 font-medium">C% MC/Leads</span>
                             <GaugeChart title="" value={Math.round((totals?.cMcLeads || 0) * 100)} />
+                        </div>
                         </div>
                     </div>
 
