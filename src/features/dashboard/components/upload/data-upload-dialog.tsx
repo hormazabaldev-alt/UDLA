@@ -53,6 +53,22 @@ type UploadMode = "replace" | "append";
 const BASE_OPTIONS = ["Inbound", "Stock", "Lead"] as const;
 type BaseOption = (typeof BASE_OPTIONS)[number];
 
+function toBaseOption(value: string | null | undefined): BaseOption | null {
+  const v = String(value ?? "").trim().toLowerCase();
+  if (!v) return null;
+  const found = BASE_OPTIONS.find((b) => b.toLowerCase() === v);
+  return found ?? null;
+}
+
+function basesInRows(rows: { tipoBase: string }[]): BaseOption[] {
+  const set = new Set<BaseOption>();
+  for (const r of rows) {
+    const opt = toBaseOption(r.tipoBase);
+    if (opt) set.add(opt);
+  }
+  return Array.from(set.values());
+}
+
 export function DataUploadDialog({ defaultMode, triggerLabel, triggerIcon }: {
   defaultMode?: UploadMode;
   triggerLabel?: string;
@@ -135,45 +151,113 @@ export function DataUploadDialog({ defaultMode, triggerLabel, triggerIcon }: {
     setUploading(true);
     setUploadError(null);
 
-    try {
-      setUploadProgress(
-        results.length === 1
-          ? `Subiendo: ${results[0]!.file.name}...`
-          : `Subiendo y procesando ${results.length} archivos...`,
-      );
-
+    const postFile = async (file: File, opts: { mode: UploadMode; replaceBasesHeader?: string; progressLabel: string }) => {
+      setUploadProgress(opts.progressLabel);
       const form = new FormData();
-      for (const { file } of results) {
-        form.append("file", file);
-      }
+      form.set("file", file);
       const res = await fetch("/api/snapshot", {
         method: "POST",
         headers: {
           "x-admin-key": adminKey.trim(),
-          "x-upload-mode": mode,
-          ...(mode === "replace" ? { "x-replace-bases": replaceBases.join(",") } : {}),
+          "x-upload-mode": opts.mode,
+          ...(opts.replaceBasesHeader ? { "x-replace-bases": opts.replaceBasesHeader } : {}),
         },
         body: form,
       });
+      return res;
+    };
 
-      if (!res.ok) {
-        const contentType = res.headers.get("content-type") ?? "";
-        if (contentType.includes("application/json")) {
-          const body = await res.json().catch(() => null);
-          const errorText =
-            body?.error ??
-            (Array.isArray(body?.issues) && body.issues.length > 0
-              ? `Error de validación (${body.issues.length}): ${body.issues[0]?.message ?? "ver detalles"}`
-              : null) ??
-            (body ? JSON.stringify(body) : null);
+    try {
+      const uploadResults = results
+        .filter((r): r is { file: File; result: Extract<ParseResult, { ok: true }> } => r.result.ok);
 
-          setUploadError(errorText ? `(${res.status}) ${errorText}` : `(${res.status}) Error desconocido`);
-        } else {
-          const text = await res.text().catch(() => "");
-          const snippet = text.trim().slice(0, 300);
-          setUploadError(`(${res.status}) ${snippet || "Error desconocido"}`);
+      // Vercel has strict request payload limits; uploading multiple XLSX files in a single request can hit 413.
+      // Upload sequentially per file to keep payload small and stable.
+      if (mode === "append") {
+        for (let i = 0; i < uploadResults.length; i++) {
+          const file = uploadResults[i]!.file;
+          const res = await postFile(file, {
+            mode: "append",
+            progressLabel: `Subiendo ${i + 1}/${uploadResults.length}: ${file.name}...`,
+          });
+          if (!res.ok) {
+            const contentType = res.headers.get("content-type") ?? "";
+            if (contentType.includes("application/json")) {
+              const body = await res.json().catch(() => null);
+              setUploadError(`(${res.status}) ${body?.error ?? JSON.stringify(body) ?? "Error desconocido"}`);
+            } else {
+              const text = await res.text().catch(() => "");
+              setUploadError(`(${res.status}) ${text.trim().slice(0, 300) || "Error desconocido"}`);
+            }
+            return;
+          }
         }
-        return;
+      } else {
+        // Replace selected bases, but upload per file to avoid 413 and to keep replacement safe.
+        const filesByBase = new Map<BaseOption, File[]>();
+        for (const { file, result } of uploadResults) {
+          const bases = basesInRows(result.dataset.rows as unknown as { tipoBase: string }[]);
+          if (bases.length !== 1) {
+            setUploadError(
+              `El archivo ${file.name} contiene múltiples Tipo Base (${bases.join(", ") || "N/A"}). Para reemplazo parcial, cada archivo debe traer una sola base (Inbound/Stock/Lead).`,
+            );
+            return;
+          }
+          const base = bases[0]!;
+          if (!replaceBases.includes(base)) {
+            setUploadError(
+              `El archivo ${file.name} es de base ${base} pero no está seleccionada para reemplazo.`,
+            );
+            return;
+          }
+          const curr = filesByBase.get(base) ?? [];
+          curr.push(file);
+          filesByBase.set(base, curr);
+        }
+
+        for (const b of replaceBases) {
+          const files = filesByBase.get(b) ?? [];
+          if (files.length === 0) {
+            setUploadError(`Falta archivo para la base seleccionada: ${b}.`);
+            return;
+          }
+        }
+
+        const basesToProcess = replaceBases.slice().sort((a, b) => a.localeCompare(b, "es"));
+        let step = 0;
+        const totalSteps = basesToProcess.reduce((sum, b) => sum + (filesByBase.get(b)?.length ?? 0), 0);
+
+        for (const base of basesToProcess) {
+          const files = filesByBase.get(base)!;
+          // First file does the replacement for that base.
+          step++;
+          const first = files[0]!;
+          let res = await postFile(first, {
+            mode: "replace",
+            replaceBasesHeader: base,
+            progressLabel: `Reemplazando ${base} (${step}/${totalSteps}): ${first.name}...`,
+          });
+          if (!res.ok) {
+            const body = await res.json().catch(() => null);
+            setUploadError(`(${res.status}) ${body?.error ?? JSON.stringify(body) ?? "Error desconocido"}`);
+            return;
+          }
+
+          // Remaining files append (still deduped server-side).
+          for (let j = 1; j < files.length; j++) {
+            step++;
+            const f = files[j]!;
+            res = await postFile(f, {
+              mode: "append",
+              progressLabel: `Agregando ${base} (${step}/${totalSteps}): ${f.name}...`,
+            });
+            if (!res.ok) {
+              const body = await res.json().catch(() => null);
+              setUploadError(`(${res.status}) ${body?.error ?? JSON.stringify(body) ?? "Error desconocido"}`);
+              return;
+            }
+          }
+        }
       }
 
       setUploadProgress(null);

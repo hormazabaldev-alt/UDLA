@@ -185,13 +185,12 @@ export async function applySnapshotUpdate(opts: {
   await ensureBucket(supabase);
 
   const incomingRows: DataRow[] = opts.datasets.flatMap((d) => d.rows);
-  const existing = await downloadJSONOptional<Dataset>(
-    supabase,
-    DATASET_PATH,
-    { retries: opts.mode === "append" ? 4 : 0 },
-  );
-
   const replaceBases = (opts.replaceBases ?? []).map((b) => b.trim()).filter(Boolean);
+  const needsExisting = opts.mode === "append" || (opts.mode === "replace" && replaceBases.length > 0);
+  const existing = needsExisting
+    ? await downloadJSONOptional<Dataset>(supabase, DATASET_PATH, { retries: 4 })
+    : null;
+
   const replaceBasesSet = new Set(replaceBases.map((b) => b.toLowerCase()));
 
   const baseKey = (v: string | null | undefined) => String(v ?? "").trim().toLowerCase();
