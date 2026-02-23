@@ -35,7 +35,8 @@ export async function parseXlsxFile(file: File): Promise<ParseResult> {
   const arrayBuffer = await file.arrayBuffer();
   const workbook = XLSX.read(arrayBuffer, {
     type: "array",
-    cellDates: false,
+    // Keep actual Date objects for date cells to avoid locale/2-digit-year formatting issues.
+    cellDates: true,
   });
 
   const issues: ParseIssue[] = [];
@@ -47,7 +48,8 @@ export async function parseXlsxFile(file: File): Promise<ParseResult> {
 
       const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
         defval: null,
-        raw: false,
+        // Keep raw types (Date/number/string). We normalize downstream.
+        raw: true,
       });
       const cleanedRows = rows.map(cleanRowKeys);
       const present = getPresentColumns(cleanedRows);
