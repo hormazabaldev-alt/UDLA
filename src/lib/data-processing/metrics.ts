@@ -6,7 +6,7 @@ export type Totals = {
   cargada: number;
   recorrido: number;
   contactado: number;
-  citas: number;
+  citas: number; // Filas con Interesa = "Viene"
   af: number;
   mc: number;
   // Unique RUT volumes (dedup by Rut Base)
@@ -16,7 +16,7 @@ export type Totals = {
   citasRutUnico: number;
   afRutUnico: number;
   mcRutUnico: number;
-  // Core rates (based on RUT único)
+  // Core rates (based on filas/volumen)
   tcLlaLeads: number | null;        // Recorrido / Base
   tcAfLeads: number | null;         // AF / Base
   tcContLla: number | null;         // Contactado / Recorrido
@@ -36,6 +36,7 @@ export function computeTotals(rows: DataRow[]): Totals {
   let cargada = 0;
   let recorrido = 0;
   let contactado = 0;
+  let citas = 0;
   let af = 0;
   let mc = 0;
 
@@ -67,6 +68,7 @@ export function computeTotals(rows: DataRow[]): Totals {
 
     // CITAS = contar filas donde "Interesa" = "Viene"
     if (isInteresaViene(row.interesa)) {
+      citas++;
       if (rut) citasRuts.add(rut);
     }
 
@@ -85,7 +87,6 @@ export function computeTotals(rows: DataRow[]): Totals {
     }
   }
 
-  const citas = citasRuts.size;
   const cargadaRutUnico = cargadaRuts.size;
   const recorridoRutUnico = recorridoRuts.size;
   const contactadoRutUnico = contactadoRuts.size;
@@ -93,23 +94,23 @@ export function computeTotals(rows: DataRow[]): Totals {
   const afRutUnico = afRuts.size;
   const mcRutUnico = mcRuts.size;
 
-  // Rates are computed on RUT único to avoid duplicate attempts inflating denominators.
+  // Rates are computed on filas/volumen (same basis as the funnel values).
   // TC% Lla/Leads = Recorrido / Base Cargada
-  const tcLlaLeads = cargadaRutUnico > 0 ? recorridoRutUnico / cargadaRutUnico : null;
+  const tcLlaLeads = cargada > 0 ? recorrido / cargada : null;
   // TC% AF/Leads = AF / Base Cargada
-  const tcAfLeads = cargadaRutUnico > 0 ? afRutUnico / cargadaRutUnico : null;
+  const tcAfLeads = cargada > 0 ? af / cargada : null;
   // TC% Cont/Lla = Contactado / Recorrido
-  const tcContLla = recorridoRutUnico > 0 ? contactadoRutUnico / recorridoRutUnico : null;
+  const tcContLla = recorrido > 0 ? contactado / recorrido : null;
   // C% Citas/Recorrido = Citas / Recorrido
-  const cCitasRecorrido = recorridoRutUnico > 0 ? citasRutUnico / recorridoRutUnico : null;
+  const cCitasRecorrido = recorrido > 0 ? citas / recorrido : null;
   // C% Citas/Con = Citas / Contactado
-  const cCitasCon = contactadoRutUnico > 0 ? citasRutUnico / contactadoRutUnico : null;
+  const cCitasCon = contactado > 0 ? citas / contactado : null;
   // TC% AF/Citas = AF / Citas
-  const tcAfCitas = citasRutUnico > 0 ? afRutUnico / citasRutUnico : null;
+  const tcAfCitas = citas > 0 ? af / citas : null;
   // TC% MC/AF = MC / AF
-  const tcMcAf = afRutUnico > 0 ? mcRutUnico / afRutUnico : null;
+  const tcMcAf = af > 0 ? mc / af : null;
   // C% MC/Leads = MC / Base Cargada
-  const cMcLeads = cargadaRutUnico > 0 ? mcRutUnico / cargadaRutUnico : null;
+  const cMcLeads = cargada > 0 ? mc / cargada : null;
 
   // Legacy aliases (keep backward compat)
   const pctContactabilidad = tcContLla;
