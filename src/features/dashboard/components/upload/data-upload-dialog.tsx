@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { AlertTriangle, FileSpreadsheet, Plus, Replace, Upload } from "lucide-react";
 
@@ -64,6 +64,7 @@ export function DataUploadDialog({ defaultMode, triggerLabel, triggerIcon }: {
   const [adminKey, setAdminKey] = useState("");
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
+  const uploadLockRef = useRef(false);
 
   useEffect(() => {
     setAdminKey(loadAdminKey());
@@ -103,37 +104,35 @@ export function DataUploadDialog({ defaultMode, triggerLabel, triggerIcon }: {
 
   const handleUpload = async () => {
     if (!allValid) return;
+    if (uploadLockRef.current) return;
+    uploadLockRef.current = true;
     setUploading(true);
     setUploadError(null);
 
     try {
-      for (let i = 0; i < results.length; i++) {
-        const { file, result } = results[i]!;
-        if (!result.ok) continue;
+      setUploadProgress(
+        results.length === 1
+          ? `Subiendo: ${results[0]!.file.name}...`
+          : `Subiendo y procesando ${results.length} archivos...`,
+      );
 
-        setUploadProgress(`Subiendo ${i + 1}/${results.length}: ${file.name}...`);
+      const form = new FormData();
+      for (const { file } of results) {
+        form.append("file", file);
+      }
+      const res = await fetch("/api/snapshot", {
+        method: "POST",
+        headers: {
+          "x-admin-key": adminKey.trim(),
+          "x-upload-mode": mode,
+        },
+        body: form,
+      });
 
-        // First file uses the selected mode, subsequent files always append
-        const fileMode = i === 0 ? mode : "append";
-
-        const form = new FormData();
-        form.set("file", file);
-        const res = await fetch("/api/snapshot", {
-          method: "POST",
-          headers: {
-            "x-admin-key": adminKey.trim(),
-            "x-upload-mode": fileMode,
-          },
-          body: form,
-        });
-
-        if (!res.ok) {
-          const body = await res.json().catch(() => null);
-          setUploadError(
-            `Error en ${file.name}: ${body?.error ?? "Error desconocido"}`
-          );
-          return;
-        }
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        setUploadError(body?.error ?? "Error desconocido");
+        return;
       }
 
       setUploadProgress(null);
@@ -144,6 +143,7 @@ export function DataUploadDialog({ defaultMode, triggerLabel, triggerIcon }: {
     } finally {
       setUploading(false);
       setUploadProgress(null);
+      uploadLockRef.current = false;
     }
   };
 

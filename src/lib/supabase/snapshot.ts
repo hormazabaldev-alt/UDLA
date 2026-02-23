@@ -32,11 +32,49 @@ async function uploadJSON(supabase: ReturnType<typeof getSupabaseServerClient>, 
   if (error) throw new Error(`Storage upload failed: ${error.message}`);
 }
 
-async function downloadJSON<T>(supabase: ReturnType<typeof getSupabaseServerClient>, path: string): Promise<T | null> {
-  const { data, error } = await supabase.storage.from(BUCKET).download(path);
-  if (error) return null;
-  const text = await data.text();
-  return JSON.parse(text) as T;
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+function isNotFoundError(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const anyErr = error as { statusCode?: number; message?: string };
+  if (anyErr.statusCode === 404) return true;
+  const msg = String(anyErr.message ?? "");
+  return msg.toLowerCase().includes("not found") || msg.toLowerCase().includes("object not found");
+}
+
+async function downloadJSONOptional<T>(
+  supabase: ReturnType<typeof getSupabaseServerClient>,
+  path: string,
+  { retries = 0 }: { retries?: number } = {},
+): Promise<T | null> {
+  let attempt = 0;
+  // Retry covers eventual consistency on read-after-write for Storage.
+  // We only return null when we're confident the object is absent.
+  while (true) {
+    const { data, error } = await supabase.storage.from(BUCKET).download(path);
+    if (!error) {
+      const text = await data.text();
+      return JSON.parse(text) as T;
+    }
+
+    if (isNotFoundError(error)) {
+      if (attempt < retries) {
+        attempt++;
+        await sleep(150 * 2 ** (attempt - 1));
+        continue;
+      }
+      return null;
+    }
+
+    if (attempt < retries) {
+      attempt++;
+      await sleep(150 * 2 ** (attempt - 1));
+      continue;
+    }
+    throw new Error(`Storage download failed: ${String((error as { message?: string }).message ?? error)}`);
+  }
 }
 
 // --- Public API ---
@@ -44,41 +82,81 @@ async function downloadJSON<T>(supabase: ReturnType<typeof getSupabaseServerClie
 export async function getActiveSnapshot(): Promise<Dataset | null> {
   try {
     const supabase = getSupabaseServerClient();
-    return await downloadJSON<Dataset>(supabase, DATASET_PATH);
+    return await downloadJSONOptional<Dataset>(supabase, DATASET_PATH);
   } catch (err) {
     console.warn("getActiveSnapshot failed:", err);
     return null;
   }
 }
 
+function rowKey(r: DataRow): string {
+  const iso = (d: Date | null | undefined) => (d ? d.toISOString() : "");
+  const norm = (v: unknown) => String(v ?? "").trim();
+  return [
+    norm(r.rutBase),
+    norm(r.tipoBase),
+    norm(r.tipoLlamada),
+    iso(r.fechaCarga),
+    iso(r.fechaGestion),
+    norm(r.conecta),
+    norm(r.interesa),
+    norm(r.regimen),
+    norm(r.sedeInteres),
+    norm(r.afCampus),
+    norm(r.mcCampus),
+    norm(r.semana),
+    norm(r.af),
+    iso(r.fechaAf),
+    norm(r.mc),
+    iso(r.fechaMc),
+  ].join("|");
+}
+
+function dedupeRows(rows: DataRow[]): DataRow[] {
+  const seen = new Set<string>();
+  const out: DataRow[] = [];
+  for (const r of rows) {
+    const key = rowKey(r);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(r);
+  }
+  return out;
+}
+
 export async function replaceSnapshot(dataset: Dataset): Promise<{ meta: DatasetMeta }> {
+  const dedupedRows = dedupeRows(dataset.rows);
+  const next: Dataset = {
+    meta: { ...dataset.meta, importedAtISO: new Date().toISOString(), rowCount: dedupedRows.length },
+    rows: dedupedRows,
+  };
   const supabase = getSupabaseServerClient();
   await ensureBucket(supabase);
-  await uploadJSON(supabase, DATASET_PATH, dataset);
+  await uploadJSON(supabase, DATASET_PATH, next);
   await addLogEntry(supabase, {
     timestamp: new Date().toISOString(),
-    fileName: dataset.meta.sourceFileName,
-    sheetName: dataset.meta.sheetName,
-    rowCount: dataset.meta.rowCount,
+    fileName: next.meta.sourceFileName,
+    sheetName: next.meta.sheetName,
+    rowCount: next.meta.rowCount,
     mode: "replace",
-    totalRowsAfter: dataset.rows.length,
+    totalRowsAfter: next.rows.length,
   });
-  return { meta: dataset.meta };
+  return { meta: next.meta };
 }
 
 export async function appendSnapshot(newDataset: Dataset): Promise<{ meta: DatasetMeta; totalRows: number }> {
   const supabase = getSupabaseServerClient();
   await ensureBucket(supabase);
 
-  const existing = await downloadJSON<Dataset>(supabase, DATASET_PATH);
-  const mergedRows: DataRow[] = existing ? [...existing.rows, ...newDataset.rows] : newDataset.rows;
+  const existing = await downloadJSONOptional<Dataset>(supabase, DATASET_PATH, { retries: 4 });
+  const mergedRows: DataRow[] = dedupeRows(existing ? [...existing.rows, ...newDataset.rows] : [...newDataset.rows]);
 
   const mergedMeta: DatasetMeta = {
     importedAtISO: new Date().toISOString(),
     sourceFileName: existing
       ? `${existing.meta.sourceFileName} + ${newDataset.meta.sourceFileName}`
       : newDataset.meta.sourceFileName,
-    sheetName: newDataset.meta.sheetName,
+    sheetName: existing?.meta.sheetName ?? newDataset.meta.sheetName,
     rowCount: mergedRows.length,
   };
 
@@ -97,11 +175,48 @@ export async function appendSnapshot(newDataset: Dataset): Promise<{ meta: Datas
   return { meta: mergedMeta, totalRows: mergedRows.length };
 }
 
+export async function applySnapshotUpdate(opts: {
+  mode: "replace" | "append";
+  datasets: Dataset[];
+  fileNames: string[];
+}): Promise<{ meta: DatasetMeta; totalRows: number }> {
+  const supabase = getSupabaseServerClient();
+  await ensureBucket(supabase);
+
+  const incomingRows: DataRow[] = opts.datasets.flatMap((d) => d.rows);
+  const existing = opts.mode === "append"
+    ? await downloadJSONOptional<Dataset>(supabase, DATASET_PATH, { retries: 4 })
+    : null;
+
+  const mergedRows = dedupeRows(existing ? [...existing.rows, ...incomingRows] : [...incomingRows]);
+
+  const mergedMeta: DatasetMeta = {
+    importedAtISO: new Date().toISOString(),
+    sourceFileName: opts.fileNames.join(" + "),
+    sheetName: opts.datasets.length === 1 ? opts.datasets[0]!.meta.sheetName : "MULTI",
+    rowCount: mergedRows.length,
+  };
+
+  const merged: Dataset = { meta: mergedMeta, rows: mergedRows };
+  await uploadJSON(supabase, DATASET_PATH, merged);
+
+  await addLogEntry(supabase, {
+    timestamp: new Date().toISOString(),
+    fileName: mergedMeta.sourceFileName,
+    sheetName: mergedMeta.sheetName,
+    rowCount: incomingRows.length,
+    mode: opts.mode,
+    totalRowsAfter: mergedRows.length,
+  });
+
+  return { meta: mergedMeta, totalRows: mergedRows.length };
+}
+
 // --- Upload Logs ---
 
 async function addLogEntry(supabase: ReturnType<typeof getSupabaseServerClient>, entry: UploadLogEntry) {
   try {
-    const logs = await downloadJSON<UploadLogEntry[]>(supabase, LOGS_PATH) || [];
+    const logs = await downloadJSONOptional<UploadLogEntry[]>(supabase, LOGS_PATH) || [];
     logs.push(entry);
     await uploadJSON(supabase, LOGS_PATH, logs);
   } catch (err) {
@@ -112,7 +227,7 @@ async function addLogEntry(supabase: ReturnType<typeof getSupabaseServerClient>,
 export async function getUploadLogs(): Promise<UploadLogEntry[]> {
   try {
     const supabase = getSupabaseServerClient();
-    return await downloadJSON<UploadLogEntry[]>(supabase, LOGS_PATH) || [];
+    return await downloadJSONOptional<UploadLogEntry[]>(supabase, LOGS_PATH) || [];
   } catch {
     return [];
   }

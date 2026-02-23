@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { parseXlsxFile } from "@/lib/data-processing/parse-xlsx";
-import { getActiveSnapshot, replaceSnapshot, appendSnapshot } from "@/lib/supabase/snapshot";
+import { applySnapshotUpdate, getActiveSnapshot } from "@/lib/supabase/snapshot";
 
 export const runtime = "nodejs";
 
@@ -50,34 +50,33 @@ export async function POST(req: Request) {
       );
     }
 
-    const mode = req.headers.get("x-upload-mode") === "append" ? "append" : "replace";
     const form = await req.formData();
-    const file = form.get("file");
-    if (!(file instanceof File)) {
+    const files = form.getAll("file").filter((f): f is File => f instanceof File);
+    if (files.length === 0) {
       return NextResponse.json(
-        { ok: false, error: "Missing file field." },
+        { ok: false, error: "Missing file field(s)." },
         { status: 400 },
       );
     }
 
-    const parsed = await parseXlsxFile(file);
-    if (!parsed.ok) {
-      return NextResponse.json(parsed, { status: 400 });
+    const parsedResults = await Promise.all(files.map((f) => parseXlsxFile(f)));
+    const firstInvalid = parsedResults.find((r) => !r.ok);
+    if (firstInvalid && !firstInvalid.ok) {
+      return NextResponse.json(firstInvalid, { status: 400 });
     }
 
-    if (mode === "append") {
-      const result = await appendSnapshot(parsed.dataset);
-      return NextResponse.json(
-        { ok: true, mode: "append", meta: result.meta, totalRows: result.totalRows },
-        { status: 200 },
-      );
-    } else {
-      await replaceSnapshot(parsed.dataset);
-      return NextResponse.json(
-        { ok: true, mode: "replace", meta: parsed.dataset.meta },
-        { status: 200 },
-      );
-    }
+    const datasets = parsedResults.map((r) => (r as Extract<typeof r, { ok: true }>).dataset);
+    const mode = req.headers.get("x-upload-mode") === "append" ? "append" : "replace";
+    const result = await applySnapshotUpdate({
+      mode,
+      datasets,
+      fileNames: files.map((f) => f.name),
+    });
+
+    return NextResponse.json(
+      { ok: true, mode, meta: result.meta, totalRows: result.totalRows },
+      { status: 200 },
+    );
   } catch (e) {
     console.error("POST /api/snapshot error:", e);
     const message = e instanceof Error ? e.message : typeof e === "object" ? JSON.stringify(e) : "Unknown error";
