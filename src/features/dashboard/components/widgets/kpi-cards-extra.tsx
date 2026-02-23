@@ -20,12 +20,13 @@ import { useMetrics } from "@/features/dashboard/hooks/useMetrics";
 import { calcResumenSemanal } from "@/lib/metrics/resumen-semanal";
 import { formatInt } from "@/lib/utils/format";
 
-function formatPct(value: number, digits: number) {
+function formatPct(value01: number | null | undefined, digits: number) {
+  const v = Number(value01 ?? 0);
   return new Intl.NumberFormat("es-CL", {
     style: "percent",
     maximumFractionDigits: digits,
     minimumFractionDigits: digits,
-  }).format(value);
+  }).format(v);
 }
 
 function Card({
@@ -74,10 +75,9 @@ function Card({
 }
 
 export function KpiCardsExtra() {
-  const { rows } = useMetrics();
+  const { rows, totals } = useMetrics();
 
   const resumen = useMemo(() => calcResumenSemanal(rows), [rows]);
-  const t = resumen.totals;
 
   const excludedTotal = resumen.excluded.invalidCitas + resumen.excluded.missingSemana;
   const hint =
@@ -87,14 +87,16 @@ export function KpiCardsExtra() {
       )}, sin Fecha Carga: ${formatInt(resumen.excluded.invalidCitas)})`
       : undefined;
 
+  if (!totals) return null;
+
   const cards = [
-    { label: "Citas", value: formatInt(t.citas), icon: CalendarCheck2, tooltip: "Citas gestionadas durante la semana seleccionada." },
-    { label: "Recorrido", value: formatInt(t.recorrido), icon: Route, tooltip: "Leads contactados durante esta semana." },
-    { label: "Afluencias", value: formatInt(t.afluencias), icon: PhoneCall, tooltip: "Leads que asistieron en este periodo." },
-    { label: "Matrículas", value: formatInt(t.matriculas), icon: GraduationCap, tooltip: "Nuevas matrículas registradas en la semana." },
-    { label: "% Recorrido", value: formatPct(t.pctRecorrido, 1), icon: Percent, tooltip: "Tasa de penetración (Recorrido / Total)." },
-    { label: "% Afluencia", value: formatPct(t.pctAfluencia, 0), icon: Percent, tooltip: "Tasa de conversión de Citas a Afluencias." },
-    { label: "% Matrículas", value: formatPct(t.pctMatriculas, 0), icon: Percent, tooltip: "Tasa de conversión de Afluencias a Matrículas." },
+    { label: "Citas", value: formatInt(totals.citas), icon: CalendarCheck2, tooltip: "Citas (Interesa = Viene) contadas por RUT único." },
+    { label: "Recorrido", value: formatInt(totals.recorrido), icon: Route, tooltip: "Recorrido (Conecta o No Conecta)." },
+    { label: "Afluencias", value: formatInt(totals.af), icon: PhoneCall, tooltip: "Afluencias (AF = A, MC o M)." },
+    { label: "Matrículas", value: formatInt(totals.mc), icon: GraduationCap, tooltip: "Matrículas (MC = M o MC)." },
+    { label: "% Recorrido", value: formatPct(totals.tcLlaLeads, 1), icon: Percent, tooltip: "Recorrido / Base Cargada." },
+    { label: "% Afluencia", value: formatPct(totals.tcAfCitas, 0), icon: Percent, tooltip: "Afluencias / Citas." },
+    { label: "% Matrículas", value: formatPct(totals.tcMcAf, 0), icon: Percent, tooltip: "Matrículas / Afluencias." },
   ] as const;
 
   return (
@@ -113,4 +115,3 @@ export function KpiCardsExtra() {
     </div>
   );
 }
-
