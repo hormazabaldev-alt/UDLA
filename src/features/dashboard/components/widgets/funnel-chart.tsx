@@ -8,8 +8,8 @@ const STAGES = [
     { key: "recorrido", label: "Recorrido", gradient: "from-sky-400 to-sky-500" },
     { key: "contactado", label: "Contactados", gradient: "from-emerald-400 to-emerald-500" },
     { key: "citas", label: "Citas", gradient: "from-amber-400 to-amber-500" },
-    { key: "af", label: "Afluencias", gradient: "from-violet-400 to-violet-500" },
-    { key: "mc", label: "Matrículas", gradient: "from-pink-400 to-pink-500" },
+    { key: "af", label: "Afluencias", gradient: "from-orange-400 to-orange-500" },
+    { key: "mc", label: "Matrículas", gradient: "from-blue-400 to-blue-500" },
 ] as const;
 
 export function FunnelChart() {

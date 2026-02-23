@@ -71,12 +71,12 @@ export function ResumenSemanalTable() {
     });
   }, [resumen.rows, colFilters]);
 
-  const sortedRows = useMemo(() => {
-    let sortableItems = [...filteredRows];
-    if (sortConfig.direction !== null) {
-      sortableItems.sort((a, b) => {
-        let aValue = a[sortConfig.key];
-        let bValue = b[sortConfig.key];
+	const sortedRows = useMemo(() => {
+	    const sortableItems = [...filteredRows];
+	    if (sortConfig.direction !== null) {
+	      sortableItems.sort((a, b) => {
+	        let aValue = a[sortConfig.key];
+	        let bValue = b[sortConfig.key];
 
         // Custom sort for 'semana' which is a string like "Semana 12"
         if (sortConfig.key === "semana") {

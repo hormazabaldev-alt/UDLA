@@ -60,6 +60,14 @@ function getValue(raw: RawRow, key: string): unknown {
   return undefined;
 }
 
+function getValueAny(raw: RawRow, keys: string[]): unknown {
+  for (const key of keys) {
+    const v = getValue(raw, key);
+    if (v !== undefined) return v;
+  }
+  return undefined;
+}
+
 export function normalizeRow(raw: RawRow, rowIndex: number): {
   row: DataRow | null;
   issues: ParseIssue[];
@@ -75,6 +83,8 @@ export function normalizeRow(raw: RawRow, rowIndex: number): {
   const interesa = cleanString(getValue(raw, "Interesa"));
   const regimen = cleanString(getValue(raw, "Regimen"));
   const sedeInteres = cleanString(getValue(raw, "Sede Interes"));
+  const afCampus = cleanString(getValueAny(raw, ["afcampus", "AF Campus", "AFCampus"]));
+  const mcCampus = cleanString(getValueAny(raw, ["mccampus", "MC Campus", "MCCampus"]));
   const semana = cleanString(getValue(raw, "Semana"));
   const af = cleanString(getValue(raw, "AF"));
   const fechaAfRaw = parseDate(getValue(raw, "Fecha af"));
@@ -105,6 +115,8 @@ export function normalizeRow(raw: RawRow, rowIndex: number): {
     interesa,
     regimen,
     sedeInteres,
+    afCampus,
+    mcCampus,
     semana,
     af,
     fechaAf,

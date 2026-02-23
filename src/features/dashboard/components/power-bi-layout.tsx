@@ -30,8 +30,7 @@ import { KpiCardsExtra } from "@/features/dashboard/components/widgets/kpi-cards
 import { ResumenSemanalTable } from "@/features/dashboard/components/widgets/resumen-semanal-table";
 import { SemanaKpisChart } from "@/features/dashboard/components/widgets/semana-kpis-chart";
 import { DetalleRegistrosTable } from "@/features/dashboard/components/widgets/detalle-registros-table";
-import { RegimenBreakdownChart } from "@/features/dashboard/components/widgets/regimen-breakdown-chart";
-import { CampusBreakdownChart } from "@/features/dashboard/components/widgets/campus-breakdown-chart";
+import { MetricBreakdownChart } from "@/features/dashboard/components/widgets/metric-breakdown-chart";
 import { useFilters } from "@/features/dashboard/hooks/useFilters";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BaseType } from "@/lib/data-processing/types";
@@ -395,15 +394,21 @@ export function PowerBILayout() {
                         </ChartCard>
                     </div>
 
-                    {/* Row 7: Desglose por Campus y Regimen */}
-                    <div className="grid grid-cols-2 gap-4 h-[360px]">
-                        <ChartCard title="Matrículas y Afluencias por Campus" tooltip="Distribución geográfica u organizacional por sede (Campus) de los leads efectivos.">
-                            <CampusBreakdownChart />
-                        </ChartCard>
-                        <ChartCard title="Matrículas y Afluencias por Régimen" tooltip="Rendimiento segmentado por régimen de estudio.">
-                            <RegimenBreakdownChart />
-                        </ChartCard>
-                    </div>
+	                    {/* Row 7: Desglose por Campus y Regimen (separado por métrica) */}
+	                    <div className="grid grid-cols-2 gap-4 h-[720px]">
+	                        <ChartCard title="Afluencias por Campus" tooltip="Conteo de AF agrupado por campus (columna `afcampus` si existe; si no, usa `Sede Interes`).">
+	                            <MetricBreakdownChart metric="af" dimension="campus" />
+	                        </ChartCard>
+	                        <ChartCard title="Matrículas por Campus" tooltip="Conteo de MC agrupado por campus (columna `mccampus` si existe; si no, usa `Sede Interes`).">
+	                            <MetricBreakdownChart metric="mc" dimension="campus" />
+	                        </ChartCard>
+	                        <ChartCard title="Afluencias por Régimen" tooltip="Conteo de AF agrupado por régimen.">
+	                            <MetricBreakdownChart metric="af" dimension="regimen" />
+	                        </ChartCard>
+	                        <ChartCard title="Matrículas por Régimen" tooltip="Conteo de MC agrupado por régimen.">
+	                            <MetricBreakdownChart metric="mc" dimension="regimen" />
+	                        </ChartCard>
+	                    </div>
 
                     {/* Row 8: Detalle */}
                     <div className="h-[620px]">

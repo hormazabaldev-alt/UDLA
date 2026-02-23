@@ -11,6 +11,8 @@ export type DataRow = {
   interesa: string | null;
   regimen: string | null;
   sedeInteres: string | null;
+  afCampus: string | null;
+  mcCampus: string | null;
   semana: string | null;
   af: string | null; // A, MC, M
   fechaAf: Date | null;

@@ -84,8 +84,8 @@ export function EvolutionChart() {
             { name: "Recorrido", type: "line", data: chartData?.recorrido || [], itemStyle: { color: "#0ea5e9" }, areaStyle, smooth: true, lineStyle: { width: 2 }, symbol: "none" },
             { name: "Contactado", type: "line", data: chartData?.contactado || [], itemStyle: { color: "#10b981" }, areaStyle, smooth: true, lineStyle: { width: 2 }, symbol: "none" },
             { name: "Citas", type: "line", data: chartData?.citas || [], itemStyle: { color: "#f59e0b" }, areaStyle, smooth: true, lineStyle: { width: 2 }, symbol: "none" },
-            { name: "AF", type: "line", data: chartData?.af || [], itemStyle: { color: "#8b5cf6" }, areaStyle, smooth: true, lineStyle: { width: 2 }, symbol: "none" },
-            { name: "MC", type: "line", data: chartData?.mc || [], itemStyle: { color: "#ec4899" }, areaStyle, smooth: true, lineStyle: { width: 2 }, symbol: "none" },
+            { name: "AF", type: "line", data: chartData?.af || [], itemStyle: { color: "#f97316" }, areaStyle, smooth: true, lineStyle: { width: 2 }, symbol: "none" },
+            { name: "MC", type: "line", data: chartData?.mc || [], itemStyle: { color: "#3b82f6" }, areaStyle, smooth: true, lineStyle: { width: 2 }, symbol: "none" },
         ],
     };
 

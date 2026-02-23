@@ -3,7 +3,7 @@
 import ReactECharts from "echarts-for-react";
 import { useMetrics } from "@/features/dashboard/hooks/useMetrics";
 
-const COLORS = ["#00d4ff", "#0ea5e9", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#f43f5e", "#06b6d4"];
+const COLORS = ["#00d4ff", "#0ea5e9", "#10b981", "#f59e0b", "#f97316", "#3b82f6", "#f43f5e", "#06b6d4"];
 
 export function TrendChart() {
     const { trend } = useMetrics();

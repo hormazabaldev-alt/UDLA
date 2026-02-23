@@ -85,7 +85,7 @@ export function SemanaKpisChart() {
         name: "Matrículas",
         type: "bar",
         data: resumen.rows.map((r) => r.matriculas),
-        itemStyle: { color: "#ec4899" },
+        itemStyle: { color: "#3b82f6" },
         barMaxWidth: 18,
       },
     ];

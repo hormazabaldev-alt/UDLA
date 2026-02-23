@@ -8,6 +8,7 @@ import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
 import { Input } from "@/components/ui/input";
 import { useMetrics } from "@/features/dashboard/hooks/useMetrics";
 import type { DataRow } from "@/lib/data-processing/types";
+import { toCampusFullName } from "@/lib/utils/campus";
 import { formatInt } from "@/lib/utils/format";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -28,6 +29,8 @@ function toGridRow(r: DataRow): Record<string, unknown> {
     Interesa: r.interesa ?? "",
     Regimen: r.regimen ?? "",
     "Sede Interes": r.sedeInteres ?? "",
+    "AF Campus": toCampusFullName(r.afCampus),
+    "MC Campus": toCampusFullName(r.mcCampus),
     Semana: r.semana ?? "",
     AF: r.af ?? "",
     "Fecha af": r.fechaAf,
@@ -107,4 +110,3 @@ export function DetalleRegistrosTable({ height = 520 }: { height?: number }) {
     </div>
   );
 }
-

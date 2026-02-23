@@ -84,8 +84,8 @@ export function DailyChart() {
             { name: "Recorrido", type: "bar", data: chartData?.recorrido || [], itemStyle: { color: "#0ea5e9" }, barMaxWidth: 35 },
             { name: "Contactado", type: "bar", data: chartData?.contactado || [], itemStyle: { color: "#10b981" }, barMaxWidth: 35 },
             { name: "Citas", type: "bar", data: chartData?.citas || [], itemStyle: { color: "#f59e0b" }, barMaxWidth: 35 },
-            { name: "AF", type: "bar", data: chartData?.af || [], itemStyle: { color: "#8b5cf6" }, barMaxWidth: 35 },
-            { name: "MC", type: "bar", data: chartData?.mc || [], itemStyle: { color: "#ec4899" }, barMaxWidth: 35 },
+            { name: "AF", type: "bar", data: chartData?.af || [], itemStyle: { color: "#f97316" }, barMaxWidth: 35 },
+            { name: "MC", type: "bar", data: chartData?.mc || [], itemStyle: { color: "#3b82f6" }, barMaxWidth: 35 },
         ],
     };
 

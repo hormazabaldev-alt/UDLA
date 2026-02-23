@@ -81,8 +81,8 @@ export function WeeklyChart() {
             { name: "Recorrido", type: "line", data: chartData?.recorrido || [], itemStyle: { color: "#0ea5e9" }, lineStyle: { width: 2 }, smooth: true, symbol: "circle", symbolSize: 5 },
             { name: "Contactado", type: "line", data: chartData?.contactado || [], itemStyle: { color: "#10b981" }, lineStyle: { width: 2 }, smooth: true, symbol: "circle", symbolSize: 5 },
             { name: "Citas", type: "line", data: chartData?.citas || [], itemStyle: { color: "#f59e0b" }, lineStyle: { width: 2 }, smooth: true, symbol: "circle", symbolSize: 5 },
-            { name: "AF", type: "line", data: chartData?.af || [], itemStyle: { color: "#8b5cf6" }, lineStyle: { width: 2 }, smooth: true, symbol: "circle", symbolSize: 5 },
-            { name: "MC", type: "line", data: chartData?.mc || [], itemStyle: { color: "#ec4899" }, lineStyle: { width: 2 }, smooth: true, symbol: "circle", symbolSize: 5 },
+            { name: "AF", type: "line", data: chartData?.af || [], itemStyle: { color: "#f97316" }, lineStyle: { width: 2 }, smooth: true, symbol: "circle", symbolSize: 5 },
+            { name: "MC", type: "line", data: chartData?.mc || [], itemStyle: { color: "#3b82f6" }, lineStyle: { width: 2 }, smooth: true, symbol: "circle", symbolSize: 5 },
         ],
     };
 

@@ -16,8 +16,8 @@ const METRIC_INFO: Record<Metric, { label: string; color: string }> = {
     recorrido: { label: "Recorrido", color: "#0ea5e9" },
     contactado: { label: "Contactados", color: "#10b981" },
     citas: { label: "Citas", color: "#f59e0b" },
-    af: { label: "Afluencias", color: "#8b5cf6" },
-    mc: { label: "Matrículas", color: "#ec4899" },
+    af: { label: "Afluencias", color: "#f97316" },
+    mc: { label: "Matrículas", color: "#3b82f6" },
 };
 
 const ALL_METRICS: Metric[] = ["cargada", "recorrido", "contactado", "citas", "af", "mc"];
@@ -288,8 +288,8 @@ export default function AnalyticsPage() {
                 { name: "TC% Lla/Leads", type: "line", data: rates.map(r => +r.tcLlaLeads.toFixed(1)), itemStyle: { color: "#00d4ff" }, lineStyle: { width: 2 }, smooth: true, symbol: "circle", symbolSize: 5 },
                 { name: "TC% Cont/Lla", type: "line", data: rates.map(r => +r.tcContLla.toFixed(1)), itemStyle: { color: "#10b981" }, lineStyle: { width: 2 }, smooth: true, symbol: "circle", symbolSize: 5 },
                 { name: "C% Citas/Con", type: "line", data: rates.map(r => +r.cCitasCon.toFixed(1)), itemStyle: { color: "#f59e0b" }, lineStyle: { width: 2 }, smooth: true, symbol: "circle", symbolSize: 5 },
-                { name: "TC% AF/Citas", type: "line", data: rates.map(r => +r.tcAfCitas.toFixed(1)), itemStyle: { color: "#8b5cf6" }, lineStyle: { width: 2 }, smooth: true, symbol: "circle", symbolSize: 5 },
-                { name: "TC% MC/AF", type: "line", data: rates.map(r => +r.tcMcAf.toFixed(1)), itemStyle: { color: "#ec4899" }, lineStyle: { width: 2 }, smooth: true, symbol: "circle", symbolSize: 5 },
+                { name: "TC% AF/Citas", type: "line", data: rates.map(r => +r.tcAfCitas.toFixed(1)), itemStyle: { color: "#f97316" }, lineStyle: { width: 2 }, smooth: true, symbol: "circle", symbolSize: 5 },
+                { name: "TC% MC/AF", type: "line", data: rates.map(r => +r.tcMcAf.toFixed(1)), itemStyle: { color: "#3b82f6" }, lineStyle: { width: 2 }, smooth: true, symbol: "circle", symbolSize: 5 },
                 { name: "C% MC/Leads", type: "line", data: rates.map(r => +r.cMcLeads.toFixed(1)), itemStyle: { color: "#f43f5e" }, lineStyle: { width: 2, type: "dashed" }, smooth: true, symbol: "diamond", symbolSize: 5 },
             ],
         };
