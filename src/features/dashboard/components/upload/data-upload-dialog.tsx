@@ -157,8 +157,22 @@ export function DataUploadDialog({ defaultMode, triggerLabel, triggerIcon }: {
       });
 
       if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        setUploadError(body?.error ?? "Error desconocido");
+        const contentType = res.headers.get("content-type") ?? "";
+        if (contentType.includes("application/json")) {
+          const body = await res.json().catch(() => null);
+          const errorText =
+            body?.error ??
+            (Array.isArray(body?.issues) && body.issues.length > 0
+              ? `Error de validación (${body.issues.length}): ${body.issues[0]?.message ?? "ver detalles"}`
+              : null) ??
+            (body ? JSON.stringify(body) : null);
+
+          setUploadError(errorText ? `(${res.status}) ${errorText}` : `(${res.status}) Error desconocido`);
+        } else {
+          const text = await res.text().catch(() => "");
+          const snippet = text.trim().slice(0, 300);
+          setUploadError(`(${res.status}) ${snippet || "Error desconocido"}`);
+        }
         return;
       }
 
