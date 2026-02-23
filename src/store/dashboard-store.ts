@@ -2,6 +2,7 @@ import { create } from "zustand";
 
 import type { BaseType, Dataset, DataRow } from "@/lib/data-processing/types";
 import { computeTotals, type Totals } from "@/lib/data-processing/metrics";
+import { toCampusCode } from "@/lib/utils/campus";
 
 export type Filters = {
   tipo: BaseType[];
@@ -47,7 +48,7 @@ export function applyFilters(rows: DataRow[], filters: Filters): DataRow[] {
     }
 
     if (filters.campus.length > 0) {
-      const campus = r.sedeInteres ?? "";
+      const campus = toCampusCode(r.sedeInteres ?? "");
       if (!filters.campus.includes(campus)) return false;
     }
 

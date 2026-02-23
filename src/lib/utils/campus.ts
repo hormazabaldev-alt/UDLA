@@ -31,3 +31,30 @@ export function toCampusFullName(value: string | null | undefined): string {
   return raw;
 }
 
+function normalizeCampusName(value: string) {
+  return value
+    .trim()
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/\s+/g, " ");
+}
+
+const CAMPUS_CODE_BY_FULL_NAME: Record<string, CampusSedeCode> = Object.fromEntries(
+  Object.entries(CAMPUS_SEDE_BY_CODE).map(([code, full]) => [normalizeCampusName(full), code as CampusSedeCode]),
+);
+
+export function toCampusCode(value: string | null | undefined): string {
+  const raw = (value ?? "").trim();
+  if (!raw) return "SIN";
+
+  const upper = raw.toUpperCase();
+  if (upper === "SIN CAMPUS") return "SIN";
+  if (isCampusSedeCode(upper)) return upper;
+
+  const byName = CAMPUS_CODE_BY_FULL_NAME[normalizeCampusName(raw)];
+  if (byName) return byName;
+
+  // Pass-through but normalized for filters/charts.
+  return normalizeCampusName(raw);
+}

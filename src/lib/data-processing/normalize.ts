@@ -1,5 +1,6 @@
 import type { DataRow, ParseIssue } from "@/lib/data-processing/types";
 import { parse, isValid, getMonth, getDate, getDay } from "date-fns";
+import { toCampusCode } from "@/lib/utils/campus";
 
 type RawRow = Record<string, unknown>;
 
@@ -82,9 +83,12 @@ export function normalizeRow(raw: RawRow, rowIndex: number): {
   const conecta = cleanString(getValue(raw, "Conecta"));
   const interesa = cleanString(getValue(raw, "Interesa"));
   const regimen = cleanString(getValue(raw, "Regimen"));
-  const sedeInteres = cleanString(getValue(raw, "Sede Interes"));
-  const afCampus = cleanString(getValueAny(raw, ["afcampus", "AF Campus", "AFCampus"]));
-  const mcCampus = cleanString(getValueAny(raw, ["mccampus", "MC Campus", "MCCampus"]));
+  const sedeInteresRaw = cleanString(getValue(raw, "Sede Interes"));
+  const sedeInteres = sedeInteresRaw ? toCampusCode(sedeInteresRaw) : null;
+  const afCampusRaw = cleanString(getValueAny(raw, ["afcampus", "AF Campus", "AFCampus"]));
+  const afCampus = afCampusRaw ? toCampusCode(afCampusRaw) : null;
+  const mcCampusRaw = cleanString(getValueAny(raw, ["mccampus", "MC Campus", "MCCampus"]));
+  const mcCampus = mcCampusRaw ? toCampusCode(mcCampusRaw) : null;
   const semana = cleanString(getValue(raw, "Semana"));
   const af = cleanString(getValue(raw, "AF"));
   const fechaAfRaw = parseDate(getValue(raw, "Fecha af"));

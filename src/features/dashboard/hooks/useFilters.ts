@@ -4,6 +4,7 @@ import { useMemo } from "react";
 
 import type { Filters } from "@/store/dashboard-store";
 import { useDashboardStore } from "@/store/dashboard-store";
+import { toCampusCode } from "@/lib/utils/campus";
 
 export function useFilters() {
   const dataset = useDashboardStore((s) => s.dataset);
@@ -35,7 +36,7 @@ export function useFilters() {
     });
 
     const campus = Array.from(
-      new Set(rows.map((r) => r.sedeInteres).filter((v): v is string => !!v))
+      new Set(rows.map((r) => toCampusCode(r.sedeInteres)).filter((v): v is string => !!v)),
     ).sort();
 
     const regimen = Array.from(
@@ -49,4 +50,3 @@ export function useFilters() {
 
   return { filters, set, resetFilters, options };
 }
-

@@ -4,7 +4,7 @@ import ReactECharts from "echarts-for-react";
 import { useMemo } from "react";
 
 import { useMetrics } from "@/features/dashboard/hooks/useMetrics";
-import { toCampusFullName } from "@/lib/utils/campus";
+import { toCampusCode } from "@/lib/utils/campus";
 
 type Metric = "af" | "mc";
 type Dimension = "campus" | "regimen";
@@ -38,10 +38,7 @@ export function MetricBreakdownChart({
 
       const label =
         dimension === "campus"
-          ? toCampusFullName(
-              (metric === "af" ? row.afCampus : row.mcCampus) ??
-                row.sedeInteres,
-            )
+          ? toCampusCode((metric === "af" ? row.afCampus : row.mcCampus) ?? row.sedeInteres)
           : ((row.regimen?.trim() || "Sin Régimen").toUpperCase());
 
       grouped.set(label, (grouped.get(label) ?? 0) + 1);
@@ -59,7 +56,7 @@ export function MetricBreakdownChart({
     const name = metric === "af" ? "Afluencias" : "Matrículas";
     const color = metric === "af" ? "#f97316" : "#3b82f6";
 
-    const bottomPx = dimension === "campus" ? 72 : 84;
+    const bottomPx = 56;
 
     return {
       backgroundColor: "transparent",
@@ -82,11 +79,11 @@ export function MetricBreakdownChart({
         data: labels,
         axisLine: { lineStyle: { color: "#333" } },
         axisLabel: {
-          color: "#888",
-          fontSize: 10,
+          color: "rgba(255,255,255,0.78)",
+          fontSize: 11,
           rotate: 0,
           margin: 14,
-          width: dimension === "campus" ? 110 : 140,
+          width: dimension === "campus" ? 34 : 140,
           overflow: "truncate",
           ellipsis: "…",
           hideOverlap: true,
@@ -96,7 +93,7 @@ export function MetricBreakdownChart({
       yAxis: {
         type: "value",
         splitLine: { lineStyle: { color: "#1a1a1a" } },
-        axisLabel: { color: "#888", fontSize: 10 },
+        axisLabel: { color: "rgba(255,255,255,0.75)", fontSize: 11 },
       },
       series: [
         {
