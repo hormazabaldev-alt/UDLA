@@ -90,7 +90,20 @@ export async function getActiveSnapshot(): Promise<Dataset | null> {
 }
 
 function rowKey(r: DataRow): string {
-  const iso = (d: Date | null | undefined) => (d ? d.toISOString() : "");
+  const iso = (d: unknown) => {
+    if (!d) return "";
+    if (d instanceof Date) {
+      if (Number.isNaN(d.getTime())) return "";
+      return d.toISOString();
+    }
+    if (typeof d === "string") return d;
+    if (typeof d === "number") {
+      const dt = new Date(d);
+      if (Number.isNaN(dt.getTime())) return "";
+      return dt.toISOString();
+    }
+    return "";
+  };
   const norm = (v: unknown) => String(v ?? "").trim();
   return [
     norm(r.rutBase),
