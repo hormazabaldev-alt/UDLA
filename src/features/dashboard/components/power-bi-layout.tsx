@@ -53,7 +53,11 @@ function MetricItem({ label, value, subValue, tooltip }: { label: string; value:
                             <span className="text-[13px] text-white/90 uppercase tracking-wide font-bold">{label}</span>
                             {tooltip && <Info className="size-3.5 text-white/40 hover:text-white/80 transition-colors" />}
                         </div>
-                        {subValue && <span className="text-[10px] text-white/40 mt-1">{subValue}</span>}
+                        {subValue && (
+                            <span className="text-[10px] text-white/75 mt-1 font-semibold tracking-wide">
+                                {subValue}
+                            </span>
+                        )}
                     </div>
                 </TooltipTrigger>
                 {tooltip && (
