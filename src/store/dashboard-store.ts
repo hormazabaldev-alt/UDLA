@@ -15,6 +15,7 @@ export type Filters = {
 
 export type DashboardState = {
   dataset: Dataset | null;
+  tipoIndex: Record<string, DataRow[]> | null;
   filters: Filters;
   comparisonMode: "week" | "day";
   currentView: "overview" | "analytics" | "reports" | "live";
@@ -36,9 +37,24 @@ const DEFAULT_FILTERS: Filters = {
   regimen: [],
 };
 
-export function applyFilters(rows: DataRow[], filters: Filters): DataRow[] {
-  return rows.filter((r) => {
-    if (filters.tipo.length > 0 && r.tipoBase && !filters.tipo.includes(r.tipoBase)) return false;
+export function applyFilters(
+  rows: DataRow[],
+  filters: Filters,
+  opts?: { tipoIndex?: Record<string, DataRow[]> | null },
+): DataRow[] {
+  let baseRows = rows;
+
+  if (filters.tipo.length > 0 && opts?.tipoIndex) {
+    const indexed: DataRow[] = [];
+    for (const tipo of filters.tipo) {
+      const bucket = opts.tipoIndex[tipo];
+      if (bucket) indexed.push(...bucket);
+    }
+    baseRows = indexed;
+  }
+
+  return baseRows.filter((r) => {
+    if (filters.tipo.length > 0 && !filters.tipo.includes(r.tipoBase)) return false;
     if (filters.mes.length > 0 && r.mes && !filters.mes.includes(r.mes)) return false;
     if (filters.diaNumero.length > 0 && r.diaNumero && !filters.diaNumero.includes(r.diaNumero)) return false;
 
@@ -69,10 +85,18 @@ export function computeFilteredTotals(dataset: Dataset | null, filters: Filters)
 
 export const useDashboardStore = create<DashboardState>((set) => ({
   dataset: null,
+  tipoIndex: null,
   filters: DEFAULT_FILTERS,
   setDataset: (dataset) =>
     set(() => ({
       dataset,
+      tipoIndex: dataset
+        ? dataset.rows.reduce<Record<string, DataRow[]>>((acc, r) => {
+          const key = r.tipoBase ?? "Desconocido";
+          (acc[key] ||= []).push(r);
+          return acc;
+        }, {})
+        : null,
       filters: DEFAULT_FILTERS,
     })),
   comparisonMode: "week",
