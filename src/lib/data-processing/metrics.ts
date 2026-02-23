@@ -147,9 +147,12 @@ export function computeTotals(rows: DataRow[]): Totals {
   };
 }
 
-export function computeTrend(rows: DataRow[]) {
-  // Discover all unique tipoBase values
-  const allTipos = Array.from(new Set(rows.map(r => r.tipoBase).filter(v => !!v))).sort();
+export function computeTrend(rows: DataRow[], opts?: { tipoUniverse?: string[] }) {
+  // Discover all unique tipoBase values. If the user selected "Tipo de Base" filters,
+  // we keep those series visible even when other filters make some tipos zero.
+  const allTipos = Array.from(
+    new Set((opts?.tipoUniverse?.length ? opts.tipoUniverse : rows.map((r) => r.tipoBase)).filter((v) => !!v)),
+  ).sort();
 
   // Group by Year-Month (from Fecha Gestion) x TipoBase
   // Key format: YYYYMM (e.g. 202602)

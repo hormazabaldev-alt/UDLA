@@ -14,7 +14,7 @@ export function useMetrics() {
     if (!dataset) return { rows: [], totals: null, trend: null };
     const rows = applyFilters(dataset.rows, filters, { tipoIndex });
     const totals = computeTotals(rows);
-    const trend = computeTrend(rows);
+    const trend = computeTrend(rows, { tipoUniverse: filters.tipo.length > 0 ? filters.tipo : undefined });
     return { rows, totals, trend };
   }, [dataset, filters, tipoIndex]);
 }
