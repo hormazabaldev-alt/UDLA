@@ -3,6 +3,8 @@ import { parse, isValid } from "date-fns";
 type ParseOptions = {
   minYear?: number;
   maxYear?: number;
+  minDate?: Date;
+  maxDate?: Date;
 };
 
 function isReasonableYear(d: Date, opts?: ParseOptions) {
@@ -10,6 +12,15 @@ function isReasonableYear(d: Date, opts?: ParseOptions) {
   const minYear = opts?.minYear ?? 2018;
   const maxYear = opts?.maxYear ?? new Date().getFullYear() + 1;
   return year >= minYear && year <= maxYear;
+}
+
+function isWithinDateRange(d: Date, opts?: ParseOptions) {
+  const t = d.getTime();
+  const min = opts?.minDate ? opts.minDate.getTime() : null;
+  const max = opts?.maxDate ? opts.maxDate.getTime() : null;
+  if (min !== null && t < min) return false;
+  if (max !== null && t > max) return false;
+  return true;
 }
 
 /**
@@ -23,13 +34,13 @@ export function parseLooseDate(value: unknown, opts?: ParseOptions): Date | null
   if (!value) return null;
   if (value instanceof Date) {
     if (!isValid(value)) return null;
-    return isReasonableYear(value, opts) ? value : null;
+    return isReasonableYear(value, opts) && isWithinDateRange(value, opts) ? value : null;
   }
 
   if (typeof value === "number") {
     const date = new Date(Math.round((value - 25569) * 86400 * 1000));
     if (!isValid(date)) return null;
-    return isReasonableYear(date, opts) ? date : null;
+    return isReasonableYear(date, opts) && isWithinDateRange(date, opts) ? date : null;
   }
 
   if (typeof value !== "string") return null;
@@ -44,7 +55,7 @@ export function parseLooseDate(value: unknown, opts?: ParseOptions): Date | null
     const day = Number(iso[3]);
     const d = new Date(year, month - 1, day);
     if (isValid(d) && d.getFullYear() === year && d.getMonth() === month - 1 && d.getDate() === day) {
-      return isReasonableYear(d, opts) ? d : null;
+      return isReasonableYear(d, opts) && isWithinDateRange(d, opts) ? d : null;
     }
   }
 
@@ -66,7 +77,7 @@ export function parseLooseDate(value: unknown, opts?: ParseOptions): Date | null
 
     const d = new Date(year, month - 1, day);
     if (isValid(d) && d.getFullYear() === year && d.getMonth() === month - 1 && d.getDate() === day) {
-      return isReasonableYear(d, opts) ? d : null;
+      return isReasonableYear(d, opts) && isWithinDateRange(d, opts) ? d : null;
     }
   }
 
@@ -83,16 +94,15 @@ export function parseLooseDate(value: unknown, opts?: ParseOptions): Date | null
   ];
   for (const fmt of formats) {
     const parsed = parse(datePart, fmt, new Date());
-    if (isValid(parsed) && isReasonableYear(parsed, opts)) return parsed;
+    if (isValid(parsed) && isReasonableYear(parsed, opts) && isWithinDateRange(parsed, opts)) return parsed;
   }
 
   // Excel serial as string
   const num = Number(s);
   if (!Number.isNaN(num) && num > 10000 && num < 100000) {
     const d = new Date(Math.round((num - 25569) * 86400 * 1000));
-    if (isValid(d) && isReasonableYear(d, opts)) return d;
+    if (isValid(d) && isReasonableYear(d, opts) && isWithinDateRange(d, opts)) return d;
   }
 
   return null;
 }
-

@@ -1,5 +1,5 @@
 import type { DataRow, ParseIssue } from "@/lib/data-processing/types";
-import { getMonth, getDate, getDay } from "date-fns";
+import { endOfMonth, getMonth, getDate, getDay } from "date-fns";
 import { toCampusCode } from "@/lib/utils/campus";
 import { parseLooseDate } from "@/lib/utils/date";
 
@@ -35,11 +35,14 @@ export function normalizeRow(raw: RawRow, rowIndex: number): {
 } {
   const issues: ParseIssue[] = [];
 
+  const periodStart = new Date(2025, 7, 1); // 2025-08-01
+  const periodEnd = endOfMonth(new Date()); // clamp to current month
+
   const tipoLlamada = cleanString(getValue(raw, "Tipo Llamada"));
   const fechaCarga = parseLooseDate(getValue(raw, "Fecha Carga"));
   const rutBase = cleanString(getValue(raw, "Rut Base"));
   const tipoBase = cleanString(getValue(raw, "Tipo Base"));
-  const fechaGestion = parseLooseDate(getValue(raw, "Fecha Gestion"));
+  const fechaGestion = parseLooseDate(getValue(raw, "Fecha Gestion"), { minDate: periodStart, maxDate: periodEnd });
   const conecta = cleanString(getValue(raw, "Conecta"));
   // Some files may carry the appointment intent under a dedicated "Citas" column.
   // Prefer it when present, fallback to "Interesa".
