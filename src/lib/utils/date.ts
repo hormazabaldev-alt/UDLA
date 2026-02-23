@@ -67,18 +67,30 @@ export function parseLooseDate(value: unknown, opts?: ParseOptions): Date | null
     let year = Number(numeric[3]);
     if (year < 100) year += 2000;
 
-    let day = a;
-    let month = b;
+    const build = (month: number, day: number) => {
+      const d = new Date(year, month - 1, day);
+      if (!isValid(d)) return null;
+      if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) return null;
+      if (!isReasonableYear(d, opts) || !isWithinDateRange(d, opts)) return null;
+      return d;
+    };
+
+    // Unambiguous: one part cannot be a month.
     if (a <= 12 && b > 12) {
       // M/d
-      day = b;
-      month = a;
+      return build(a, b);
+    }
+    if (b <= 12 && a > 12) {
+      // d/M
+      return build(b, a);
     }
 
-    const d = new Date(year, month - 1, day);
-    if (isValid(d) && d.getFullYear() === year && d.getMonth() === month - 1 && d.getDate() === day) {
-      return isReasonableYear(d, opts) && isWithinDateRange(d, opts) ? d : null;
-    }
+    // Ambiguous (both <= 12): prefer the one that fits the requested date range (if any).
+    const asCL = build(b, a); // d/M -> month=b, day=a
+    const asUS = build(a, b); // M/d -> month=a, day=b
+    if (asCL && !asUS) return asCL;
+    if (asUS && !asCL) return asUS;
+    if (asCL && asUS) return asCL; // default to CL when both valid
   }
 
   // date-fns fallback (strip time if present)
