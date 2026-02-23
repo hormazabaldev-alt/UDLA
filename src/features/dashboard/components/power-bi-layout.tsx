@@ -66,7 +66,19 @@ function MetricItem({ label, value, subValue, tooltip }: { label: string; value:
     );
 }
 
-function ChartCard({ title, children, tooltip, className }: { title: string; children: React.ReactNode; tooltip?: string; className?: string }) {
+function ChartCard({
+    title,
+    children,
+    tooltip,
+    className,
+    bodyClassName,
+}: {
+    title: string;
+    children: React.ReactNode;
+    tooltip?: string;
+    className?: string;
+    bodyClassName?: string;
+}) {
     return (
         <div className={cn("bg-[#080808] border border-[#1f1f1f] rounded-lg relative overflow-hidden flex flex-col", className)}>
             <div className="px-4 py-3 border-b border-[#1f1f1f] flex-shrink-0 flex items-center justify-between gap-2">
@@ -86,7 +98,7 @@ function ChartCard({ title, children, tooltip, className }: { title: string; chi
                     </TooltipProvider>
                 )}
             </div>
-            <div className="flex-1 p-3 min-h-0">
+            <div className={cn("flex-1 p-3 min-h-0", bodyClassName)}>
                 {children}
             </div>
         </div>
@@ -395,20 +407,20 @@ export function PowerBILayout() {
                     </div>
 
 	                    {/* Row 7: Desglose por Campus y Regimen (separado por métrica) */}
-	                    <div className="grid grid-cols-2 gap-4 h-[720px]">
-	                        <ChartCard title="Afluencias por Campus" tooltip="Conteo de AF agrupado por campus (columna `afcampus` si existe; si no, usa `Sede Interes`).">
-	                            <MetricBreakdownChart metric="af" dimension="campus" />
-	                        </ChartCard>
-	                        <ChartCard title="Matrículas por Campus" tooltip="Conteo de MC agrupado por campus (columna `mccampus` si existe; si no, usa `Sede Interes`).">
-	                            <MetricBreakdownChart metric="mc" dimension="campus" />
-	                        </ChartCard>
-	                        <ChartCard title="Afluencias por Régimen" tooltip="Conteo de AF agrupado por régimen.">
-	                            <MetricBreakdownChart metric="af" dimension="regimen" />
-	                        </ChartCard>
-	                        <ChartCard title="Matrículas por Régimen" tooltip="Conteo de MC agrupado por régimen.">
-	                            <MetricBreakdownChart metric="mc" dimension="regimen" />
-	                        </ChartCard>
-	                    </div>
+	                    <div className="grid grid-cols-1 xl:grid-cols-2 auto-rows-fr gap-4 h-[880px]">
+		                        <ChartCard title="Afluencias por Campus" tooltip="Conteo de AF agrupado por campus (columna `afcampus` si existe; si no, usa `Sede Interes`)." className="h-full" bodyClassName="p-2">
+		                            <MetricBreakdownChart metric="af" dimension="campus" />
+		                        </ChartCard>
+		                        <ChartCard title="Matrículas por Campus" tooltip="Conteo de MC agrupado por campus (columna `mccampus` si existe; si no, usa `Sede Interes`)." className="h-full" bodyClassName="p-2">
+		                            <MetricBreakdownChart metric="mc" dimension="campus" />
+		                        </ChartCard>
+		                        <ChartCard title="Afluencias por Régimen" tooltip="Conteo de AF agrupado por régimen." className="h-full" bodyClassName="p-2">
+		                            <MetricBreakdownChart metric="af" dimension="regimen" />
+		                        </ChartCard>
+		                        <ChartCard title="Matrículas por Régimen" tooltip="Conteo de MC agrupado por régimen." className="h-full" bodyClassName="p-2">
+		                            <MetricBreakdownChart metric="mc" dimension="regimen" />
+		                        </ChartCard>
+		                    </div>
 
                     {/* Row 8: Detalle */}
                     <div className="h-[620px]">

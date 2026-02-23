@@ -59,6 +59,8 @@ export function MetricBreakdownChart({
     const name = metric === "af" ? "Afluencias" : "Matrículas";
     const color = metric === "af" ? "#f97316" : "#3b82f6";
 
+    const bottomPx = dimension === "campus" ? 72 : 84;
+
     return {
       backgroundColor: "transparent",
       tooltip: {
@@ -69,10 +71,10 @@ export function MetricBreakdownChart({
         textStyle: { color: "#fff" },
       },
       grid: {
-        left: "3%",
-        right: "4%",
-        bottom: "15%",
-        top: "8%",
+        left: 38,
+        right: 16,
+        bottom: bottomPx,
+        top: 18,
         containLabel: true,
       },
       xAxis: {
@@ -82,8 +84,12 @@ export function MetricBreakdownChart({
         axisLabel: {
           color: "#888",
           fontSize: 10,
-          rotate: dimension === "campus" ? 30 : 15,
-          interval: 0,
+          rotate: 0,
+          margin: 14,
+          width: dimension === "campus" ? 110 : 140,
+          overflow: "truncate",
+          ellipsis: "…",
+          hideOverlap: true,
         },
         axisTick: { show: false },
       },
@@ -108,4 +114,3 @@ export function MetricBreakdownChart({
     <ReactECharts option={option} style={{ height: "100%", width: "100%" }} />
   );
 }
-
