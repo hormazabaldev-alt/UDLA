@@ -16,18 +16,19 @@ export function EvolutionChart() {
     const chartData = useMemo(() => {
         if (!rows || rows.length === 0) return null;
 
+        // Group by Year-Month (from Fecha Gestion). Key format: YYYYMM (e.g. 202602)
         const groups = new Map<number, {
             recorrido: number; contactado: number;
             citasRuts: Set<string>; af: number; mc: number;
         }>();
 
         for (const r of rows) {
-            const mes = r.mes;
-            if (mes === null || mes === undefined) continue;
-            if (!groups.has(mes)) {
-                groups.set(mes, { recorrido: 0, contactado: 0, citasRuts: new Set(), af: 0, mc: 0 });
+            if (!r.fechaGestion) continue;
+            const ym = r.fechaGestion.getFullYear() * 100 + (r.fechaGestion.getMonth() + 1);
+            if (!groups.has(ym)) {
+                groups.set(ym, { recorrido: 0, contactado: 0, citasRuts: new Set(), af: 0, mc: 0 });
             }
-            const g = groups.get(mes)!;
+            const g = groups.get(ym)!;
             const c = r.conecta?.trim().toLowerCase() ?? "";
             if (c === "conecta" || c === "no conecta") g.recorrido++;
             if (c === "conecta") g.contactado++;
@@ -39,7 +40,12 @@ export function EvolutionChart() {
         }
 
         const months = Array.from(groups.keys()).sort((a, b) => a - b);
-        const labels = months.map(m => `Mes ${m}`);
+        const labels = months.map((ym) => {
+            const year = Math.floor(ym / 100);
+            const month = ym % 100;
+            const d = new Date(year, month - 1, 1);
+            return new Intl.DateTimeFormat("es-CL", { month: "short", year: "numeric" }).format(d);
+        });
 
         return {
             labels,

@@ -45,7 +45,7 @@ export function ResumenSemanalTable() {
 
   const uniqueValues = useMemo(() => {
     const vals: Partial<Record<keyof ResumenSemanalRow, string[]>> = {};
-    const keys: Array<keyof ResumenSemanalRow> = ["semana", "citas", "recorrido", "afluencias", "matriculas", "pctRecorrido", "pctAfluencia", "pctMatriculas"];
+    const keys: Array<keyof ResumenSemanalRow> = ["semana", "base", "citas", "recorrido", "afluencias", "matriculas", "pctRecorrido", "pctAfluencia", "pctMatriculas"];
     keys.forEach(k => {
       vals[k] = Array.from(new Set(resumen.rows.map(r => String(r[k])))).sort((a, b) => {
         const cleanA = parseFloat(a.replace(/\D/g, "")) || 0;
@@ -160,8 +160,9 @@ export function ResumenSemanalTable() {
   };
 
   const filteredTotals = useMemo(() => {
-    const t = { citas: 0, recorrido: 0, afluencias: 0, matriculas: 0 };
+    const t = { base: 0, citas: 0, recorrido: 0, afluencias: 0, matriculas: 0 };
     for (const r of filteredRows) {
+      t.base += r.base;
       t.citas += r.citas;
       t.recorrido += r.recorrido;
       t.afluencias += r.afluencias;
@@ -169,8 +170,8 @@ export function ResumenSemanalTable() {
     }
     return {
       ...t,
-      pctRecorrido: t.citas > 0 ? t.recorrido / t.citas : 0,
-      pctAfluencia: t.recorrido > 0 ? t.afluencias / t.recorrido : 0,
+      pctRecorrido: t.base > 0 ? t.recorrido / t.base : 0,
+      pctAfluencia: t.citas > 0 ? t.afluencias / t.citas : 0,
       pctMatriculas: t.afluencias > 0 ? t.matriculas / t.afluencias : 0,
     };
   }, [filteredRows]);
@@ -187,7 +188,7 @@ export function ResumenSemanalTable() {
           <span className="text-white/80 tabular-nums">
             {formatInt(resumen.excluded.missingSemana)}
           </span>{" "}
-          · sin Fecha Carga:{" "}
+          · sin RUT válido:{" "}
           <span className="text-white/80 tabular-nums">
             {formatInt(resumen.excluded.invalidCitas)}
           </span>
@@ -200,6 +201,7 @@ export function ResumenSemanalTable() {
             <tr className="border-b border-[#1f1f1f]">
               {([
                 { key: "semana", label: "SEMANA", align: "left" },
+                { key: "base", label: "BASE", align: "right" },
                 { key: "citas", label: "CITAS", align: "right" },
                 { key: "recorrido", label: "RECORRIDO", align: "right" },
                 { key: "afluencias", label: "AFLUENCIAS", align: "right" },
@@ -248,6 +250,9 @@ export function ResumenSemanalTable() {
               <tr key={r.semana} className="border-b border-[#141414] hover:bg-white/[0.02]">
                 <td className="px-3 py-2 text-white/80 font-medium">{r.semana}</td>
                 <td className="px-3 py-2 text-right tabular-nums text-white/70">
+                  {formatInt(r.base)}
+                </td>
+                <td className="px-3 py-2 text-right tabular-nums text-white/70">
                   {formatInt(r.citas)}
                 </td>
                 <td className="px-3 py-2 text-right tabular-nums text-white/70">
@@ -274,6 +279,9 @@ export function ResumenSemanalTable() {
             <tr className="bg-gradient-to-r from-orange-500/25 to-orange-500/10 border-t border-orange-500/30">
               <td className="px-3 py-2 font-bold text-white/90 uppercase tracking-wider">
                 TOTALES
+              </td>
+              <td className="px-3 py-2 text-right tabular-nums font-bold text-white/90">
+                {formatInt(filteredTotals.base)}
               </td>
               <td className="px-3 py-2 text-right tabular-nums font-bold text-white/90">
                 {formatInt(filteredTotals.citas)}

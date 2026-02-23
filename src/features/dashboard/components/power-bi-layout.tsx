@@ -380,7 +380,7 @@ export function PowerBILayout() {
 
                     {/* Row 2: Gauges */}
                     <div className="overflow-x-auto">
-                        <div className="grid grid-cols-7 gap-2 h-[120px] min-w-[980px]">
+                        <div className="grid grid-cols-8 gap-2 h-[120px] min-w-[1120px]">
                         <div className="bg-[#080808] border border-[#1f1f1f] rounded-sm relative flex flex-col items-center justify-center">
                             <span className="absolute top-1.5 left-2 text-[9px] text-white/50 font-medium">TC% Lla/Leads</span>
                             <GaugeChart title="" value={Math.round((totals?.tcLlaLeads || 0) * 100)} />
@@ -392,6 +392,10 @@ export function PowerBILayout() {
                         <div className="bg-[#080808] border border-[#1f1f1f] rounded-sm relative flex flex-col items-center justify-center">
                             <span className="absolute top-1.5 left-2 text-[9px] text-white/50 font-medium">TC% Cont/Lla</span>
                             <GaugeChart title="" value={Math.round((totals?.tcContLla || 0) * 100)} />
+                        </div>
+                        <div className="bg-[#080808] border border-[#1f1f1f] rounded-sm relative flex flex-col items-center justify-center">
+                            <span className="absolute top-1.5 left-2 text-[9px] text-white/50 font-medium">C% Citas/Rec</span>
+                            <GaugeChart title="" value={Math.round((totals?.cCitasRecorrido || 0) * 100)} />
                         </div>
                         <div className="bg-[#080808] border border-[#1f1f1f] rounded-sm relative flex flex-col items-center justify-center">
                             <span className="absolute top-1.5 left-2 text-[9px] text-white/50 font-medium">C% Citas/Con</span>

@@ -10,16 +10,39 @@ function parseDate(value: unknown): Date | null {
     const s = value.trim();
     if (!s) return null;
 
-    // Try multiple formats
-    const formats = [
-      "dd-MM-yyyy",
-      "dd/MM/yyyy",
-      "yyyy-MM-dd",
-      "MM/dd/yyyy",
-      "dd-MM-yy",
-      "dd/MM/yy"
-    ];
+    // Fast-path: ISO-like (yyyy-MM-dd...)
+    const iso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T ].*)?$/);
+    if (iso) {
+      const year = Number(iso[1]);
+      const month = Number(iso[2]);
+      const day = Number(iso[3]);
+      const d = new Date(year, month - 1, day);
+      if (isValid(d) && d.getFullYear() === year && d.getMonth() === month - 1 && d.getDate() === day) return d;
+    }
 
+    // Handle ambiguous numeric dates (d/M/yyyy or M/d/yyyy). We default to d/M (CL),
+    // but if the second segment is > 12 we treat it as the day (M/d).
+    const numeric = s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})$/);
+    if (numeric) {
+      const a = Number(numeric[1]);
+      const b = Number(numeric[2]);
+      let year = Number(numeric[3]);
+      if (year < 100) year += 2000;
+
+      let day = a;
+      let month = b;
+      if (a <= 12 && b > 12) {
+        // M/d
+        day = b;
+        month = a;
+      }
+
+      const d = new Date(year, month - 1, day);
+      if (isValid(d) && d.getFullYear() === year && d.getMonth() === month - 1 && d.getDate() === day) return d;
+    }
+
+    // Try multiple formats as fallback (covers textual/edge cases)
+    const formats = ["dd-MM-yyyy", "dd/MM/yyyy", "d/M/yyyy", "yyyy-MM-dd", "dd-MM-yy", "dd/MM/yy", "d/M/yy"];
     for (const fmt of formats) {
       const parsed = parse(s, fmt, new Date());
       if (isValid(parsed)) return parsed;

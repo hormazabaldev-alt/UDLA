@@ -78,7 +78,7 @@ export function SemanaKpisChart() {
         name: "Afluencias",
         type: "bar",
         data: resumen.rows.map((r) => r.afluencias),
-        itemStyle: { color: "#f59e0b" },
+        itemStyle: { color: "#f97316" },
         barMaxWidth: 18,
       },
       {

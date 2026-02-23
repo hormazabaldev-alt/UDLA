@@ -16,14 +16,15 @@ export type Totals = {
   citasRutUnico: number;
   afRutUnico: number;
   mcRutUnico: number;
-  // 6 core rates
-  tcLlaLeads: number | null;   // Recorrido / Base
-  tcAfLeads: number | null;    // AF / Base
-  tcContLla: number | null;    // Contactado / Recorrido
-  cCitasCon: number | null;    // Citas / Contactado
-  tcAfCitas: number | null;    // AF / Citas
-  tcMcAf: number | null;       // MC / AF
-  cMcLeads: number | null;     // MC / Base
+  // Core rates (based on RUT único)
+  tcLlaLeads: number | null;        // Recorrido / Base
+  tcAfLeads: number | null;         // AF / Base
+  tcContLla: number | null;         // Contactado / Recorrido
+  cCitasRecorrido: number | null;   // Citas / Recorrido
+  cCitasCon: number | null;         // Citas / Contactado
+  tcAfCitas: number | null;         // AF / Citas
+  tcMcAf: number | null;            // MC / AF
+  cMcLeads: number | null;          // MC / Base
   // Legacy
   pctContactabilidad: number | null;
   pctEfectividad: number | null;
@@ -92,20 +93,23 @@ export function computeTotals(rows: DataRow[]): Totals {
   const afRutUnico = afRuts.size;
   const mcRutUnico = mcRuts.size;
 
+  // Rates are computed on RUT único to avoid duplicate attempts inflating denominators.
   // TC% Lla/Leads = Recorrido / Base Cargada
-  const tcLlaLeads = cargada > 0 ? recorrido / cargada : null;
+  const tcLlaLeads = cargadaRutUnico > 0 ? recorridoRutUnico / cargadaRutUnico : null;
   // TC% AF/Leads = AF / Base Cargada
-  const tcAfLeads = cargada > 0 ? af / cargada : null;
+  const tcAfLeads = cargadaRutUnico > 0 ? afRutUnico / cargadaRutUnico : null;
   // TC% Cont/Lla = Contactado / Recorrido
-  const tcContLla = recorrido > 0 ? contactado / recorrido : null;
+  const tcContLla = recorridoRutUnico > 0 ? contactadoRutUnico / recorridoRutUnico : null;
+  // C% Citas/Recorrido = Citas / Recorrido
+  const cCitasRecorrido = recorridoRutUnico > 0 ? citasRutUnico / recorridoRutUnico : null;
   // C% Citas/Con = Citas / Contactado
-  const cCitasCon = contactado > 0 ? citas / contactado : null;
+  const cCitasCon = contactadoRutUnico > 0 ? citasRutUnico / contactadoRutUnico : null;
   // TC% AF/Citas = AF / Citas
-  const tcAfCitas = citas > 0 ? af / citas : null;
+  const tcAfCitas = citasRutUnico > 0 ? afRutUnico / citasRutUnico : null;
   // TC% MC/AF = MC / AF
-  const tcMcAf = af > 0 ? mc / af : null;
+  const tcMcAf = afRutUnico > 0 ? mcRutUnico / afRutUnico : null;
   // C% MC/Leads = MC / Base Cargada
-  const cMcLeads = cargada > 0 ? mc / cargada : null;
+  const cMcLeads = cargadaRutUnico > 0 ? mcRutUnico / cargadaRutUnico : null;
 
   // Legacy aliases (keep backward compat)
   const pctContactabilidad = tcContLla;
@@ -126,10 +130,11 @@ export function computeTotals(rows: DataRow[]): Totals {
     citasRutUnico,
     afRutUnico,
     mcRutUnico,
-    // New 6 rates
+    // Core rates
     tcLlaLeads,
     tcAfLeads,
     tcContLla,
+    cCitasRecorrido,
     cCitasCon,
     tcAfCitas,
     tcMcAf,
@@ -146,19 +151,26 @@ export function computeTrend(rows: DataRow[]) {
   // Discover all unique tipoBase values
   const allTipos = Array.from(new Set(rows.map(r => r.tipoBase).filter(v => !!v))).sort();
 
-  // Group by Month x TipoBase
+  // Group by Year-Month (from Fecha Gestion) x TipoBase
+  // Key format: YYYYMM (e.g. 202602)
   const grouped = new Map<number, Map<string, number>>();
 
   for (const row of rows) {
-    if (row.mes && row.tipoBase) {
-      if (!grouped.has(row.mes)) grouped.set(row.mes, new Map());
-      const monthMap = grouped.get(row.mes)!;
+    if (row.fechaGestion && row.tipoBase) {
+      const ym = row.fechaGestion.getFullYear() * 100 + (row.fechaGestion.getMonth() + 1);
+      if (!grouped.has(ym)) grouped.set(ym, new Map());
+      const monthMap = grouped.get(ym)!;
       monthMap.set(row.tipoBase, (monthMap.get(row.tipoBase) || 0) + 1);
     }
   }
 
   const months = Array.from(grouped.keys()).sort((a, b) => a - b);
-  const labels = months.map(m => `Mes ${m}`);
+  const labels = months.map((ym) => {
+    const year = Math.floor(ym / 100);
+    const month = ym % 100;
+    const d = new Date(year, month - 1, 1);
+    return new Intl.DateTimeFormat("es-CL", { month: "short", year: "numeric" }).format(d);
+  });
 
   const datasets = allTipos.map(tipo => ({
     label: tipo,

@@ -1,7 +1,10 @@
 import type { DataRow } from "@/lib/data-processing/types";
+import { normalizeRut } from "@/lib/utils/rut";
+import { isInteresaViene } from "@/lib/utils/interesa";
 
 export type ResumenSemanalRow = {
   semana: string;
+  base: number;
   citas: number;
   recorrido: number;
   afluencias: number;
@@ -12,7 +15,7 @@ export type ResumenSemanalRow = {
 };
 
 export type ResumenExclusion = {
-  invalidCitas: number; // sin Rut Base o sin Fecha Carga
+  invalidCitas: number; // sin Rut Base válido
   missingSemana: number; // Semana vacía/null
 };
 
@@ -31,37 +34,27 @@ function norm(v: string | null | undefined) {
   return s.length > 0 ? s : null;
 }
 
-function equalsCi(a: string | null | undefined, b: string) {
-  return (a?.trim().toLocaleLowerCase() ?? "") === b.toLocaleLowerCase();
-}
-
-function isValidDate(d: Date | null) {
-  return d instanceof Date && !Number.isNaN(d.getTime());
-}
-
 export function isValidCitaRow(row: DataRow) {
-  return !!norm(row.rutBase) && isValidDate(row.fechaCarga);
+  return !!normalizeRut(row.rutBase);
 }
 
 export function isRecorridoRow(row: DataRow) {
-  return isValidDate(row.fechaGestion);
+  const c = row.conecta?.trim().toLowerCase() ?? "";
+  return c === "conecta" || c === "no conecta";
 }
 
-export function isAfluenciaRow(row: DataRow, values: ReadonlySet<string> = new Set(["viene"])) {
-  const interesa = row.interesa?.trim().toLocaleLowerCase() ?? "";
-  if (!interesa) return false;
-  for (const v of values) {
-    if (interesa === v.trim().toLocaleLowerCase()) return true;
-  }
-  return false;
+export function isCitaRow(row: DataRow) {
+  return isInteresaViene(row.interesa);
 }
 
 export function isMatriculaRow(row: DataRow) {
-  return !!norm(row.mc);
+  const mc = row.mc?.trim().toUpperCase() ?? "";
+  return mc === "M" || mc === "MC";
 }
 
 export function isAfTotalRow(row: DataRow) {
-  return !!norm(row.af);
+  const af = row.af?.trim().toUpperCase() ?? "";
+  return af === "A" || af === "MC" || af === "M";
 }
 
 export function calcResumenSemanal(
@@ -72,10 +65,19 @@ export function calcResumenSemanal(
   },
 ): ResumenSemanalResult {
   const excludeMissingSemana = opts?.excludeMissingSemana ?? true;
-  const afluenciaValues = opts?.afluenciaValues ?? new Set(["viene"]);
+  // Backward compat: opts.afluenciaValues is ignored (AF comes from columna `AF`).
 
   const excluded: ResumenExclusion = { invalidCitas: 0, missingSemana: 0 };
-  const groups = new Map<string, Omit<ResumenSemanalRow, "semana" | "pctRecorrido" | "pctAfluencia" | "pctMatriculas">>();
+  const groups = new Map<
+    string,
+    {
+      baseRuts: Set<string>;
+      recorridoRuts: Set<string>;
+      citasRuts: Set<string>;
+      afRuts: Set<string>;
+      mcRuts: Set<string>;
+    }
+  >();
 
   for (const r of rows) {
     if (!isValidCitaRow(r)) {
@@ -91,14 +93,23 @@ export function calcResumenSemanal(
 
     const key = semana ?? "Semana N/A";
     if (!groups.has(key)) {
-      groups.set(key, { citas: 0, recorrido: 0, afluencias: 0, matriculas: 0 });
+      groups.set(key, {
+        baseRuts: new Set(),
+        recorridoRuts: new Set(),
+        citasRuts: new Set(),
+        afRuts: new Set(),
+        mcRuts: new Set(),
+      });
     }
 
     const g = groups.get(key)!;
-    g.citas++;
-    if (isRecorridoRow(r)) g.recorrido++;
-    if (isAfluenciaRow(r, afluenciaValues)) g.afluencias++;
-    if (isMatriculaRow(r)) g.matriculas++;
+    const rut = normalizeRut(r.rutBase);
+    if (!rut) continue;
+    g.baseRuts.add(rut);
+    if (isRecorridoRow(r)) g.recorridoRuts.add(rut);
+    if (isCitaRow(r)) g.citasRuts.add(rut);
+    if (isAfTotalRow(r)) g.afRuts.add(rut);
+    if (isMatriculaRow(r)) g.mcRuts.add(rut);
   }
 
   const sortedWeeks = Array.from(groups.keys()).sort((a, b) => {
@@ -114,33 +125,39 @@ export function calcResumenSemanal(
     const g = groups.get(semana)!;
     return {
       semana,
-      citas: g.citas,
-      recorrido: g.recorrido,
-      afluencias: g.afluencias,
-      matriculas: g.matriculas,
-      pctRecorrido: safeDiv(g.recorrido, g.citas),
-      pctAfluencia: safeDiv(g.afluencias, g.recorrido),
-      pctMatriculas: safeDiv(g.matriculas, g.recorrido),
+      base: g.baseRuts.size,
+      citas: g.citasRuts.size,
+      recorrido: g.recorridoRuts.size,
+      afluencias: g.afRuts.size,
+      matriculas: g.mcRuts.size,
+      // Definiciones:
+      // - % Recorrido = Recorrido / Base
+      // - % Afluencia = Afluencias / Citas
+      // - % Matrículas = Matrículas / Afluencias
+      pctRecorrido: safeDiv(g.recorridoRuts.size, g.baseRuts.size),
+      pctAfluencia: safeDiv(g.afRuts.size, g.citasRuts.size),
+      pctMatriculas: safeDiv(g.mcRuts.size, g.afRuts.size),
     };
   });
 
   const totalsCounts = resumenRows.reduce(
     (acc, r) => {
+      acc.base += r.base;
       acc.citas += r.citas;
       acc.recorrido += r.recorrido;
       acc.afluencias += r.afluencias;
       acc.matriculas += r.matriculas;
       return acc;
     },
-    { citas: 0, recorrido: 0, afluencias: 0, matriculas: 0 },
+    { base: 0, citas: 0, recorrido: 0, afluencias: 0, matriculas: 0 },
   );
 
   const totals: ResumenSemanalRow = {
     semana: "TOTALES",
     ...totalsCounts,
-    pctRecorrido: safeDiv(totalsCounts.recorrido, totalsCounts.citas),
-    pctAfluencia: safeDiv(totalsCounts.afluencias, totalsCounts.recorrido),
-    pctMatriculas: safeDiv(totalsCounts.matriculas, totalsCounts.recorrido),
+    pctRecorrido: safeDiv(totalsCounts.recorrido, totalsCounts.base),
+    pctAfluencia: safeDiv(totalsCounts.afluencias, totalsCounts.citas),
+    pctMatriculas: safeDiv(totalsCounts.matriculas, totalsCounts.afluencias),
   };
 
   return { rows: resumenRows, totals, excluded };
@@ -149,16 +166,18 @@ export function calcResumenSemanal(
 export function runResumenSemanalSanityChecks(res: ResumenSemanalResult) {
   const sum = res.rows.reduce(
     (acc, r) => {
+      acc.base += r.base;
       acc.citas += r.citas;
       acc.recorrido += r.recorrido;
       acc.afluencias += r.afluencias;
       acc.matriculas += r.matriculas;
       return acc;
     },
-    { citas: 0, recorrido: 0, afluencias: 0, matriculas: 0 },
+    { base: 0, citas: 0, recorrido: 0, afluencias: 0, matriculas: 0 },
   );
 
   const ok =
+    sum.base === res.totals.base &&
     sum.citas === res.totals.citas &&
     sum.recorrido === res.totals.recorrido &&
     sum.afluencias === res.totals.afluencias &&
@@ -169,6 +188,7 @@ export function runResumenSemanalSanityChecks(res: ResumenSemanalResult) {
     message: ok
       ? "ResumenSemanal sanity OK"
       : `ResumenSemanal mismatch: sum=${JSON.stringify(sum)} totals=${JSON.stringify({
+        base: res.totals.base,
         citas: res.totals.citas,
         recorrido: res.totals.recorrido,
         afluencias: res.totals.afluencias,
