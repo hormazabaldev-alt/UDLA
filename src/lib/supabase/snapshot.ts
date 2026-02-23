@@ -179,16 +179,33 @@ export async function applySnapshotUpdate(opts: {
   mode: "replace" | "append";
   datasets: Dataset[];
   fileNames: string[];
+  replaceBases?: string[];
 }): Promise<{ meta: DatasetMeta; totalRows: number }> {
   const supabase = getSupabaseServerClient();
   await ensureBucket(supabase);
 
   const incomingRows: DataRow[] = opts.datasets.flatMap((d) => d.rows);
-  const existing = opts.mode === "append"
-    ? await downloadJSONOptional<Dataset>(supabase, DATASET_PATH, { retries: 4 })
-    : null;
+  const existing = await downloadJSONOptional<Dataset>(
+    supabase,
+    DATASET_PATH,
+    { retries: opts.mode === "append" ? 4 : 0 },
+  );
 
-  const mergedRows = dedupeRows(existing ? [...existing.rows, ...incomingRows] : [...incomingRows]);
+  const replaceBases = (opts.replaceBases ?? []).map((b) => b.trim()).filter(Boolean);
+  const replaceBasesSet = new Set(replaceBases.map((b) => b.toLowerCase()));
+
+  const baseKey = (v: string | null | undefined) => String(v ?? "").trim().toLowerCase();
+
+  const existingRows =
+    existing?.rows ??
+    [];
+
+  const remainingRows =
+    opts.mode === "replace" && replaceBasesSet.size > 0
+      ? existingRows.filter((r) => !replaceBasesSet.has(baseKey(r.tipoBase)))
+      : (opts.mode === "append" ? existingRows : []);
+
+  const mergedRows = dedupeRows([...remainingRows, ...incomingRows]);
 
   const mergedMeta: DatasetMeta = {
     importedAtISO: new Date().toISOString(),

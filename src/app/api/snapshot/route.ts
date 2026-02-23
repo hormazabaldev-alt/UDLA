@@ -67,10 +67,52 @@ export async function POST(req: Request) {
 
     const datasets = parsedResults.map((r) => (r as Extract<typeof r, { ok: true }>).dataset);
     const mode = req.headers.get("x-upload-mode") === "append" ? "append" : "replace";
+    const replaceBasesHeader = req.headers.get("x-replace-bases") ?? "";
+    const replaceBases = replaceBasesHeader
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    if (mode === "replace" && replaceBases.length > 0) {
+      const selected = new Set(replaceBases.map((b) => b.toLowerCase()));
+      const found = new Set<string>();
+      for (const d of datasets) {
+        for (const r of d.rows) {
+          const t = String(r.tipoBase ?? "").trim();
+          if (t) found.add(t.toLowerCase());
+        }
+      }
+
+      const foundArr = Array.from(found.values()).sort();
+      const missing = replaceBases.filter((b) => !found.has(b.toLowerCase()));
+      const extra = foundArr.filter((b) => !selected.has(b));
+
+      if (missing.length > 0) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: `Reemplazo inválido: seleccionaste ${replaceBases.join(", ")} pero el/los archivo(s) no traen filas para ${missing.join(", ")}.`,
+          },
+          { status: 400 },
+        );
+      }
+
+      if (extra.length > 0) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: `Reemplazo inválido: el/los archivo(s) contienen Tipo Base adicional (${extra.join(", ")}). Selecciona esas bases también o usa Agregar.`,
+          },
+          { status: 400 },
+        );
+      }
+    }
+
     const result = await applySnapshotUpdate({
       mode,
       datasets,
       fileNames: files.map((f) => f.name),
+      replaceBases: mode === "replace" ? replaceBases : undefined,
     });
 
     return NextResponse.json(

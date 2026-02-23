@@ -50,6 +50,9 @@ function IssueList({ result }: { result: Extract<ParseResult, { ok: false }> }) 
 
 type UploadMode = "replace" | "append";
 
+const BASE_OPTIONS = ["Inbound", "Stock", "Lead"] as const;
+type BaseOption = (typeof BASE_OPTIONS)[number];
+
 export function DataUploadDialog({ defaultMode, triggerLabel, triggerIcon }: {
   defaultMode?: UploadMode;
   triggerLabel?: string;
@@ -59,6 +62,7 @@ export function DataUploadDialog({ defaultMode, triggerLabel, triggerIcon }: {
 
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<UploadMode>(defaultMode || "replace");
+  const [replaceBases, setReplaceBases] = useState<BaseOption[]>([...BASE_OPTIONS]);
   const [parsing, setParsing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -102,7 +106,12 @@ export function DataUploadDialog({ defaultMode, triggerLabel, triggerIcon }: {
   const totalRows = results.reduce(
     (sum, r) => sum + (r.result.ok ? r.result.dataset.rows.length : 0), 0
   );
-  const canUpload = allValid && !parsing && !uploading && adminKey.trim().length > 0;
+  const canUpload =
+    allValid &&
+    !parsing &&
+    !uploading &&
+    adminKey.trim().length > 0 &&
+    (mode !== "replace" || replaceBases.length > 0);
 
   const vieneStats = useMemo(() => {
     return results.map((r) => {
@@ -142,6 +151,7 @@ export function DataUploadDialog({ defaultMode, triggerLabel, triggerIcon }: {
         headers: {
           "x-admin-key": adminKey.trim(),
           "x-upload-mode": mode,
+          ...(mode === "replace" ? { "x-replace-bases": replaceBases.join(",") } : {}),
         },
         body: form,
       });
@@ -175,6 +185,7 @@ export function DataUploadDialog({ defaultMode, triggerLabel, triggerIcon }: {
           setSelectedFiles([]);
           setUploadError(null);
           if (defaultMode) setMode(defaultMode);
+          setReplaceBases([...BASE_OPTIONS]);
         }}
         className="w-full justify-start gap-2"
       >
@@ -216,6 +227,43 @@ export function DataUploadDialog({ defaultMode, triggerLabel, triggerIcon }: {
               <Plus className="size-4 mr-1" /> Agregar
             </Button>
           </div>
+
+          {/* Replace base selector */}
+          {mode === "replace" ? (
+            <div className="rounded-xl border border-white/10 bg-white/3 p-3">
+              <div className="text-[11px] font-medium text-white/55">
+                ¿Qué base quieres reemplazar?
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {BASE_OPTIONS.map((b) => {
+                  const active = replaceBases.includes(b);
+                  return (
+                    <button
+                      key={b}
+                      type="button"
+                      onClick={() => {
+                        setReplaceBases((curr) => {
+                          if (curr.includes(b)) return curr.filter((x) => x !== b);
+                          return [...curr, b];
+                        });
+                      }}
+                      className="px-2.5 py-1.5 rounded-md text-[11px] font-medium transition border"
+                      style={{
+                        backgroundColor: active ? "rgba(0,212,255,0.15)" : "rgba(255,255,255,0.03)",
+                        borderColor: active ? "#00d4ff" : "rgba(255,255,255,0.08)",
+                        color: active ? "#00d4ff" : "rgba(255,255,255,0.55)",
+                      }}
+                    >
+                      {b}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="mt-1 text-[10px] text-white/40">
+                Sube archivos que contengan solo estas bases; si no, el servidor lo rechazará para evitar pisar datos.
+              </div>
+            </div>
+          ) : null}
 
           {/* Admin Key */}
           <div className="rounded-xl border border-white/10 bg-white/3 p-3">
@@ -315,7 +363,7 @@ export function DataUploadDialog({ defaultMode, triggerLabel, triggerIcon }: {
               ? uploadProgress || "Subiendo…"
               : mode === "append"
                 ? `Agregar ${formatInt(totalRows)} filas`
-                : `Reemplazar con ${formatInt(totalRows)} filas`
+                : `Reemplazar ${replaceBases.join(", ")} con ${formatInt(totalRows)} filas`
             }
           </Button>
 
