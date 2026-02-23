@@ -3,6 +3,7 @@
 import ReactECharts from "echarts-for-react";
 import { useMemo } from "react";
 import { useMetrics } from "@/features/dashboard/hooks/useMetrics";
+import { normalizeRut } from "@/lib/utils/rut";
 
 const DIAS_ORDER = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
@@ -17,21 +18,21 @@ export function DailyChart() {
 
         const groups = new Map<string, {
             cargada: number; recorrido: number; contactado: number;
-            citas: number; af: number; mc: number;
+            citasRuts: Set<string>; af: number; mc: number;
         }>();
 
         for (const r of rows) {
             const day = r.diaSemana?.trim() || null;
             if (!day) continue;
             if (!groups.has(day)) {
-                groups.set(day, { cargada: 0, recorrido: 0, contactado: 0, citas: 0, af: 0, mc: 0 });
+                groups.set(day, { cargada: 0, recorrido: 0, contactado: 0, citasRuts: new Set(), af: 0, mc: 0 });
             }
             const g = groups.get(day)!;
             g.cargada++;
             const c = r.conecta?.trim().toLowerCase() ?? "";
             if (c === "conecta" || c === "no conecta") g.recorrido++;
             if (c === "conecta") g.contactado++;
-            if (r.interesa?.trim().toLowerCase() === "viene") g.citas++;
+            if (r.interesa?.trim().toLowerCase() === "viene") g.citasRuts.add(normalizeRut(r.rutBase));
             const afVal = r.af?.trim().toUpperCase() ?? "";
             if (afVal === "A" || afVal === "MC" || afVal === "M") g.af++;
             const mcVal = r.mc?.trim().toUpperCase() ?? "";
@@ -44,7 +45,7 @@ export function DailyChart() {
             cargada: days.map(d => groups.get(d)!.cargada),
             recorrido: days.map(d => groups.get(d)!.recorrido),
             contactado: days.map(d => groups.get(d)!.contactado),
-            citas: days.map(d => groups.get(d)!.citas),
+            citas: days.map(d => groups.get(d)!.citasRuts.size),
             af: days.map(d => groups.get(d)!.af),
             mc: days.map(d => groups.get(d)!.mc),
         };

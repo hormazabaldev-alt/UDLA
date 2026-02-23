@@ -7,6 +7,7 @@ import { ArrowLeft, BarChart3, TrendingUp, Loader2 } from "lucide-react";
 import { formatInt } from "@/lib/utils/format";
 import type { DataRow } from "@/lib/data-processing/types";
 import { useData } from "@/features/dashboard/hooks/useData";
+import { normalizeRut } from "@/lib/utils/rut";
 
 // ---------- Types ----------
 type Metric = "cargada" | "recorrido" | "contactado" | "citas" | "af" | "mc";
@@ -41,6 +42,18 @@ function computeRowKPI(row: DataRow, metric: Metric): number {
             return (v === "M" || v === "MC") ? 1 : 0;
         }
     }
+}
+
+function computeMetricTotal(rows: DataRow[], metric: Metric) {
+    if (metric !== "citas") {
+        return rows.reduce((sum, r) => sum + computeRowKPI(r, metric), 0);
+    }
+    const ruts = new Set<string>();
+    for (const r of rows) {
+        if (r.interesa?.trim().toLowerCase() !== "viene") continue;
+        ruts.add(normalizeRut(r.rutBase));
+    }
+    return ruts.size;
 }
 
 // ---------- Toggle Button ----------
@@ -255,12 +268,12 @@ export default function AnalyticsPage() {
 
         const rates = months.map(m => {
             const mRows = rows.filter(r => r.mes === m);
-            const base = mRows.reduce((s, r) => s + computeRowKPI(r, "cargada"), 0);
-            const recorrido = mRows.reduce((s, r) => s + computeRowKPI(r, "recorrido"), 0);
-            const contactado = mRows.reduce((s, r) => s + computeRowKPI(r, "contactado"), 0);
-            const citas = mRows.reduce((s, r) => s + computeRowKPI(r, "citas"), 0);
-            const afluencia = mRows.reduce((s, r) => s + computeRowKPI(r, "af"), 0);
-            const mc = mRows.reduce((s, r) => s + computeRowKPI(r, "mc"), 0);
+            const base = computeMetricTotal(mRows, "cargada");
+            const recorrido = computeMetricTotal(mRows, "recorrido");
+            const contactado = computeMetricTotal(mRows, "contactado");
+            const citas = computeMetricTotal(mRows, "citas");
+            const afluencia = computeMetricTotal(mRows, "af");
+            const mc = computeMetricTotal(mRows, "mc");
             return {
                 tcLlaLeads: base > 0 ? (recorrido / base * 100) : 0,
                 tcContLla: recorrido > 0 ? (contactado / recorrido * 100) : 0,
@@ -300,7 +313,7 @@ export default function AnalyticsPage() {
         return ALL_METRICS.map(metric => ({
             metric,
             ...METRIC_INFO[metric],
-            value: filteredRows.reduce((sum, r) => sum + computeRowKPI(r, metric), 0),
+            value: computeMetricTotal(filteredRows, metric),
         }));
     }, [filteredRows]);
 

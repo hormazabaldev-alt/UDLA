@@ -3,6 +3,7 @@
 import ReactECharts from "echarts-for-react";
 import { useMemo } from "react";
 import { useMetrics } from "@/features/dashboard/hooks/useMetrics";
+import { normalizeRut } from "@/lib/utils/rut";
 
 /**
  * Evolution chart: shows cumulative KPI progression by month.
@@ -16,20 +17,20 @@ export function EvolutionChart() {
 
         const groups = new Map<number, {
             recorrido: number; contactado: number;
-            citas: number; af: number; mc: number;
+            citasRuts: Set<string>; af: number; mc: number;
         }>();
 
         for (const r of rows) {
             const mes = r.mes;
             if (mes === null || mes === undefined) continue;
             if (!groups.has(mes)) {
-                groups.set(mes, { recorrido: 0, contactado: 0, citas: 0, af: 0, mc: 0 });
+                groups.set(mes, { recorrido: 0, contactado: 0, citasRuts: new Set(), af: 0, mc: 0 });
             }
             const g = groups.get(mes)!;
             const c = r.conecta?.trim().toLowerCase() ?? "";
             if (c === "conecta" || c === "no conecta") g.recorrido++;
             if (c === "conecta") g.contactado++;
-            if (r.interesa?.trim().toLowerCase() === "viene") g.citas++;
+            if (r.interesa?.trim().toLowerCase() === "viene") g.citasRuts.add(normalizeRut(r.rutBase));
             const afVal = r.af?.trim().toUpperCase() ?? "";
             if (afVal === "A" || afVal === "MC" || afVal === "M") g.af++;
             const mcVal = r.mc?.trim().toUpperCase() ?? "";
@@ -43,7 +44,7 @@ export function EvolutionChart() {
             labels,
             recorrido: months.map(m => groups.get(m)!.recorrido),
             contactado: months.map(m => groups.get(m)!.contactado),
-            citas: months.map(m => groups.get(m)!.citas),
+            citas: months.map(m => groups.get(m)!.citasRuts.size),
             af: months.map(m => groups.get(m)!.af),
             mc: months.map(m => groups.get(m)!.mc),
         };

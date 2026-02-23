@@ -3,6 +3,7 @@
 import ReactECharts from "echarts-for-react";
 import { useMemo } from "react";
 import { useMetrics } from "@/features/dashboard/hooks/useMetrics";
+import { normalizeRut } from "@/lib/utils/rut";
 
 /**
  * Weekly evolution chart: shows KPI metrics grouped by "Semana" field.
@@ -15,20 +16,20 @@ export function WeeklyChart() {
 
         const groups = new Map<string, {
             cargada: number; recorrido: number; contactado: number;
-            citas: number; af: number; mc: number;
+            citasRuts: Set<string>; af: number; mc: number;
         }>();
 
         for (const r of rows) {
             const week = r.semana?.trim() || "Sin Semana";
             if (!groups.has(week)) {
-                groups.set(week, { cargada: 0, recorrido: 0, contactado: 0, citas: 0, af: 0, mc: 0 });
+                groups.set(week, { cargada: 0, recorrido: 0, contactado: 0, citasRuts: new Set(), af: 0, mc: 0 });
             }
             const g = groups.get(week)!;
             g.cargada++;
             const c = r.conecta?.trim().toLowerCase() ?? "";
             if (c === "conecta" || c === "no conecta") g.recorrido++;
             if (c === "conecta") g.contactado++;
-            if (r.interesa?.trim().toLowerCase() === "viene") g.citas++;
+            if (r.interesa?.trim().toLowerCase() === "viene") g.citasRuts.add(normalizeRut(r.rutBase));
             const afVal = r.af?.trim().toUpperCase() ?? "";
             if (afVal === "A" || afVal === "MC" || afVal === "M") g.af++;
             const mcVal = r.mc?.trim().toUpperCase() ?? "";
@@ -41,7 +42,7 @@ export function WeeklyChart() {
             cargada: weeks.map(w => groups.get(w)!.cargada),
             recorrido: weeks.map(w => groups.get(w)!.recorrido),
             contactado: weeks.map(w => groups.get(w)!.contactado),
-            citas: weeks.map(w => groups.get(w)!.citas),
+            citas: weeks.map(w => groups.get(w)!.citasRuts.size),
             af: weeks.map(w => groups.get(w)!.af),
             mc: weeks.map(w => groups.get(w)!.mc),
         };

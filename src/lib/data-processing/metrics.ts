@@ -1,4 +1,5 @@
 import type { DataRow } from "@/lib/data-processing/types";
+import { normalizeRut } from "@/lib/utils/rut";
 
 export type Totals = {
   cargada: number;
@@ -25,9 +26,9 @@ export function computeTotals(rows: DataRow[]): Totals {
   let cargada = 0;
   let recorrido = 0;
   let contactado = 0;
-  let citas = 0;
   let af = 0;
   let mc = 0;
+  const citasRuts = new Set<string>();
 
   for (const row of rows) {
     // BASE (Cargada) = total de filas
@@ -47,7 +48,7 @@ export function computeTotals(rows: DataRow[]): Totals {
     // CITAS = contar filas donde "Interesa" = "Viene"
     const interesaVal = row.interesa?.trim().toLowerCase() ?? "";
     if (interesaVal === "viene") {
-      citas++;
+      citasRuts.add(normalizeRut(row.rutBase));
     }
 
     // AFLUENCIA (AF) = contar filas donde columna AF contiene "A", "MC" o "M"
@@ -62,6 +63,8 @@ export function computeTotals(rows: DataRow[]): Totals {
       mc++;
     }
   }
+
+  const citas = citasRuts.size;
 
   // TC% Lla/Leads = Recorrido / Base Cargada
   const tcLlaLeads = cargada > 0 ? recorrido / cargada : null;
