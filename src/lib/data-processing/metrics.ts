@@ -9,6 +9,13 @@ export type Totals = {
   citas: number;
   af: number;
   mc: number;
+  // Unique RUT volumes (dedup by Rut Base)
+  cargadaRutUnico: number;
+  recorridoRutUnico: number;
+  contactadoRutUnico: number;
+  citasRutUnico: number;
+  afRutUnico: number;
+  mcRutUnico: number;
   // 6 core rates
   tcLlaLeads: number | null;   // Recorrido / Base
   tcContLla: number | null;    // Contactado / Recorrido
@@ -29,26 +36,35 @@ export function computeTotals(rows: DataRow[]): Totals {
   let contactado = 0;
   let af = 0;
   let mc = 0;
+
+  const cargadaRuts = new Set<string>();
+  const recorridoRuts = new Set<string>();
+  const contactadoRuts = new Set<string>();
   const citasRuts = new Set<string>();
+  const afRuts = new Set<string>();
+  const mcRuts = new Set<string>();
 
   for (const row of rows) {
     // BASE (Cargada) = total de filas
     cargada++;
+    const rut = normalizeRut(row.rutBase);
+    if (rut) cargadaRuts.add(rut);
 
     // RECORRIDO = contar filas donde "Conecta" es "Conecta" o "No Conecta"
     const conectaVal = row.conecta?.trim().toLowerCase() ?? "";
     if (conectaVal === "conecta" || conectaVal === "no conecta") {
       recorrido++;
+      if (rut) recorridoRuts.add(rut);
     }
 
     // CONTACTABILIDAD EXITOSA (Contactado) = contar solo "Conecta"
     if (conectaVal === "conecta") {
       contactado++;
+      if (rut) contactadoRuts.add(rut);
     }
 
     // CITAS = contar filas donde "Interesa" = "Viene"
     if (isInteresaViene(row.interesa)) {
-      const rut = normalizeRut(row.rutBase);
       if (rut) citasRuts.add(rut);
     }
 
@@ -56,16 +72,24 @@ export function computeTotals(rows: DataRow[]): Totals {
     const afVal = row.af?.trim().toUpperCase() ?? "";
     if (afVal === "A" || afVal === "MC" || afVal === "M") {
       af++;
+      if (rut) afRuts.add(rut);
     }
 
     // MATRÍCULAS (MC) = contar filas donde columna MC contiene "M" o "MC"
     const mcVal = row.mc?.trim().toUpperCase() ?? "";
     if (mcVal === "M" || mcVal === "MC") {
       mc++;
+      if (rut) mcRuts.add(rut);
     }
   }
 
   const citas = citasRuts.size;
+  const cargadaRutUnico = cargadaRuts.size;
+  const recorridoRutUnico = recorridoRuts.size;
+  const contactadoRutUnico = contactadoRuts.size;
+  const citasRutUnico = citasRuts.size;
+  const afRutUnico = afRuts.size;
+  const mcRutUnico = mcRuts.size;
 
   // TC% Lla/Leads = Recorrido / Base Cargada
   const tcLlaLeads = cargada > 0 ? recorrido / cargada : null;
@@ -93,6 +117,12 @@ export function computeTotals(rows: DataRow[]): Totals {
     citas,
     af,
     mc,
+    cargadaRutUnico,
+    recorridoRutUnico,
+    contactadoRutUnico,
+    citasRutUnico,
+    afRutUnico,
+    mcRutUnico,
     // New 6 rates
     tcLlaLeads,
     tcContLla,

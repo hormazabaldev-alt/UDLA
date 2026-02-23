@@ -323,13 +323,43 @@ export function PowerBILayout() {
                 {/* Top Metrics Row - Sticky */}
                 <div className="sticky top-0 z-10 bg-black border-b border-[#1f1f1f]/50 px-5 py-3">
                     <div className="grid grid-cols-7 gap-6 items-start">
-                        <MetricItem label="Base Cargada" value={formatInt(totals?.cargada || 0)} tooltip="Total de leads cargados en la base de datos." />
-                        <MetricItem label="Recorrido" value={formatInt(totals?.recorrido || 0)} tooltip="Leads que han sido gestionados o contactados de alguna forma." />
-                        <MetricItem label="Contactado" value={formatInt(totals?.contactado || 0)} tooltip="Leads con los que se logró contacto efectivo." />
+                        <MetricItem
+                            label="Base Cargada"
+                            value={formatInt(totals?.cargada || 0)}
+                            subValue={`RUT: ${formatInt(totals?.cargadaRutUnico || 0)}`}
+                            tooltip="Total de filas cargadas (izq) y RUT únicos (abajo)."
+                        />
+                        <MetricItem
+                            label="Recorrido"
+                            value={formatInt(totals?.recorrido || 0)}
+                            subValue={`RUT: ${formatInt(totals?.recorridoRutUnico || 0)}`}
+                            tooltip="Filas Recorridas (Conecta o No Conecta) y RUT únicos."
+                        />
+                        <MetricItem
+                            label="Contactado"
+                            value={formatInt(totals?.contactado || 0)}
+                            subValue={`RUT: ${formatInt(totals?.contactadoRutUnico || 0)}`}
+                            tooltip="Filas Contactadas (Conecta) y RUT únicos."
+                        />
                         <MetricItem label="% Contact." value={`${((totals?.pctContactabilidad || 0) * 100).toFixed(1)}%`} tooltip="Porcentaje de leads contactados sobre el total recorrido." />
-                        <MetricItem label="Citas" value={formatInt(totals?.citas || 0)} tooltip="Citas agendadas con éxito producto del contacto." />
-                        <MetricItem label="AF (Afluencias)" value={formatInt(totals?.af || 0)} tooltip="Leads que efectivamente asistieron (Afluencias)." />
-                        <MetricItem label="MC (Matrículas)" value={formatInt(totals?.mc || 0)} tooltip="Matrículas concretadas finales." />
+                        <MetricItem
+                            label="Citas"
+                            value={formatInt(totals?.citas || 0)}
+                            subValue={`RUT: ${formatInt(totals?.citasRutUnico || 0)}`}
+                            tooltip="Citas (Viene) por RUT único."
+                        />
+                        <MetricItem
+                            label="AF (Afluencias)"
+                            value={formatInt(totals?.af || 0)}
+                            subValue={`RUT: ${formatInt(totals?.afRutUnico || 0)}`}
+                            tooltip="Afluencias (AF) y RUT únicos."
+                        />
+                        <MetricItem
+                            label="MC (Matrículas)"
+                            value={formatInt(totals?.mc || 0)}
+                            subValue={`RUT: ${formatInt(totals?.mcRutUnico || 0)}`}
+                            tooltip="Matrículas (MC) y RUT únicos."
+                        />
                     </div>
                 </div>
 
