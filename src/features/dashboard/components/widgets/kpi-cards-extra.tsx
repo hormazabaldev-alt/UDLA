@@ -34,12 +34,14 @@ function Card({
   value,
   icon: Icon,
   hint,
+  subValue,
   tooltip,
 }: {
   label: string;
   value: string;
   icon: React.ComponentType<{ className?: string }>;
   hint?: string;
+  subValue?: string;
   tooltip?: string;
 }) {
   return (
@@ -65,8 +67,13 @@ function Card({
         <div className="text-2xl font-bold tracking-tight text-white mt-1 tabular-nums">
           {value}
         </div>
+        {subValue ? (
+          <div className="text-[10px] text-white/80 mt-1 font-semibold tracking-wide">
+            {subValue}
+          </div>
+        ) : null}
         {hint ? (
-          <div className="text-[10px] text-white/40 mt-1">{hint}</div>
+          <div className="text-[10px] text-white/45 mt-1">{hint}</div>
         ) : null}
       </div>
       <Icon className="size-4 text-[#00d4ff]/70 flex-shrink-0 mt-0.5" />
@@ -90,13 +97,43 @@ export function KpiCardsExtra() {
   if (!totals) return null;
 
   const cards = [
-    { label: "Citas", value: formatInt(totals.citas), icon: CalendarCheck2, tooltip: "Citas (Interesa = Viene) contadas por RUT único." },
+    {
+      label: "Citas",
+      value: formatInt(totals.citas),
+      subValue: `RUT: ${formatInt(totals.citasRutUnico)}`,
+      icon: CalendarCheck2,
+      tooltip: "Citas (Interesa = Viene) contadas por RUT único.",
+    },
     { label: "Recorrido", value: formatInt(totals.recorrido), icon: Route, tooltip: "Recorrido (Conecta o No Conecta)." },
-    { label: "Afluencias", value: formatInt(totals.af), icon: PhoneCall, tooltip: "Afluencias (AF = A, MC o M)." },
-    { label: "Matrículas", value: formatInt(totals.mc), icon: GraduationCap, tooltip: "Matrículas (MC = M o MC)." },
+    {
+      label: "Afluencias",
+      value: formatInt(totals.af),
+      subValue: `RUT: ${formatInt(totals.afRutUnico)}`,
+      icon: PhoneCall,
+      tooltip: "Afluencias (AF = A, MC o M).",
+    },
+    {
+      label: "Matrículas",
+      value: formatInt(totals.mc),
+      subValue: `RUT: ${formatInt(totals.mcRutUnico)}`,
+      icon: GraduationCap,
+      tooltip: "Matrículas (MC = M o MC).",
+    },
     { label: "% Recorrido", value: formatPct(totals.tcLlaLeads, 1), icon: Percent, tooltip: "Recorrido / Base Cargada." },
-    { label: "% Afluencia", value: formatPct(totals.tcAfCitas, 0), icon: Percent, tooltip: "Afluencias / Citas." },
-    { label: "% Matrículas", value: formatPct(totals.tcMcAf, 0), icon: Percent, tooltip: "Matrículas / Afluencias." },
+    {
+      label: "% Afluencia",
+      value: formatPct(totals.tcAfCitas, 0),
+      subValue: `RUT: ${formatInt(totals.afRutUnico)} / ${formatInt(totals.citasRutUnico)}`,
+      icon: Percent,
+      tooltip: "Afluencias / Citas.",
+    },
+    {
+      label: "% Matrículas",
+      value: formatPct(totals.tcMcAf, 0),
+      subValue: `RUT: ${formatInt(totals.mcRutUnico)} / ${formatInt(totals.afRutUnico)}`,
+      icon: Percent,
+      tooltip: "Matrículas / Afluencias.",
+    },
   ] as const;
 
   return (
