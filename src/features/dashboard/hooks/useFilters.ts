@@ -14,12 +14,13 @@ export function useFilters() {
 
   const options = useMemo(() => {
     const rows = dataset?.rows ?? [];
+    const fechasGestion = rows.map((r) => r.fechaGestion).filter((d): d is Date => d instanceof Date && !Number.isNaN(d.getTime()));
     const meses = Array.from(
-      new Set(rows.map((r) => r.mes).filter((v): v is number => v !== null)),
+      new Set(fechasGestion.map((d) => d.getMonth() + 1)),
     ).sort((a, b) => a - b);
     const dias = Array.from(
       new Set(
-        rows.map((r) => r.diaNumero).filter((v): v is number => v !== null),
+        fechasGestion.map((d) => d.getDate()),
       ),
     ).sort((a, b) => a - b);
 

@@ -4,6 +4,10 @@ import type { BaseType, Dataset, DataRow } from "@/lib/data-processing/types";
 import { computeTotals, type Totals } from "@/lib/data-processing/metrics";
 import { toCampusCode } from "@/lib/utils/campus";
 
+function isValidDate(d: unknown): d is Date {
+  return d instanceof Date && !Number.isNaN(d.getTime());
+}
+
 export type Filters = {
   tipo: BaseType[];
   mes: number[];
@@ -56,12 +60,14 @@ export function applyFilters(
   return baseRows.filter((r) => {
     if (filters.tipo.length > 0 && !filters.tipo.includes(r.tipoBase)) return false;
     if (filters.mes.length > 0) {
-      if (r.mes === null || r.mes === undefined) return false;
-      if (!filters.mes.includes(r.mes)) return false;
+      if (!isValidDate(r.fechaGestion)) return false;
+      const month = r.fechaGestion.getMonth() + 1;
+      if (!filters.mes.includes(month)) return false;
     }
     if (filters.diaNumero.length > 0) {
-      if (r.diaNumero === null || r.diaNumero === undefined) return false;
-      if (!filters.diaNumero.includes(r.diaNumero)) return false;
+      if (!isValidDate(r.fechaGestion)) return false;
+      const day = r.fechaGestion.getDate();
+      if (!filters.diaNumero.includes(day)) return false;
     }
 
     if (filters.semanas.length > 0) {
