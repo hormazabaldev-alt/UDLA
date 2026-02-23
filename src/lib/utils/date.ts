@@ -50,7 +50,11 @@ export function parseLooseDate(value: unknown, opts?: ParseOptions): Date | null
   // ISO-like (yyyy-MM-dd) with optional time
   const iso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T ].*)?$/);
   if (iso) {
-    const year = Number(iso[1]);
+    const yearRaw = iso[1];
+    let year = Number(yearRaw);
+    // Some historical snapshots were persisted with zero-padded 2-digit years
+    // (e.g. 0026-02-02) which actually mean 2026-02-02.
+    if (yearRaw.startsWith("00") && year >= 0 && year < 100) year += 2000;
     const month = Number(iso[2]);
     const day = Number(iso[3]);
     const d = new Date(year, month - 1, day);
