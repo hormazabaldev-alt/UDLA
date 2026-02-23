@@ -55,21 +55,30 @@ export function applyFilters(
 
   return baseRows.filter((r) => {
     if (filters.tipo.length > 0 && !filters.tipo.includes(r.tipoBase)) return false;
-    if (filters.mes.length > 0 && r.mes && !filters.mes.includes(r.mes)) return false;
-    if (filters.diaNumero.length > 0 && r.diaNumero && !filters.diaNumero.includes(r.diaNumero)) return false;
+    if (filters.mes.length > 0) {
+      if (r.mes === null || r.mes === undefined) return false;
+      if (!filters.mes.includes(r.mes)) return false;
+    }
+    if (filters.diaNumero.length > 0) {
+      if (r.diaNumero === null || r.diaNumero === undefined) return false;
+      if (!filters.diaNumero.includes(r.diaNumero)) return false;
+    }
 
     if (filters.semanas.length > 0) {
-      const semana = r.semana ?? "";
+      const semana = (r.semana ?? "").trim();
+      if (!semana) return false;
       if (!filters.semanas.includes(semana)) return false;
     }
 
     if (filters.campus.length > 0) {
       const campus = toCampusCode(r.sedeInteres ?? "");
+      if (!campus) return false;
       if (!filters.campus.includes(campus)) return false;
     }
 
     if (filters.regimen.length > 0) {
-      const regimen = r.regimen ?? "";
+      const regimen = (r.regimen ?? "").trim();
+      if (!regimen) return false;
       if (!filters.regimen.includes(regimen)) return false;
     }
 
