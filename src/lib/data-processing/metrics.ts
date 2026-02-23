@@ -18,6 +18,7 @@ export type Totals = {
   mcRutUnico: number;
   // 6 core rates
   tcLlaLeads: number | null;   // Recorrido / Base
+  tcAfLeads: number | null;    // AF / Base
   tcContLla: number | null;    // Contactado / Recorrido
   cCitasCon: number | null;    // Citas / Contactado
   tcAfCitas: number | null;    // AF / Citas
@@ -93,6 +94,8 @@ export function computeTotals(rows: DataRow[]): Totals {
 
   // TC% Lla/Leads = Recorrido / Base Cargada
   const tcLlaLeads = cargada > 0 ? recorrido / cargada : null;
+  // TC% AF/Leads = AF / Base Cargada
+  const tcAfLeads = cargada > 0 ? af / cargada : null;
   // TC% Cont/Lla = Contactado / Recorrido
   const tcContLla = recorrido > 0 ? contactado / recorrido : null;
   // C% Citas/Con = Citas / Contactado
@@ -125,6 +128,7 @@ export function computeTotals(rows: DataRow[]): Totals {
     mcRutUnico,
     // New 6 rates
     tcLlaLeads,
+    tcAfLeads,
     tcContLla,
     cCitasCon,
     tcAfCitas,

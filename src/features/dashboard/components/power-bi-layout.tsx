@@ -378,11 +378,15 @@ export function PowerBILayout() {
                         </ChartCard>
                     </div>
 
-                    {/* Row 2: 4 Gauges horizontal */}
-                    <div className="grid grid-cols-6 gap-2 h-[120px]">
+                    {/* Row 2: Gauges */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-7 gap-2 h-[120px]">
                         <div className="bg-[#080808] border border-[#1f1f1f] rounded-sm relative flex flex-col items-center justify-center">
                             <span className="absolute top-1.5 left-2 text-[9px] text-white/50 font-medium">TC% Lla/Leads</span>
                             <GaugeChart title="" value={Math.round((totals?.tcLlaLeads || 0) * 100)} />
+                        </div>
+                        <div className="bg-[#080808] border border-[#1f1f1f] rounded-sm relative flex flex-col items-center justify-center">
+                            <span className="absolute top-1.5 left-2 text-[9px] text-white/50 font-medium">TC% AF/Leads</span>
+                            <GaugeChart title="" value={Math.round((totals?.tcAfLeads || 0) * 100)} />
                         </div>
                         <div className="bg-[#080808] border border-[#1f1f1f] rounded-sm relative flex flex-col items-center justify-center">
                             <span className="absolute top-1.5 left-2 text-[9px] text-white/50 font-medium">TC% Cont/Lla</span>
