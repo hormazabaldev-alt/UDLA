@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import type { Filters } from "@/store/dashboard-store";
 import { useDashboardStore } from "@/store/dashboard-store";
 import { toCampusCode } from "@/lib/utils/campus";
+import { compareSemanaLabels } from "@/lib/utils/semana";
 
 export function useFilters() {
   const dataset = useDashboardStore((s) => s.dataset);
@@ -30,11 +31,7 @@ export function useFilters() {
 
     const semanas = Array.from(
       new Set(rows.map((r) => r.semana).filter((v): v is string => v !== null && v !== undefined))
-    ).sort((a, b) => {
-      const numA = parseInt(a.replace(/\D/g, ""), 10) || 0;
-      const numB = parseInt(b.replace(/\D/g, ""), 10) || 0;
-      return numA - numB;
-    });
+    ).sort(compareSemanaLabels);
 
     const campus = Array.from(
       new Set(rows.map((r) => toCampusCode(r.sedeInteres)).filter((v): v is string => !!v)),

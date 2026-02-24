@@ -11,6 +11,7 @@ import {
 } from "@/lib/metrics/resumen-semanal";
 import type { ResumenSemanalRow } from "@/lib/metrics/resumen-semanal";
 import { formatInt } from "@/lib/utils/format";
+import { compareSemanaLabels } from "@/lib/utils/semana";
 
 function formatPct(value: number, digits: number) {
   return new Intl.NumberFormat("es-CL", {
@@ -48,6 +49,7 @@ export function ResumenSemanalTable() {
     const keys: Array<keyof ResumenSemanalRow> = ["semana", "base", "citas", "recorrido", "afluencias", "matriculas", "pctRecorrido", "pctAfluencia", "pctMatriculas"];
     keys.forEach(k => {
       vals[k] = Array.from(new Set(resumen.rows.map(r => String(r[k])))).sort((a, b) => {
+        if (k === "semana") return compareSemanaLabels(a, b);
         const cleanA = parseFloat(a.replace(/\D/g, "")) || 0;
         const cleanB = parseFloat(b.replace(/\D/g, "")) || 0;
         return cleanA - cleanB;
@@ -75,13 +77,13 @@ export function ResumenSemanalTable() {
 	    const sortableItems = [...filteredRows];
 	    if (sortConfig.direction !== null) {
 	      sortableItems.sort((a, b) => {
-	        let aValue = a[sortConfig.key];
-	        let bValue = b[sortConfig.key];
+	        const aValue = a[sortConfig.key];
+	        const bValue = b[sortConfig.key];
 
         // Custom sort for 'semana' which is a string like "Semana 12"
         if (sortConfig.key === "semana") {
-          aValue = parseInt((aValue as string).replace(/\D/g, ""), 10) || 0;
-          bValue = parseInt((bValue as string).replace(/\D/g, ""), 10) || 0;
+          const weekSort = compareSemanaLabels(String(aValue), String(bValue));
+          return sortConfig.direction === "asc" ? weekSort : -weekSort;
         }
 
         if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;

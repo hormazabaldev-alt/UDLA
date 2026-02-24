@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { useMetrics } from "@/features/dashboard/hooks/useMetrics";
 import { normalizeRut } from "@/lib/utils/rut";
 import { isInteresaViene } from "@/lib/utils/interesa";
+import { compareSemanaLabels } from "@/lib/utils/semana";
 
 /**
  * Weekly evolution chart: shows KPI metrics grouped by "Semana" field.
@@ -37,7 +38,7 @@ export function WeeklyChart() {
             if (mcVal === "M" || mcVal === "MC") g.mc++;
         }
 
-        const weeks = Array.from(groups.keys()).sort();
+        const weeks = Array.from(groups.keys()).sort(compareSemanaLabels);
         return {
             weeks,
             cargada: weeks.map(w => groups.get(w)!.cargada),

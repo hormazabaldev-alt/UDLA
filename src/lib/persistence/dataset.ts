@@ -1,8 +1,13 @@
 import { get, set, del } from "idb-keyval";
-import { endOfMonth, getMonth, getDate, getDay } from "date-fns";
+import { getMonth, getDate, getDay } from "date-fns";
 
 import type { Dataset } from "@/lib/data-processing/types";
 import { parseLooseDate } from "@/lib/utils/date";
+import {
+  FECHA_GESTION_PERIOD_END,
+  FECHA_GESTION_PERIOD_START,
+  resolveSemanaLabel,
+} from "@/lib/utils/semana";
 
 const KEY = "powerbi-web:dataset:v1";
 
@@ -10,13 +15,15 @@ const DIAS_SEMANA = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
 export function reviveDataset(ds: Dataset): Dataset {
   if (!ds || !ds.rows) return ds;
-  const periodStart = new Date(2025, 7, 1); // 2025-08-01
-  const periodEnd = endOfMonth(new Date()); // clamp to current month
   for (const r of ds.rows) {
     r.fechaCarga = parseLooseDate(r.fechaCarga) ?? null;
-    r.fechaGestion = parseLooseDate(r.fechaGestion, { minDate: periodStart, maxDate: periodEnd }) ?? null;
+    r.fechaGestion = parseLooseDate(r.fechaGestion, {
+      minDate: FECHA_GESTION_PERIOD_START,
+      maxDate: FECHA_GESTION_PERIOD_END,
+    }) ?? null;
     r.fechaAf = parseLooseDate(r.fechaAf) ?? null;
     r.fechaMc = parseLooseDate(r.fechaMc) ?? null;
+    r.semana = resolveSemanaLabel(r.fechaGestion, r.semana);
 
     // Recompute derived fields from Fecha Gestion to keep filters/charts consistent.
     if (r.fechaGestion) {

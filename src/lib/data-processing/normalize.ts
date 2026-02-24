@@ -1,7 +1,12 @@
 import type { DataRow, ParseIssue } from "@/lib/data-processing/types";
-import { endOfMonth, getMonth, getDate, getDay } from "date-fns";
+import { getMonth, getDate, getDay } from "date-fns";
 import { toCampusCode } from "@/lib/utils/campus";
 import { parseLooseDate } from "@/lib/utils/date";
+import {
+  FECHA_GESTION_PERIOD_END,
+  FECHA_GESTION_PERIOD_START,
+  resolveSemanaLabel,
+} from "@/lib/utils/semana";
 
 type RawRow = Record<string, unknown>;
 
@@ -37,14 +42,14 @@ export function normalizeRow(raw: RawRow, rowIndex: number): {
 } {
   const issues: ParseIssue[] = [];
 
-  const periodStart = new Date(2025, 7, 1); // 2025-08-01
-  const periodEnd = endOfMonth(new Date()); // clamp to current month
-
   const tipoLlamada = cleanString(getValue(raw, "Tipo Llamada"));
   const fechaCarga = parseLooseDate(getValue(raw, "Fecha Carga"));
   const rutBase = cleanString(getValue(raw, "Rut Base"));
   const tipoBase = cleanString(getValue(raw, "Tipo Base"));
-  const fechaGestion = parseLooseDate(getValue(raw, "Fecha Gestion"), { minDate: periodStart, maxDate: periodEnd });
+  const fechaGestion = parseLooseDate(getValue(raw, "Fecha Gestion"), {
+    minDate: FECHA_GESTION_PERIOD_START,
+    maxDate: FECHA_GESTION_PERIOD_END,
+  });
   const conecta = cleanString(getValue(raw, "Conecta"));
   // Citas SIEMPRE se calcula desde la columna "Interesa" (valor "Viene").
   const interesa = cleanString(getValue(raw, "Interesa"));
@@ -55,7 +60,7 @@ export function normalizeRow(raw: RawRow, rowIndex: number): {
   const afCampus = afCampusRaw ? toCampusCode(afCampusRaw) : null;
   const mcCampusRaw = cleanString(getValueAny(raw, ["mccampus", "MC Campus", "MCCampus"]));
   const mcCampus = mcCampusRaw ? toCampusCode(mcCampusRaw) : null;
-  const semana = cleanString(getValue(raw, "Semana"));
+  const semana = resolveSemanaLabel(fechaGestion, cleanString(getValue(raw, "Semana")));
   const af = cleanString(getValue(raw, "AF"));
   const fechaAfRaw = parseLooseDate(getValue(raw, "Fecha af"));
   const mc = cleanString(getValue(raw, "MC"));

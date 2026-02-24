@@ -9,6 +9,7 @@ import type { DataRow } from "@/lib/data-processing/types";
 import { useData } from "@/features/dashboard/hooks/useData";
 import { normalizeRut } from "@/lib/utils/rut";
 import { isInteresaViene } from "@/lib/utils/interesa";
+import { compareSemanaLabels } from "@/lib/utils/semana";
 
 // ---------- Types ----------
 type Metric = "cargada" | "recorrido" | "contactado" | "citas" | "af" | "mc";
@@ -156,7 +157,7 @@ export default function AnalyticsPage() {
 
     const availableWeeks = useMemo(() => {
         return Array.from(new Set(rows.map(r => r.semana).filter((v): v is string => !!v)))
-            .sort((a, b) => (parseInt(a.replace(/\D/g, "")) || 0) - (parseInt(b.replace(/\D/g, "")) || 0));
+            .sort(compareSemanaLabels);
     }, [rows]);
 
     // State

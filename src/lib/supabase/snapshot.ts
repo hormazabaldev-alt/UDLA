@@ -2,6 +2,12 @@ import "server-only";
 
 import type { Dataset, DatasetMeta, DataRow } from "@/lib/data-processing/types";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { parseLooseDate } from "@/lib/utils/date";
+import {
+  FECHA_GESTION_PERIOD_END,
+  FECHA_GESTION_PERIOD_START,
+  resolveSemanaLabel,
+} from "@/lib/utils/semana";
 
 const BUCKET = "snapshots";
 const DATASET_PATH = "active/dataset.json";
@@ -105,6 +111,11 @@ function rowKey(r: DataRow): string {
     return "";
   };
   const norm = (v: unknown) => String(v ?? "").trim();
+  const fechaGestion = parseLooseDate(r.fechaGestion, {
+    minDate: FECHA_GESTION_PERIOD_START,
+    maxDate: FECHA_GESTION_PERIOD_END,
+  });
+  const semana = resolveSemanaLabel(fechaGestion, norm(r.semana));
   return [
     norm(r.rutBase),
     norm(r.tipoBase),
@@ -117,7 +128,7 @@ function rowKey(r: DataRow): string {
     norm(r.sedeInteres),
     norm(r.afCampus),
     norm(r.mcCampus),
-    norm(r.semana),
+    norm(semana),
     norm(r.af),
     iso(r.fechaAf),
     norm(r.mc),

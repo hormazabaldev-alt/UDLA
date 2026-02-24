@@ -1,6 +1,7 @@
 import type { DataRow } from "@/lib/data-processing/types";
 import { normalizeRut } from "@/lib/utils/rut";
 import { isInteresaViene } from "@/lib/utils/interesa";
+import { compareSemanaLabels } from "@/lib/utils/semana";
 
 export type ResumenSemanalRow = {
   semana: string;
@@ -110,14 +111,7 @@ export function calcResumenSemanal(
     if (isMatriculaRow(r)) g.matriculas++;
   }
 
-  const sortedWeeks = Array.from(groups.keys()).sort((a, b) => {
-    const na = Number.parseInt(a.replace(/\D/g, ""), 10);
-    const nb = Number.parseInt(b.replace(/\D/g, ""), 10);
-    const aNum = Number.isFinite(na) ? na : 0;
-    const bNum = Number.isFinite(nb) ? nb : 0;
-    if (aNum !== bNum) return aNum - bNum;
-    return a.localeCompare(b, "es");
-  });
+  const sortedWeeks = Array.from(groups.keys()).sort(compareSemanaLabels);
 
   const resumenRows: ResumenSemanalRow[] = sortedWeeks.map((semana) => {
     const g = groups.get(semana)!;
