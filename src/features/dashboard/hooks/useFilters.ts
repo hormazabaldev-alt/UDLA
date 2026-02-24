@@ -5,7 +5,16 @@ import { useMemo } from "react";
 import type { Filters } from "@/store/dashboard-store";
 import { useDashboardStore } from "@/store/dashboard-store";
 import { toCampusCode } from "@/lib/utils/campus";
-import { compareSemanaLabels } from "@/lib/utils/semana";
+import {
+  compareSemanaLabels,
+  FECHA_GESTION_PERIOD_END,
+  FECHA_GESTION_PERIOD_START,
+} from "@/lib/utils/semana";
+
+function campaignMonthSortKey(month: number) {
+  // Campaign starts in August (8), then wraps to Jan.
+  return month >= 8 ? month - 8 : month + 4;
+}
 
 export function useFilters() {
   const dataset = useDashboardStore((s) => s.dataset);
@@ -15,10 +24,16 @@ export function useFilters() {
 
   const options = useMemo(() => {
     const rows = dataset?.rows ?? [];
-    const fechasGestion = rows.map((r) => r.fechaGestion).filter((d): d is Date => d instanceof Date && !Number.isNaN(d.getTime()));
+    const now = new Date();
+    const maxAllowedDate = now < FECHA_GESTION_PERIOD_END ? now : FECHA_GESTION_PERIOD_END;
+    const fechasGestion = rows
+      .map((r) => r.fechaGestion)
+      .filter((d): d is Date => d instanceof Date && !Number.isNaN(d.getTime()))
+      .filter((d) => d >= FECHA_GESTION_PERIOD_START && d <= maxAllowedDate);
+
     const meses = Array.from(
       new Set(fechasGestion.map((d) => d.getMonth() + 1)),
-    ).sort((a, b) => a - b);
+    ).sort((a, b) => campaignMonthSortKey(a) - campaignMonthSortKey(b));
     const dias = Array.from(
       new Set(
         fechasGestion.map((d) => d.getDate()),
