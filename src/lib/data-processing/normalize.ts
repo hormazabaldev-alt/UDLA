@@ -46,7 +46,8 @@ export function normalizeRow(raw: RawRow, rowIndex: number): {
   const conecta = cleanString(getValue(raw, "Conecta"));
   // Some files may carry the appointment intent under a dedicated "Citas" column.
   // Prefer it when present, fallback to "Interesa".
-  const interesa = cleanString(getValueAny(raw, ["Citas", "Cita", "Interesa"]));
+  // Common variants: "Citas Presente", "Citas presente".
+  const interesa = cleanString(getValueAny(raw, ["Citas Presente", "Citas", "Cita", "Interesa"]));
   const regimen = cleanString(getValue(raw, "Regimen"));
   const sedeInteresRaw = cleanString(getValue(raw, "Sede Interes"));
   const sedeInteres = sedeInteresRaw ? toCampusCode(sedeInteresRaw) : null;
