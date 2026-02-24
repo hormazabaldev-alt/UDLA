@@ -15,7 +15,7 @@ export type ResumenSemanalRow = {
 };
 
 export type ResumenExclusion = {
-  invalidCitas: number; // sin Rut Base válido
+  invalidRows: number; // sin Rut Base válido
   missingSemana: number; // Semana vacía/null
 };
 
@@ -67,21 +67,21 @@ export function calcResumenSemanal(
   const excludeMissingSemana = opts?.excludeMissingSemana ?? true;
   // Backward compat: opts.afluenciaValues is ignored (AF comes from columna `AF`).
 
-  const excluded: ResumenExclusion = { invalidCitas: 0, missingSemana: 0 };
+  const excluded: ResumenExclusion = { invalidRows: 0, missingSemana: 0 };
   const groups = new Map<
     string,
     {
-      baseRuts: Set<string>;
-      recorridoRuts: Set<string>;
-      citasRuts: Set<string>;
-      afRuts: Set<string>;
-      mcRuts: Set<string>;
+      base: number;
+      recorrido: number;
+      citas: number;
+      afluencias: number;
+      matriculas: number;
     }
   >();
 
   for (const r of rows) {
     if (!isValidCitaRow(r)) {
-      excluded.invalidCitas++;
+      excluded.invalidRows++;
       continue;
     }
 
@@ -94,22 +94,20 @@ export function calcResumenSemanal(
     const key = semana ?? "Semana N/A";
     if (!groups.has(key)) {
       groups.set(key, {
-        baseRuts: new Set(),
-        recorridoRuts: new Set(),
-        citasRuts: new Set(),
-        afRuts: new Set(),
-        mcRuts: new Set(),
+        base: 0,
+        recorrido: 0,
+        citas: 0,
+        afluencias: 0,
+        matriculas: 0,
       });
     }
 
     const g = groups.get(key)!;
-    const rut = normalizeRut(r.rutBase);
-    if (!rut) continue;
-    g.baseRuts.add(rut);
-    if (isRecorridoRow(r)) g.recorridoRuts.add(rut);
-    if (isCitaRow(r)) g.citasRuts.add(rut);
-    if (isAfTotalRow(r)) g.afRuts.add(rut);
-    if (isMatriculaRow(r)) g.mcRuts.add(rut);
+    g.base++;
+    if (isRecorridoRow(r)) g.recorrido++;
+    if (isCitaRow(r)) g.citas++;
+    if (isAfTotalRow(r)) g.afluencias++;
+    if (isMatriculaRow(r)) g.matriculas++;
   }
 
   const sortedWeeks = Array.from(groups.keys()).sort((a, b) => {
@@ -125,18 +123,18 @@ export function calcResumenSemanal(
     const g = groups.get(semana)!;
     return {
       semana,
-      base: g.baseRuts.size,
-      citas: g.citasRuts.size,
-      recorrido: g.recorridoRuts.size,
-      afluencias: g.afRuts.size,
-      matriculas: g.mcRuts.size,
+      base: g.base,
+      citas: g.citas,
+      recorrido: g.recorrido,
+      afluencias: g.afluencias,
+      matriculas: g.matriculas,
       // Definiciones:
       // - % Recorrido = Recorrido / Base
       // - % Afluencia = Afluencias / Citas
       // - % Matrículas = Matrículas / Afluencias
-      pctRecorrido: safeDiv(g.recorridoRuts.size, g.baseRuts.size),
-      pctAfluencia: safeDiv(g.afRuts.size, g.citasRuts.size),
-      pctMatriculas: safeDiv(g.mcRuts.size, g.afRuts.size),
+      pctRecorrido: safeDiv(g.recorrido, g.base),
+      pctAfluencia: safeDiv(g.afluencias, g.citas),
+      pctMatriculas: safeDiv(g.matriculas, g.afluencias),
     };
   });
 

@@ -86,12 +86,12 @@ export function KpiCardsExtra() {
 
   const resumen = useMemo(() => calcResumenSemanal(rows), [rows]);
 
-  const excludedTotal = resumen.excluded.invalidCitas + resumen.excluded.missingSemana;
+  const excludedTotal = resumen.excluded.invalidRows + resumen.excluded.missingSemana;
   const hint =
     excludedTotal > 0
       ? `Excluidos: ${formatInt(excludedTotal)} (sin Semana: ${formatInt(
         resumen.excluded.missingSemana,
-      )}, sin Fecha Carga: ${formatInt(resumen.excluded.invalidCitas)})`
+      )}, sin RUT válido: ${formatInt(resumen.excluded.invalidRows)})`
       : undefined;
 
   if (!totals) return null;

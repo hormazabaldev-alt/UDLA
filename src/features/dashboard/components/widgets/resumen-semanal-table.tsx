@@ -176,7 +176,7 @@ export function ResumenSemanalTable() {
     };
   }, [filteredRows]);
 
-  const excludedTotal = resumen.excluded.invalidCitas + resumen.excluded.missingSemana;
+  const excludedTotal = resumen.excluded.invalidRows + resumen.excluded.missingSemana;
 
   return (
     <div className="h-full w-full flex flex-col min-h-0">
@@ -190,7 +190,7 @@ export function ResumenSemanalTable() {
           </span>{" "}
           · sin RUT válido:{" "}
           <span className="text-white/80 tabular-nums">
-            {formatInt(resumen.excluded.invalidCitas)}
+            {formatInt(resumen.excluded.invalidRows)}
           </span>
         </div>
       ) : null}
