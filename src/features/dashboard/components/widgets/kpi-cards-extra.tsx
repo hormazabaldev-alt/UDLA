@@ -102,7 +102,7 @@ export function KpiCardsExtra() {
       value: formatInt(totals.citas),
       subValue: `RUT: ${formatInt(totals.citasRutUnico)}`,
       icon: CalendarCheck2,
-      tooltip: "Citas (Interesa = Viene) contadas por RUT único.",
+      tooltip: "Citas (Interesa = Viene) por volumen; abajo se muestra RUT único.",
     },
     { label: "Recorrido", value: formatInt(totals.recorrido), icon: Route, tooltip: "Recorrido (Conecta o No Conecta)." },
     {
