@@ -24,7 +24,9 @@ function getValue(raw: RawRow, key: string): unknown {
 function getValueAny(raw: RawRow, keys: string[]): unknown {
   for (const key of keys) {
     const v = getValue(raw, key);
-    if (v !== undefined) return v;
+    if (v === undefined || v === null) continue;
+    if (typeof v === "string" && v.trim().length === 0) continue;
+    return v;
   }
   return undefined;
 }
@@ -44,10 +46,8 @@ export function normalizeRow(raw: RawRow, rowIndex: number): {
   const tipoBase = cleanString(getValue(raw, "Tipo Base"));
   const fechaGestion = parseLooseDate(getValue(raw, "Fecha Gestion"), { minDate: periodStart, maxDate: periodEnd });
   const conecta = cleanString(getValue(raw, "Conecta"));
-  // Some files may carry the appointment intent under a dedicated "Citas" column.
-  // Prefer it when present, fallback to "Interesa".
-  // Common variants: "Citas Presente", "Citas presente".
-  const interesa = cleanString(getValueAny(raw, ["Citas Presente", "Citas", "Cita", "Interesa"]));
+  // Citas SIEMPRE se calcula desde la columna "Interesa" (valor "Viene").
+  const interesa = cleanString(getValue(raw, "Interesa"));
   const regimen = cleanString(getValue(raw, "Regimen"));
   const sedeInteresRaw = cleanString(getValue(raw, "Sede Interes"));
   const sedeInteres = sedeInteresRaw ? toCampusCode(sedeInteresRaw) : null;
