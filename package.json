@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "validate:kpis": "node --experimental-strip-types --loader ./scripts/alias-loader.mjs ./scripts/validate-kpis-no-regression.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

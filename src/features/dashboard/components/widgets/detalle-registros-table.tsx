@@ -36,6 +36,10 @@ function toGridRow(r: DataRow): Record<string, unknown> {
     "Fecha af": r.fechaAf,
     MC: r.mc ?? "",
     "Fecha MC": r.fechaMc,
+    Agente: r.agente ?? "",
+    "Marketing 5": r.marketing5 ?? "",
+    CodigoBanner: r.codigoBanner ?? "",
+    "Carrera Interes": r.carreraInteres ?? "",
   };
 }
 

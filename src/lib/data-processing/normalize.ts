@@ -65,6 +65,10 @@ export function normalizeRow(raw: RawRow, rowIndex: number): {
   const fechaAfRaw = parseLooseDate(getValue(raw, "Fecha af"));
   const mc = cleanString(getValue(raw, "MC"));
   const fechaMcRaw = parseLooseDate(getValue(raw, "Fecha MC"));
+  const agente = cleanString(getValue(raw, "Agente"));
+  const marketing5 = cleanString(getValue(raw, "Marketing 5"));
+  const codigoBanner = cleanString(getValue(raw, "CodigoBanner"));
+  const carreraInteres = cleanString(getValue(raw, "Carrera Interes"));
 
   // Reglas: si AF/MC vienen vacíos, sus fechas asociadas deben quedar null.
   const fechaAf = af ? fechaAfRaw : null;
@@ -97,6 +101,10 @@ export function normalizeRow(raw: RawRow, rowIndex: number): {
     fechaAf,
     mc,
     fechaMc,
+    agente,
+    marketing5,
+    codigoBanner,
+    carreraInteres,
 
     // Computed
     mes: fechaGestion ? getMonth(fechaGestion) + 1 : null, // 1-12

@@ -4,12 +4,11 @@ import { useState } from "react";
 import { cn } from "@/lib/utils/cn";
 
 import {
-    Plus,
-    Replace,
     History,
     Share2,
     BarChart3,
-    Info
+    Info,
+    Users
 } from "lucide-react";
 import {
     Tooltip,
@@ -290,18 +289,15 @@ export function PowerBILayout() {
                         <div className="border-t border-[#1f1f1f] pt-4 space-y-2">
                             <div className="text-xs text-[#00d4ff] uppercase font-bold tracking-wider mb-2">Datos</div>
                             <DataUploadDialog
-                                defaultMode="append"
-                                triggerLabel="Agregar Bases"
-                                triggerIcon={<Plus className="size-4" />}
-                            />
-                            <DataUploadDialog
-                                defaultMode="replace"
-                                triggerLabel="Reemplazar Data"
-                                triggerIcon={<Replace className="size-4" />}
+                                triggerLabel="Reemplazar dataset"
                             />
                             <a href="/analytics" className="flex items-center gap-2 text-xs text-white/50 hover:text-white/80 transition py-1.5 px-3">
                                 <BarChart3 className="size-4" />
                                 Análisis Avanzado
+                            </a>
+                            <a href="/gestion-agentes" className="flex items-center gap-2 text-xs text-white/50 hover:text-white/80 transition py-1.5 px-3">
+                                <Users className="size-4" />
+                                Gestión de Agentes
                             </a>
                             <a href="/logs" className="flex items-center gap-2 text-xs text-white/50 hover:text-white/80 transition py-1.5 px-3">
                                 <History className="size-4" />

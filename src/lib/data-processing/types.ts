@@ -18,6 +18,10 @@ export type DataRow = {
   fechaAf: Date | null;
   mc: string | null; // M, MC
   fechaMc: Date | null;
+  agente?: string | null;
+  marketing5?: string | null;
+  codigoBanner?: string | null;
+  carreraInteres?: string | null;
 
   // Computed/Helper helpers for easy filtering
   mes: number | null; // Derived from Fecha Gestion
