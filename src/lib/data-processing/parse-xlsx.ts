@@ -5,7 +5,11 @@ import { normalizeRow } from "@/lib/data-processing/normalize";
 import type { Dataset, DataRow, ParseIssue, ParseResult } from "@/lib/data-processing/types";
 
 function cleanKey(key: string) {
-  return key.replace(/\s+/g, " ").trim();
+  return key
+    .replace(/^\uFEFF/, "")
+    .replace(/\u00A0/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function cleanRowKeys(row: Record<string, unknown>) {

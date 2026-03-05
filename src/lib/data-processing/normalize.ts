@@ -18,10 +18,20 @@ function cleanString(value: unknown): string | null {
 
 const DIAS_SEMANA = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
+function normalizeKey(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function getValue(raw: RawRow, key: string): unknown {
-  const lowerKey = key.toLowerCase();
+  const wanted = normalizeKey(key);
   for (const [k, v] of Object.entries(raw)) {
-    if (k.toLowerCase() === lowerKey) return v;
+    if (normalizeKey(k) === wanted) return v;
   }
   return undefined;
 }
@@ -65,10 +75,18 @@ export function normalizeRow(raw: RawRow, rowIndex: number): {
   const fechaAfRaw = parseLooseDate(getValue(raw, "Fecha af"));
   const mc = cleanString(getValue(raw, "MC"));
   const fechaMcRaw = parseLooseDate(getValue(raw, "Fecha MC"));
-  const agente = cleanString(getValue(raw, "Agente"));
-  const marketing5 = cleanString(getValue(raw, "Marketing 5"));
-  const codigoBanner = cleanString(getValue(raw, "CodigoBanner"));
-  const carreraInteres = cleanString(getValue(raw, "Carrera Interes"));
+  const agente = cleanString(
+    getValueAny(raw, ["Agente", "Nombre Agente", "Ejecutivo", "Asesor", "Asesora"]),
+  );
+  const marketing5 = cleanString(
+    getValueAny(raw, ["Marketing 5", "Marketing5", "Marketing_5"]),
+  );
+  const codigoBanner = cleanString(
+    getValueAny(raw, ["CodigoBanner", "Codigo Banner", "CódigoBanner", "Código Banner"]),
+  );
+  const carreraInteres = cleanString(
+    getValueAny(raw, ["Carrera Interes", "CarreraInteres", "Carrera", "Carrera Interés"]),
+  );
 
   // Reglas: si AF/MC vienen vacíos, sus fechas asociadas deben quedar null.
   const fechaAf = af ? fechaAfRaw : null;
