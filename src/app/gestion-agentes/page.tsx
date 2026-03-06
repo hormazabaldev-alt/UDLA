@@ -322,14 +322,14 @@ function DataSection({
   return (
     <section className="space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-[15px] font-bold uppercase tracking-wide text-[#222]">{title}</h2>
+        <h2 className="text-[15px] font-bold uppercase tracking-wide text-white/85">{title}</h2>
         {collapsible && onToggleCollapse && collapsible.totalRows > rows.length ? (
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={onToggleCollapse}
-            className="h-7 border-[#777] bg-[#ececec] text-[#1a1a1a] hover:bg-[#f4f4f4]"
+            className="h-7 border-[#333] bg-transparent text-white/70 hover:bg-[#161616]"
           >
             {collapsible.collapsed ? (
               <>
@@ -345,39 +345,39 @@ function DataSection({
       </div>
 
       <div className="grid gap-2 xl:grid-cols-[1.2fr_0.9fr]">
-        <div className="overflow-auto rounded border border-[#2a2a2a] bg-[#efefef]">
-          <table className="w-full min-w-[620px] border-collapse text-[12px]">
+        <div className="overflow-auto rounded-lg border border-[#1f1f1f] bg-[#080808]">
+          <table className="w-full min-w-[620px] border-collapse text-[12px] text-white/80">
             <thead>
               <tr>
-                <th className="border border-[#2a2a2a] bg-[#ffc400] px-2 py-1 text-left">{labelHeader}</th>
+                <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-left text-[10px] uppercase tracking-wider text-[#00d4ff]">{labelHeader}</th>
                 {showSecondary ? (
-                  <th className="border border-[#2a2a2a] bg-[#ffc400] px-2 py-1 text-left">Marketing 5</th>
+                  <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-left text-[10px] uppercase tracking-wider text-[#00d4ff]">Marketing 5</th>
                 ) : null}
-                <th className="border border-[#2a2a2a] bg-[#ffc400] px-2 py-1 text-center">Recorrido</th>
-                <th className="border border-[#2a2a2a] bg-[#ffc400] px-2 py-1 text-center">Conecta</th>
-                <th className="border border-[#2a2a2a] bg-[#ffc400] px-2 py-1 text-center">No conecta</th>
-                <th className="border border-[#2a2a2a] bg-[#ffc400] px-2 py-1 text-center">Citas</th>
-                {showAF ? <th className="border border-[#2a2a2a] bg-[#ffc400] px-2 py-1 text-center">AF</th> : null}
-                {showMC ? <th className="border border-[#2a2a2a] bg-[#ffc400] px-2 py-1 text-center">MC</th> : null}
+                <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">Recorrido</th>
+                <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">Conecta</th>
+                <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">No conecta</th>
+                <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">Citas</th>
+                {showAF ? <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">AF</th> : null}
+                {showMC ? <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">MC</th> : null}
               </tr>
             </thead>
             <tbody>
               {hasRows ? (
                 rows.map((row) => (
                   <tr key={`${title}:${row.label}:${row.secondary}`}>
-                    <td className="border border-[#2a2a2a] bg-white/55 px-2 py-1">{row.label}</td>
+                    <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-white/85">{row.label}</td>
                     {showSecondary ? (
-                      <td className="border border-[#2a2a2a] bg-white/55 px-2 py-1">{row.secondary}</td>
+                      <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-white/70">{row.secondary}</td>
                     ) : null}
-                    <td className="border border-[#2a2a2a] bg-white/45 px-2 py-1 text-right tabular-nums">{formatInt(row.recorrido)}</td>
-                    <td className="border border-[#2a2a2a] bg-white/45 px-2 py-1 text-right tabular-nums">{formatInt(row.conecta)}</td>
-                    <td className="border border-[#2a2a2a] bg-white/45 px-2 py-1 text-right tabular-nums">{formatInt(row.noConecta)}</td>
-                    <td className="border border-[#2a2a2a] bg-white/45 px-2 py-1 text-right tabular-nums">{formatInt(row.citas)}</td>
+                    <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-right tabular-nums text-white/90">{formatInt(row.recorrido)}</td>
+                    <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-right tabular-nums text-white/90">{formatInt(row.conecta)}</td>
+                    <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-right tabular-nums text-white/90">{formatInt(row.noConecta)}</td>
+                    <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-right tabular-nums text-white/90">{formatInt(row.citas)}</td>
                     {showAF ? (
-                      <td className="border border-[#2a2a2a] bg-white/45 px-2 py-1 text-right tabular-nums">{formatInt(row.af)}</td>
+                      <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-right tabular-nums text-white/90">{formatInt(row.af)}</td>
                     ) : null}
                     {showMC ? (
-                      <td className="border border-[#2a2a2a] bg-white/45 px-2 py-1 text-right tabular-nums">{formatInt(row.mc)}</td>
+                      <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-right tabular-nums text-white/90">{formatInt(row.mc)}</td>
                     ) : null}
                   </tr>
                 ))
@@ -385,7 +385,7 @@ function DataSection({
                 <tr>
                   <td
                     colSpan={showSecondary ? (showAF && showMC ? 8 : showAF || showMC ? 7 : 6) : showAF && showMC ? 7 : showAF || showMC ? 6 : 5}
-                    className="border border-[#2a2a2a] bg-white/45 px-3 py-2 text-center text-[#555]"
+                    className="border border-[#1f1f1f] bg-[#080808] px-3 py-2 text-center text-white/45"
                   >
                     Sin datos para los filtros seleccionados.
                   </td>
@@ -395,39 +395,39 @@ function DataSection({
           </table>
         </div>
 
-        <div className="overflow-auto rounded border border-[#2a2a2a] bg-[#efefef]">
-          <table className="w-full min-w-[460px] border-collapse text-[12px]">
+        <div className="overflow-auto rounded-lg border border-[#1f1f1f] bg-[#080808]">
+          <table className="w-full min-w-[460px] border-collapse text-[12px] text-white/80">
             <thead>
               <tr>
-                <th className="border border-[#2a2a2a] bg-[#ffc400] px-2 py-1 text-center">TC% Cont/Reco.</th>
-                <th className="border border-[#2a2a2a] bg-[#ffc400] px-2 py-1 text-center">TC% Cit/Cont</th>
-                {showAF ? <th className="border border-[#2a2a2a] bg-[#ffc400] px-2 py-1 text-center">TC% AF/Cit</th> : null}
-                {showAF && showMC ? <th className="border border-[#2a2a2a] bg-[#ffc400] px-2 py-1 text-center">TC% MC/AF</th> : null}
-                {showMC ? <th className="border border-[#2a2a2a] bg-[#ffc400] px-2 py-1 text-center">TC% MC/Reco.</th> : null}
+                <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">TC% Cont/Reco.</th>
+                <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">TC% Cit/Cont</th>
+                {showAF ? <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">TC% AF/Cit</th> : null}
+                {showAF && showMC ? <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">TC% MC/AF</th> : null}
+                {showMC ? <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">TC% MC/Reco.</th> : null}
               </tr>
             </thead>
             <tbody>
               {hasRows ? (
                 rows.map((row) => (
                   <tr key={`${title}:pct:${row.label}:${row.secondary}`}>
-                    <td className="border border-[#2a2a2a] bg-white/45 px-2 py-1 text-center">
+                    <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-center">
                       <SemaforoBadge value={row.tcContReco} band={quartiles.tcContReco} />
                     </td>
-                    <td className="border border-[#2a2a2a] bg-white/45 px-2 py-1 text-center">
+                    <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-center">
                       <SemaforoBadge value={row.tcCitCont} band={quartiles.tcCitCont} />
                     </td>
                     {showAF ? (
-                      <td className="border border-[#2a2a2a] bg-white/45 px-2 py-1 text-center">
+                      <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-center">
                         <SemaforoBadge value={row.tcAfCit} band={quartiles.tcAfCit} />
                       </td>
                     ) : null}
                     {showAF && showMC ? (
-                      <td className="border border-[#2a2a2a] bg-white/45 px-2 py-1 text-center">
+                      <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-center">
                         <SemaforoBadge value={row.tcMcAf} band={quartiles.tcMcAf} />
                       </td>
                     ) : null}
                     {showMC ? (
-                      <td className="border border-[#2a2a2a] bg-white/45 px-2 py-1 text-center">
+                      <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-center">
                         <SemaforoBadge value={row.tcMcReco} band={quartiles.tcMcReco} />
                       </td>
                     ) : null}
@@ -437,7 +437,7 @@ function DataSection({
                 <tr>
                   <td
                     colSpan={showAF && showMC ? 5 : showAF || showMC ? 4 : 2}
-                    className="border border-[#2a2a2a] bg-white/45 px-3 py-2 text-center text-[#555]"
+                    className="border border-[#1f1f1f] bg-[#080808] px-3 py-2 text-center text-white/45"
                   >
                     Sin datos.
                   </td>
@@ -530,19 +530,19 @@ export default function GestionAgentesPage() {
 
   if (hydrating) {
     return (
-      <div className="min-h-screen bg-[#d6d6d6] text-[#222] flex items-center justify-center">
-        <div className="text-sm text-[#333]">Cargando datos...</div>
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-sm text-white/60">Cargando datos...</div>
       </div>
     );
   }
 
   if (rows.length === 0) {
     return (
-      <div className="min-h-screen bg-[#d6d6d6] text-[#222] flex items-center justify-center">
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
         <div className="space-y-3 text-center">
           <h1 className="text-xl font-bold">Sin datos disponibles</h1>
-          <p className="text-sm text-[#555]">Carga un archivo Excel desde el dashboard principal.</p>
-          <Link href="/" className="inline-flex items-center gap-1 text-sm text-[#004e66] hover:underline">
+          <p className="text-sm text-white/50">Carga un archivo Excel desde el dashboard principal.</p>
+          <Link href="/" className="inline-flex items-center gap-1 text-sm text-[#00d4ff] hover:underline">
             <ArrowLeft className="size-4" /> Volver
           </Link>
         </div>
@@ -551,19 +551,19 @@ export default function GestionAgentesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#d6d6d6] text-[#111]">
+    <div className="min-h-screen bg-black text-white">
       <div className="mx-auto max-w-[1800px] space-y-4 px-3 py-4 lg:px-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
-            <Link href="/" className="inline-flex items-center gap-1 text-xs text-[#333] hover:text-black">
+            <Link href="/" className="inline-flex items-center gap-1 text-xs text-white/50 hover:text-white/80">
               <ArrowLeft className="size-4" /> Volver al dashboard
             </Link>
-            <div className="inline-flex items-center bg-black px-3 py-1.5 text-lg font-bold text-white">
-              Gestión de <span className="ml-1 text-[#00d4ff]">Agentes</span>
-            </div>
+            <h1 className="text-2xl font-bold tracking-tight">
+              Gestión de <span className="text-[#00d4ff]">Agentes</span>
+            </h1>
           </div>
-          <div className="text-right text-xs text-[#333]">
-            Filas filtradas: <span className="font-semibold text-black">{formatInt(filteredRows.length)}</span>
+          <div className="text-right text-xs text-white/50">
+            Filas filtradas: <span className="font-semibold text-white/85">{formatInt(filteredRows.length)}</span>
           </div>
         </div>
 
@@ -603,7 +603,7 @@ export default function GestionAgentesPage() {
                 type="button"
                 onClick={() => setShowAF((prev) => !prev)}
                 className={`rounded px-2 py-1 text-xs font-semibold ${
-                  showAF ? "bg-lime-400 text-black" : "bg-white/10 text-white/70"
+                  showAF ? "border border-[#00d4ff] bg-[#00d4ff]/20 text-[#00d4ff]" : "border border-white/10 bg-white/5 text-white/70"
                 }`}
               >
                 AF
@@ -612,7 +612,7 @@ export default function GestionAgentesPage() {
                 type="button"
                 onClick={() => setShowMC((prev) => !prev)}
                 className={`rounded px-2 py-1 text-xs font-semibold ${
-                  showMC ? "bg-lime-400 text-black" : "bg-white/10 text-white/70"
+                  showMC ? "border border-[#00d4ff] bg-[#00d4ff]/20 text-[#00d4ff]" : "border border-white/10 bg-white/5 text-white/70"
                 }`}
               >
                 MC
