@@ -16,6 +16,7 @@ import { isAfluenciaValue, isMatriculaValue } from "@/lib/data-processing/predic
 import { formatInt } from "@/lib/utils/format";
 import { isInteresaViene } from "@/lib/utils/interesa";
 import { toCampusCode } from "@/lib/utils/campus";
+import { normalizeRut } from "@/lib/utils/rut";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -96,6 +97,16 @@ function isNoConecta(value: string | null | undefined) {
 
 function safeDiv(numerator: number, denominator: number) {
   return denominator > 0 ? numerator / denominator : 0;
+}
+
+function countUniqueRuts(rows: DataRow[], predicate: (row: DataRow) => boolean) {
+  const ruts = new Set<string>();
+  for (const row of rows) {
+    if (!predicate(row)) continue;
+    const rut = normalizeRut(row.rutBase);
+    if (rut) ruts.add(rut);
+  }
+  return ruts.size;
 }
 
 function formatPctCard(value: number) {
@@ -253,11 +264,22 @@ function SemaforoBadge({ value, band }: { value: number; band: QuartileBand }) {
   );
 }
 
-function MetricCard({ title, value, subtitle }: { title: string; value: string; subtitle?: string }) {
+function MetricCard({
+  title,
+  value,
+  subtitle,
+  accentLabel,
+}: {
+  title: string;
+  value: string;
+  subtitle?: string;
+  accentLabel?: string;
+}) {
   return (
     <div className="rounded-md border border-[#1f1f1f] bg-[#050505] p-3 text-white">
       <div className="text-[10px] uppercase tracking-[0.16em] text-white/55">{title}</div>
       <div className="mt-1 text-[30px] font-bold leading-none text-[#00d4ff] tabular-nums">{value}</div>
+      {accentLabel ? <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[#00d4ff]/80">{accentLabel}</div> : null}
       {subtitle ? <div className="mt-1 text-[10px] text-white/55">{subtitle}</div> : null}
     </div>
   );
@@ -475,6 +497,15 @@ export default function GestionAgentesPage() {
     };
   }, [filteredRows]);
 
+  const uniqueTotals = useMemo(
+    () => ({
+      recorrido: countUniqueRuts(filteredRows, () => true),
+      conecta: countUniqueRuts(filteredRows, (row) => isConecta(row.conecta)),
+      citas: countUniqueRuts(filteredRows, (row) => isInteresaViene(row.interesa)),
+    }),
+    [filteredRows],
+  );
+
   const agentRows = useMemo(() => aggregateByAgent(filteredRows), [filteredRows]);
   const origenRows = useMemo(
     () => aggregateByLabel(filteredRows, (row) => normalizeLabel(row.tipoBase)),
@@ -599,9 +630,24 @@ export default function GestionAgentesPage() {
           </div>
 
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
-            <MetricCard title="Total gestiones" value={formatInt(totals.recorrido)} />
-            <MetricCard title="Conecta" value={formatInt(totals.conecta)} />
-            <MetricCard title="Interesa" value={formatInt(totals.citas)} />
+            <MetricCard
+              title="Total gestiones"
+              value={formatInt(uniqueTotals.recorrido)}
+              accentLabel="RUT unico"
+              subtitle={`Gestion: ${formatInt(totals.recorrido)}`}
+            />
+            <MetricCard
+              title="Conecta"
+              value={formatInt(uniqueTotals.conecta)}
+              accentLabel="RUT unico"
+              subtitle={`Gestion: ${formatInt(totals.conecta)}`}
+            />
+            <MetricCard
+              title="Interesa"
+              value={formatInt(uniqueTotals.citas)}
+              accentLabel="RUT unico"
+              subtitle={`Gestion: ${formatInt(totals.citas)}`}
+            />
             <MetricCard title="% Conecta" value={formatPctCard(totals.pctConecta)} />
             <MetricCard title="% Interesa / Conecta" value={formatPctCard(totals.pctInteresaSobreConecta)} />
           </div>

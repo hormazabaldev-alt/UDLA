@@ -57,6 +57,16 @@ function computeMetricTotal(rows: DataRow[], metric: Metric) {
     return ruts.size;
 }
 
+function computeMetricUniqueTotal(rows: DataRow[], metric: Metric) {
+    const ruts = new Set<string>();
+    for (const r of rows) {
+        if (computeRowKPI(r, metric) !== 1) continue;
+        const rut = normalizeRut(r.rutBase);
+        if (rut) ruts.add(rut);
+    }
+    return ruts.size;
+}
+
 // ---------- Toggle Button ----------
 function Toggle({ label, active, color, onClick }: { label: string; active: boolean; color: string; onClick: () => void }) {
     return (
@@ -339,6 +349,7 @@ export default function AnalyticsPage() {
             metric,
             ...METRIC_INFO[metric],
             value: computeMetricTotal(filteredRows, metric),
+            uniqueValue: computeMetricUniqueTotal(filteredRows, metric),
         }));
     }, [filteredRows]);
 
@@ -385,8 +396,10 @@ export default function AnalyticsPage() {
                     <div className="flex gap-5">
                         {summaryKPIs.map(kpi => (
                             <div key={kpi.metric} className="text-center">
-                                <div className="text-lg font-bold" style={{ color: kpi.color }}>{formatInt(kpi.value)}</div>
+                                <div className="text-lg font-bold" style={{ color: kpi.color }}>{formatInt(kpi.uniqueValue)}</div>
+                                <div className="text-[9px] uppercase tracking-[0.16em] text-white/45">RUT unico</div>
                                 <div className="text-[9px] text-white/40 uppercase">{kpi.label}</div>
+                                <div className="text-[10px] text-white/55">Gestion: {formatInt(kpi.value)}</div>
                             </div>
                         ))}
                     </div>
