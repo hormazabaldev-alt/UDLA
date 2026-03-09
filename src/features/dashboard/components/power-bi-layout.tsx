@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils/cn";
 
 import {
@@ -8,7 +8,10 @@ import {
     Share2,
     BarChart3,
     Info,
-    Users
+    Users,
+    ChevronDown,
+    Search,
+    X
 } from "lucide-react";
 import {
     Tooltip,
@@ -31,9 +34,8 @@ import { SemanaKpisChart } from "@/features/dashboard/components/widgets/semana-
 import { DetalleRegistrosTable } from "@/features/dashboard/components/widgets/detalle-registros-table";
 import { MetricBreakdownChart } from "@/features/dashboard/components/widgets/metric-breakdown-chart";
 import { useFilters } from "@/features/dashboard/hooks/useFilters";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BaseType } from "@/lib/data-processing/types";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
     Accordion,
     AccordionContent,
@@ -167,6 +169,128 @@ function MultiSelectGroup({
     );
 }
 
+function SearchableMultiSelect({
+    label,
+    options,
+    selected,
+    onToggle,
+    onClear,
+}: {
+    label: string;
+    options: string[];
+    selected: string[];
+    onToggle: (val: string) => void;
+    onClear: () => void;
+}) {
+    const [open, setOpen] = useState(false);
+    const [query, setQuery] = useState("");
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!open) return;
+
+        const handleOutsideClick = (event: MouseEvent) => {
+            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+                setOpen(false);
+            }
+        };
+
+        document.addEventListener("mousedown", handleOutsideClick);
+        return () => document.removeEventListener("mousedown", handleOutsideClick);
+    }, [open]);
+
+    const filteredOptions = useMemo(() => {
+        const normalizedQuery = query.trim().toLocaleLowerCase("es");
+        if (!normalizedQuery) return options;
+        return options.filter((option) => option.toLocaleLowerCase("es").includes(normalizedQuery));
+    }, [options, query]);
+
+    const summary = selected.length === 0
+        ? "Todas las carreras"
+        : selected.length === 1
+            ? selected[0]
+            : `${selected.length} carreras seleccionadas`;
+
+    return (
+        <div ref={containerRef} className="space-y-2">
+            <label className="text-xs text-[#00d4ff] uppercase font-bold tracking-wider">{label}</label>
+            <div className="relative">
+                <button
+                    type="button"
+                    onClick={() => setOpen((value) => !value)}
+                    className="flex w-full items-center justify-between gap-2 rounded-md border border-[#333] bg-[#1a1a1a] px-3 py-2 text-left hover:bg-white/5 transition-colors"
+                >
+                    <span className="truncate text-[11px]" style={{ color: selected.length > 0 ? "#00d4ff" : "rgba(255,255,255,0.65)" }}>
+                        {summary}
+                    </span>
+                    <ChevronDown className={cn("size-4 text-white/40 transition-transform", open && "rotate-180")} />
+                </button>
+
+                {open && (
+                    <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-20 rounded-md border border-[#333] bg-[#101010] p-2 shadow-2xl">
+                        <div className="relative">
+                            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-white/30" />
+                            <Input
+                                value={query}
+                                onChange={(e) => setQuery(e.target.value)}
+                                placeholder="Buscar carrera..."
+                                className="h-8 rounded-md border-[#2a2a2a] bg-[#0b0b0b] pl-8 pr-8 text-[11px] text-white/85 placeholder:text-white/25"
+                            />
+                            {query && (
+                                <button
+                                    type="button"
+                                    onClick={() => setQuery("")}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60"
+                                    aria-label="Limpiar búsqueda"
+                                >
+                                    <X className="size-3.5" />
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="mt-2 max-h-56 overflow-y-auto space-y-1 pr-1">
+                            {filteredOptions.length === 0 ? (
+                                <div className="px-2 py-2 text-[11px] text-white/35 italic">Sin coincidencias</div>
+                            ) : (
+                                filteredOptions.map((option) => {
+                                    const active = selected.includes(option);
+                                    return (
+                                        <label
+                                            key={option}
+                                            className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[11px] text-white/75 hover:bg-white/5"
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={active}
+                                                onChange={() => onToggle(option)}
+                                                className="rounded-[3px] border-[#333] bg-black text-[#00d4ff] focus:ring-[#00d4ff] focus:ring-1 focus:ring-offset-0"
+                                            />
+                                            <span className={cn("truncate", active && "text-[#00d4ff]")}>{option}</span>
+                                        </label>
+                                    );
+                                })
+                            )}
+                        </div>
+
+                        <div className="mt-2 flex items-center justify-between border-t border-[#222] pt-2">
+                            <span className="text-[10px] text-white/35">
+                                {selected.length > 0 ? `${selected.length} seleccionadas` : "Sin selección"}
+                            </span>
+                            <button
+                                type="button"
+                                onClick={onClear}
+                                className="text-[10px] text-white/40 hover:text-white/70 transition"
+                            >
+                                Limpiar
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
 function VerticalFilters() {
     const { filters, set, resetFilters, options } = useFilters();
 
@@ -206,7 +330,7 @@ function VerticalFilters() {
                     onToggle={(v) => toggleFilter("regimen", v)}
                     onClear={() => set({ regimen: [] })}
                 />
-                <MultiSelectGroup
+                <SearchableMultiSelect
                     label="Carrera"
                     options={options.carreraInteres ?? []}
                     selected={filters.carreraInteres}
