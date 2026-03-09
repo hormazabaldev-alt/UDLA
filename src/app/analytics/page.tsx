@@ -144,6 +144,13 @@ export default function AnalyticsPage() {
     const { dataset, hydrating } = useData();
     const rows = dataset?.rows ?? [];
 
+    // State
+    const [selectedMetrics, setSelectedMetrics] = useState<Metric[]>(["recorrido", "contactado", "citas", "af", "mc"]);
+    const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
+    const [selectedDays, setSelectedDays] = useState<string[]>([]);
+    const [selectedWeeks, setSelectedWeeks] = useState<string[]>([]);
+    const [selectedMarketing5, setSelectedMarketing5] = useState<string[]>([]);
+
     // Available options
     const availableMonths = useMemo(() => {
         return Array.from(new Set(rows.map(r => r.mes).filter((v): v is number => v !== null))).sort((a, b) => a - b);
@@ -160,20 +167,32 @@ export default function AnalyticsPage() {
             .sort(compareSemanaLabels);
     }, [rows]);
 
-    // State
-    const [selectedMetrics, setSelectedMetrics] = useState<Metric[]>(["recorrido", "contactado", "citas", "af", "mc"]);
-    const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
-    const [selectedDays, setSelectedDays] = useState<string[]>([]);
-    const [selectedWeeks, setSelectedWeeks] = useState<string[]>([]);
+    const availableMarketing5 = useMemo(() => {
+        return Array.from(
+            new Set(
+                rows
+                    .map((r) => r.marketing5?.trim())
+                    .filter((v): v is string => !!v),
+            ),
+        ).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+    }, [rows]);
+
+    const marketingFilteredRows = useMemo(() => {
+        if (selectedMarketing5.length === 0) return rows;
+        return rows.filter((row) => {
+            const marketing5 = row.marketing5?.trim();
+            return !!marketing5 && selectedMarketing5.includes(marketing5);
+        });
+    }, [rows, selectedMarketing5]);
 
     // Filtered rows based on selections
     const filteredRows = useMemo(() => {
-        let r = rows;
+        let r = marketingFilteredRows;
         if (selectedMonths.length > 0) r = r.filter(row => row.mes !== null && selectedMonths.includes(String(row.mes)));
         if (selectedDays.length > 0) r = r.filter(row => row.diaSemana !== null && selectedDays.includes(row.diaSemana));
         if (selectedWeeks.length > 0) r = r.filter(row => row.semana !== null && selectedWeeks.includes(row.semana));
         return r;
-    }, [rows, selectedMonths, selectedDays, selectedWeeks]);
+    }, [marketingFilteredRows, selectedMonths, selectedDays, selectedWeeks]);
 
     // --------- CHART 1: Monthly Comparison -----------
     const monthlyChart = useMemo(() => {
@@ -186,7 +205,7 @@ export default function AnalyticsPage() {
             name: METRIC_INFO[metric].label,
             type: "bar" as const,
             data: months.map(m => {
-                const monthRows = rows.filter(r => r.mes === m);
+                const monthRows = marketingFilteredRows.filter(r => r.mes === m);
                 return monthRows.reduce((sum, r) => sum + computeRowKPI(r, metric), 0);
             }),
             itemStyle: { color: METRIC_INFO[metric].color },
@@ -202,7 +221,7 @@ export default function AnalyticsPage() {
             yAxis: { type: "value", splitLine: { lineStyle: { color: "#1a1a1a" } }, axisLabel: { color: "#888", fontSize: 10 } },
             series,
         };
-    }, [rows, availableMonths, selectedMonths, selectedMetrics]);
+    }, [marketingFilteredRows, availableMonths, selectedMonths, selectedMetrics]);
 
     // --------- CHART 2: Day comparison -----------
     const dailyChart = useMemo(() => {
@@ -241,7 +260,7 @@ export default function AnalyticsPage() {
             name: METRIC_INFO[metric].label,
             type: "line" as const,
             data: weeks.map(w => {
-                const weekRows = rows.filter(r => r.semana === w);
+                const weekRows = marketingFilteredRows.filter(r => r.semana === w);
                 return weekRows.reduce((sum, r) => sum + computeRowKPI(r, metric), 0);
             }),
             itemStyle: { color: METRIC_INFO[metric].color },
@@ -260,7 +279,7 @@ export default function AnalyticsPage() {
             yAxis: { type: "value", splitLine: { lineStyle: { color: "#1a1a1a" } }, axisLabel: { color: "#888", fontSize: 10 } },
             series,
         };
-    }, [rows, availableWeeks, selectedWeeks, selectedMetrics]);
+    }, [marketingFilteredRows, availableWeeks, selectedWeeks, selectedMetrics]);
 
     // --------- CHART 4: Conversion Rate Trend (6 correct rates) -----------
     const conversionChart = useMemo(() => {
@@ -270,7 +289,7 @@ export default function AnalyticsPage() {
         const labels = months.map(m => `Mes ${m}`);
 
         const rates = months.map(m => {
-            const mRows = rows.filter(r => r.mes === m);
+            const mRows = marketingFilteredRows.filter(r => r.mes === m);
             const base = computeMetricTotal(mRows, "cargada");
             const recorrido = computeMetricTotal(mRows, "recorrido");
             const contactado = computeMetricTotal(mRows, "contactado");
@@ -309,7 +328,7 @@ export default function AnalyticsPage() {
                 { name: "C% MC/Leads", type: "line", data: rates.map(r => +r.cMcLeads.toFixed(1)), itemStyle: { color: "#f43f5e" }, lineStyle: { width: 2, type: "dashed" }, smooth: true, symbol: "diamond", symbolSize: 5 },
             ],
         };
-    }, [rows, availableMonths, selectedMonths]);
+    }, [marketingFilteredRows, availableMonths, selectedMonths]);
 
     // Summary KPIs for filtered data
     const summaryKPIs = useMemo(() => {
@@ -397,6 +416,12 @@ export default function AnalyticsPage() {
                             selected={selectedWeeks}
                             onChange={setSelectedWeeks}
                         />
+                        <MultiSelect
+                            label="Marketing 5"
+                            options={availableMarketing5.map(v => ({ value: v, label: v }))}
+                            selected={selectedMarketing5}
+                            onChange={setSelectedMarketing5}
+                        />
                     </div>
 
                     {/* Right: Metric selector */}
@@ -435,7 +460,13 @@ export default function AnalyticsPage() {
                             </button>
                             <span className="text-white/20">|</span>
                             <button
-                                onClick={() => { setSelectedMonths([]); setSelectedDays([]); setSelectedWeeks([]); setSelectedMetrics([...ALL_METRICS]); }}
+                                onClick={() => {
+                                    setSelectedMonths([]);
+                                    setSelectedDays([]);
+                                    setSelectedWeeks([]);
+                                    setSelectedMarketing5([]);
+                                    setSelectedMetrics([...ALL_METRICS]);
+                                }}
                                 className="text-[10px] text-white/40 hover:text-white/70"
                             >
                                 Reset todo
