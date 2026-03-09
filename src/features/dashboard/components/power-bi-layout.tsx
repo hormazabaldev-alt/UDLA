@@ -457,7 +457,7 @@ export function PowerBILayout() {
                 <div className="sticky top-0 z-10 bg-black border-b border-[#1f1f1f]/50 px-5 py-3">
                     <div className="grid grid-cols-7 gap-6 items-start">
                         <MetricItem
-                            label="Base Cargada"
+                            label="Base Gestión"
                             value={formatInt(totals?.cargada || 0)}
                             subValue={`RUT: ${formatInt(totals?.cargadaRutUnico || 0)}`}
                             tooltip="Total de filas cargadas (izq) y RUT únicos (abajo)."

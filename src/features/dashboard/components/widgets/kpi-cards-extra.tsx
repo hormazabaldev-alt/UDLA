@@ -122,7 +122,7 @@ export function KpiCardsExtra() {
       icon: GraduationCap,
       tooltip: "Matrículas (MC = M o MC).",
     },
-    { label: "% Recorrido", value: formatPct(totals.tcLlaLeads, 1), icon: Percent, tooltip: "Recorrido / Base Cargada." },
+    { label: "% Recorrido", value: formatPct(totals.tcLlaLeads, 1), icon: Percent, tooltip: "Recorrido / Base Gestión." },
     {
       label: "% Afluencia",
       value: formatPct(totals.tcAfCitas, 0),

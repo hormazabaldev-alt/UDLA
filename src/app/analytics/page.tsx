@@ -16,7 +16,7 @@ import { compareSemanaLabels } from "@/lib/utils/semana";
 type Metric = "cargada" | "recorrido" | "contactado" | "citas" | "af" | "mc";
 
 const METRIC_INFO: Record<Metric, { label: string; color: string }> = {
-    cargada: { label: "Base Cargada", color: "#00d4ff" },
+    cargada: { label: "Base Gestión", color: "#00d4ff" },
     recorrido: { label: "Recorrido", color: "#0ea5e9" },
     contactado: { label: "Contactados", color: "#10b981" },
     citas: { label: "Citas", color: "#f59e0b" },
