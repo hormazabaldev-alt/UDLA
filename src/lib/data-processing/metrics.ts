@@ -72,9 +72,8 @@ export function computeTotals(rows: DataRow[]): Totals {
       if (rut) citasRuts.add(rut);
     }
 
-    // AFLUENCIA (AF) = contar filas donde columna AF contiene "A", "MC" o "M"
-    const afVal = row.af?.trim().toUpperCase() ?? "";
-    if (afVal === "A" || afVal === "MC" || afVal === "M") {
+    // AFLUENCIA = contar filas donde "Interesa" = "Viene"
+    if (isInteresaViene(row.interesa)) {
       af++;
       if (rut) afRuts.add(rut);
     }

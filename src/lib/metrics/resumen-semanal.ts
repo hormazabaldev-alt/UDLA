@@ -54,8 +54,7 @@ export function isMatriculaRow(row: DataRow) {
 }
 
 export function isAfTotalRow(row: DataRow) {
-  const af = row.af?.trim().toUpperCase() ?? "";
-  return af === "A" || af === "MC" || af === "M";
+  return isInteresaViene(row.interesa);
 }
 
 export function calcResumenSemanal(
@@ -66,7 +65,7 @@ export function calcResumenSemanal(
   },
 ): ResumenSemanalResult {
   const excludeMissingSemana = opts?.excludeMissingSemana ?? true;
-  // Backward compat: opts.afluenciaValues is ignored (AF comes from columna `AF`).
+  // Backward compat: opts.afluenciaValues is ignored (Afluencia comes from `Interesa = Viene`).
 
   const excluded: ResumenExclusion = { invalidRows: 0, missingSemana: 0 };
   const groups = new Map<

@@ -12,7 +12,7 @@ import {
   type AgentFilters,
 } from "@/lib/agent-analytics/agentMetrics";
 import type { DataRow } from "@/lib/data-processing/types";
-import { isAfluenciaValue, isMatriculaValue } from "@/lib/data-processing/predicates";
+import { isMatriculaValue } from "@/lib/data-processing/predicates";
 import { formatInt } from "@/lib/utils/format";
 import { isInteresaViene } from "@/lib/utils/interesa";
 import { toCampusCode } from "@/lib/utils/campus";
@@ -135,7 +135,7 @@ function addRowToCounts(counts: SummaryCounts, row: MetricInputRow) {
   if (isConecta(row.conecta)) counts.conecta += 1;
   if (isNoConecta(row.conecta)) counts.noConecta += 1;
   if (isInteresaViene(row.interesa)) counts.citas += 1;
-  if (isAfluenciaValue(row.af)) counts.af += 1;
+  if (isInteresaViene(row.interesa)) counts.af += 1;
   if (isMatriculaValue(row.mc)) counts.mc += 1;
 }
 

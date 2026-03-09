@@ -32,8 +32,7 @@ export function WeeklyChart() {
             if (c === "conecta" || c === "no conecta") g.recorrido++;
             if (c === "conecta") g.contactado++;
             if (isInteresaViene(r.interesa)) g.citasRuts.add(normalizeRut(r.rutBase));
-            const afVal = r.af?.trim().toUpperCase() ?? "";
-            if (afVal === "A" || afVal === "MC" || afVal === "M") g.af++;
+            if (isInteresaViene(r.interesa)) g.af++;
             const mcVal = r.mc?.trim().toUpperCase() ?? "";
             if (mcVal === "M" || mcVal === "MC") g.mc++;
         }

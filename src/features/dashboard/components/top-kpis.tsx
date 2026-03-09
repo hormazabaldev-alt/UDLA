@@ -142,7 +142,7 @@ export function TopKpis() {
         icon: CalendarRange,
       },
       {
-        title: "AF",
+        title: "Afluencias",
         value: totals.af,
         format: (n: number) => formatInt(Math.round(n)),
         icon: CheckCircle2,

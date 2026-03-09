@@ -3,6 +3,7 @@
 import ReactECharts from "echarts-for-react";
 import { useMemo } from "react";
 import { useMetrics } from "@/features/dashboard/hooks/useMetrics";
+import { isInteresaViene } from "@/lib/utils/interesa";
 
 export function CampusBreakdownChart() {
     const { rows } = useMetrics();
@@ -20,8 +21,7 @@ export function CampusBreakdownChart() {
             const data = grouped.get(sede)!;
 
             // AFI
-            const afVal = row.af?.trim().toUpperCase() ?? "";
-            if (afVal === "A" || afVal === "MC" || afVal === "M") {
+            if (isInteresaViene(row.interesa)) {
                 data.afluencias++;
             }
 

@@ -35,10 +35,7 @@ function computeRowKPI(row: DataRow, metric: Metric): number {
         }
         case "contactado": return row.conecta?.trim().toLowerCase() === "conecta" ? 1 : 0;
         case "citas": return isInteresaViene(row.interesa) ? 1 : 0;
-        case "af": {
-            const v = row.af?.trim().toUpperCase() ?? "";
-            return (v === "A" || v === "MC" || v === "M") ? 1 : 0;
-        }
+        case "af": return isInteresaViene(row.interesa) ? 1 : 0;
         case "mc": {
             const v = row.mc?.trim().toUpperCase() ?? "";
             return (v === "M" || v === "MC") ? 1 : 0;

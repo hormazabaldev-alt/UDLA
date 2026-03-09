@@ -5,13 +5,13 @@ import { useMemo } from "react";
 
 import { useMetrics } from "@/features/dashboard/hooks/useMetrics";
 import { toCampusCode } from "@/lib/utils/campus";
+import { isInteresaViene } from "@/lib/utils/interesa";
 
 type Metric = "af" | "mc";
 type Dimension = "campus" | "regimen";
 
-function isAfluenciaRow(row: { af?: string | null }) {
-  const v = row.af?.trim().toUpperCase() ?? "";
-  return v === "A" || v === "MC" || v === "M";
+function isAfluenciaRow(row: { interesa?: string | null }) {
+  return isInteresaViene(row.interesa);
 }
 
 function isMatriculaRow(row: { mc?: string | null }) {
@@ -38,7 +38,7 @@ export function MetricBreakdownChart({
 
       const label =
         dimension === "campus"
-          ? toCampusCode((metric === "af" ? row.afCampus : row.mcCampus) ?? row.sedeInteres)
+          ? toCampusCode((metric === "af" ? row.sedeInteres : row.mcCampus) ?? row.sedeInteres)
           : ((row.regimen?.trim() || "Sin Régimen").toUpperCase());
 
       grouped.set(label, (grouped.get(label) ?? 0) + 1);
