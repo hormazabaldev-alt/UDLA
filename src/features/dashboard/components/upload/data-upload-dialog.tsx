@@ -118,6 +118,9 @@ export function DataUploadDialog({ triggerLabel, triggerIcon }: {
     },
     accept: {
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
+      "text/csv": [".csv"],
+      "application/csv": [".csv"],
+      "application/vnd.ms-excel": [".csv"],
     },
     multiple: false,
   });
@@ -381,9 +384,9 @@ export function DataUploadDialog({ triggerLabel, triggerIcon }: {
           >
             <input {...getInputProps()} />
             <FileSpreadsheet className="mb-1 size-5 text-cyan-200/90" />
-            <div className="text-sm font-medium">Arrastra tu XLSX aqui o haz click</div>
+            <div className="text-sm font-medium">Arrastra tu XLSX o CSV aqui o haz click</div>
             <div className="mt-1 text-xs text-white/50">
-              Solo se permite <strong>1 archivo</strong>; se reemplazara el dataset completo.
+              Solo se permite <strong>1 archivo</strong> (`.xlsx` o `.csv`); se reemplazara el dataset completo.
             </div>
           </div>
 

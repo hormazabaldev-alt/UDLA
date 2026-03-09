@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { importXlsxSnapshot, type ImportProgressEvent } from "@/lib/data-processing/import-xlsx-server";
+import { importDatasetSnapshot, type ImportProgressEvent } from "@/lib/data-processing/import-dataset-server";
 import { getActiveSnapshot } from "@/lib/supabase/snapshot";
 import { assertDashboardAdmin } from "@/lib/server/dashboard-admin";
 
@@ -50,12 +50,12 @@ export async function POST(req: Request) {
         const form = await req.formData();
         const files = form.getAll("file").filter((file): file is File => file instanceof File);
         if (files.length !== 1) {
-          send({ type: "fatal_error", error: "Debes subir exactamente 1 archivo XLSX." });
+          send({ type: "fatal_error", error: "Debes subir exactamente 1 archivo .xlsx o .csv." });
           return;
         }
 
         const file = files[0]!;
-        const result = await importXlsxSnapshot(file, async (event: ImportProgressEvent) => {
+        const result = await importDatasetSnapshot(file, async (event: ImportProgressEvent) => {
           send({ type: "progress", ...event });
         });
 

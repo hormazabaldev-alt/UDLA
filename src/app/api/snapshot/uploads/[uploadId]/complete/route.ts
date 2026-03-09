@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { importXlsxSnapshot, type ImportProgressEvent } from "@/lib/data-processing/import-xlsx-server";
+import { importDatasetSnapshot, type ImportProgressEvent } from "@/lib/data-processing/import-dataset-server";
 import { assembleTempUploadFile, cleanupTempUpload } from "@/lib/supabase/snapshot";
 import { assertDashboardAdmin } from "@/lib/server/dashboard-admin";
 
@@ -40,7 +40,7 @@ export async function POST(
         }
 
         const file = await assembleTempUploadFile(uploadId, fileName, totalChunks);
-        const result = await importXlsxSnapshot(file, async (event: ImportProgressEvent) => {
+        const result = await importDatasetSnapshot(file, async (event: ImportProgressEvent) => {
           send({ type: "progress", ...event });
         });
 
