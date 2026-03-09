@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { parseXlsxFile } from "@/lib/data-processing/parse-xlsx";
-import { getActiveSnapshot, replaceSnapshot } from "@/lib/supabase/snapshot";
+import { importXlsxSnapshot, type ImportProgressEvent } from "@/lib/data-processing/import-xlsx-server";
+import { getActiveSnapshot } from "@/lib/supabase/snapshot";
 
 export const runtime = "nodejs";
 
@@ -12,9 +12,9 @@ export async function GET() {
     return NextResponse.json(dataset, {
       headers: { "Cache-Control": "no-store" },
     });
-  } catch (e) {
+  } catch (error) {
     return NextResponse.json(
-      { ok: false, error: e instanceof Error ? e.message : "Unknown error" },
+      { ok: false, error: error instanceof Error ? error.message : "Unknown error" },
       { status: 500 },
     );
   }
@@ -33,50 +33,70 @@ function assertAdmin(req: Request) {
 }
 
 export async function POST(req: Request) {
-  try {
-    const auth = assertAdmin(req);
-    if (!auth.ok) {
-      return NextResponse.json(
-        { ok: false, error: auth.message },
-        { status: auth.status },
-      );
-    }
-
-    const contentType = req.headers.get("content-type") ?? "";
-    if (!contentType.includes("multipart/form-data")) {
-      return NextResponse.json(
-        { ok: false, error: "Expected multipart/form-data with a file field." },
-        { status: 400 },
-      );
-    }
-
-    const form = await req.formData();
-    const files = form.getAll("file").filter((f): f is File => f instanceof File);
-    if (files.length !== 1) {
-      return NextResponse.json(
-        { ok: false, error: "Debes subir exactamente 1 archivo XLSX." },
-        { status: 400 },
-      );
-    }
-
-    const file = files[0]!;
-    const parsed = await parseXlsxFile(file);
-    if (!parsed.ok) {
-      return NextResponse.json(parsed, { status: 400 });
-    }
-
-    const result = await replaceSnapshot(parsed.dataset);
-
+  const auth = assertAdmin(req);
+  if (!auth.ok) {
     return NextResponse.json(
-      { ok: true, mode: "replace", meta: result.meta, totalRows: result.meta.rowCount },
-      { status: 200 },
-    );
-  } catch (e) {
-    console.error("POST /api/snapshot error:", e);
-    const message = e instanceof Error ? e.message : typeof e === "object" ? JSON.stringify(e) : "Unknown error";
-    return NextResponse.json(
-      { ok: false, error: message },
-      { status: 500 },
+      { ok: false, error: auth.message },
+      { status: auth.status },
     );
   }
+
+  const contentType = req.headers.get("content-type") ?? "";
+  if (!contentType.includes("multipart/form-data")) {
+    return NextResponse.json(
+      { ok: false, error: "Expected multipart/form-data with a file field." },
+      { status: 400 },
+    );
+  }
+
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      const send = (payload: Record<string, unknown>) => {
+        controller.enqueue(encoder.encode(`${JSON.stringify(payload)}\n`));
+      };
+
+      try {
+        const form = await req.formData();
+        const files = form.getAll("file").filter((file): file is File => file instanceof File);
+        if (files.length !== 1) {
+          send({ type: "fatal_error", error: "Debes subir exactamente 1 archivo XLSX." });
+          return;
+        }
+
+        const file = files[0]!;
+        const result = await importXlsxSnapshot(file, async (event: ImportProgressEvent) => {
+          send({ type: "progress", ...event });
+        });
+
+        if (!result.ok) {
+          send({ type: "validation_error", issues: result.issues, preview: result.preview });
+          return;
+        }
+
+        send({
+          type: "completed",
+          ok: true,
+          mode: "replace",
+          meta: result.meta,
+          totalRows: result.meta.rowCount,
+        });
+      } catch (error) {
+        console.error("POST /api/snapshot error:", error);
+        const message =
+          error instanceof Error ? error.message : typeof error === "object" ? JSON.stringify(error) : "Unknown error";
+        send({ type: "fatal_error", error: message });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    status: 200,
+    headers: {
+      "Content-Type": "application/x-ndjson; charset=utf-8",
+      "Cache-Control": "no-store",
+    },
+  });
 }

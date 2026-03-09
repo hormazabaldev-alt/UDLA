@@ -1,16 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { AlertTriangle, FileSpreadsheet, Upload } from "lucide-react";
 
-import { parseXlsxFile } from "@/lib/data-processing/parse-xlsx";
-import type { ParseResult } from "@/lib/data-processing/types";
+import type { ParseIssue } from "@/lib/data-processing/types";
 import { loadAdminKey, persistAdminKey } from "@/lib/persistence/admin-key";
 import { cn } from "@/lib/utils/cn";
 import { formatInt } from "@/lib/utils/format";
-import { normalizeRut } from "@/lib/utils/rut";
-import { isInteresaViene } from "@/lib/utils/interesa";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -23,24 +20,38 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { useData } from "@/features/dashboard/hooks/useData";
-import { PreviewGrid } from "@/features/dashboard/components/upload/preview-grid";
 
-function IssueList({ result }: { result: Extract<ParseResult, { ok: false }> }) {
-  const items = result.issues.slice(0, 10);
+type UploadState =
+  | { type: "idle" }
+  | {
+    type: "progress";
+    message: string;
+    processedRows?: number;
+    totalRows?: number;
+    uploadedChunks?: number;
+    totalChunks?: number;
+  }
+  | { type: "completed"; rowCount: number }
+  | { type: "validation_error"; issues: ParseIssue[] }
+  | { type: "fatal_error"; error: string };
+
+function IssueList({ issues }: { issues: ParseIssue[] }) {
+  const items = issues.slice(0, 10);
+
   return (
     <div className="rounded-xl border border-red-400/15 bg-red-400/5 p-3">
       <div className="flex items-center gap-2 text-xs font-medium text-red-200">
         <AlertTriangle className="size-4" />
-        {`Se detectaron ${result.issues.length} problema(s).`}
+        {`Se detectaron ${issues.length} problema(s).`}
       </div>
       <ul className="mt-2 space-y-1 text-xs text-white/70">
-        {items.map((i, idx) => (
-          <li key={idx} className="flex gap-2">
+        {items.map((issue, index) => (
+          <li key={index} className="flex gap-2">
             <span className="text-white/40">
-              {i.rowIndex !== undefined ? `Fila ${i.rowIndex + 2}` : "Estructura"}
+              {issue.rowIndex !== undefined ? `Fila ${issue.rowIndex + 2}` : "Estructura"}
             </span>
             <span className="text-white/30">·</span>
-            <span>{i.message}</span>
+            <span>{issue.message}</span>
           </li>
         ))}
       </ul>
@@ -55,74 +66,46 @@ export function DataUploadDialog({ triggerLabel, triggerIcon }: {
   const { meta, refreshDataset } = useData();
 
   const [open, setOpen] = useState(false);
-  const [parsing, setParsing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [result, setResult] = useState<ParseResult | null>(null);
   const [adminKey, setAdminKey] = useState("");
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
+  const [uploadState, setUploadState] = useState<UploadState>({ type: "idle" });
   const uploadLockRef = useRef(false);
 
   useEffect(() => {
     setAdminKey(loadAdminKey());
   }, []);
 
-  const onDrop = useCallback(async (accepted: File[]) => {
-    const file = accepted[0] ?? null;
-    if (!file) return;
-    setSelectedFile(file);
-    setParsing(true);
-    setUploadError(null);
-    setResult(null);
-    try {
-      const parsed = await parseXlsxFile(file);
-      setResult(parsed);
-    } finally {
-      setParsing(false);
-    }
-  }, []);
-
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
+    onDrop: (accepted) => {
+      const file = accepted[0] ?? null;
+      if (!file) return;
+      setSelectedFile(file);
+      setUploadState({ type: "idle" });
+    },
     accept: {
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
     },
     multiple: false,
   });
 
-  const allValid = !!result && result.ok;
-  const totalRows = allValid ? result.dataset.rows.length : 0;
-  const canUpload =
-    allValid &&
-    !parsing &&
-    !uploading &&
-    adminKey.trim().length > 0;
-
-  const vieneStats = useMemo(() => {
-    if (!result?.ok) return null;
-    let vieneRows = 0;
-    const ruts = new Set<string>();
-    for (const row of result.dataset.rows) {
-      if (!isInteresaViene(row.interesa)) continue;
-      vieneRows++;
-      const rut = normalizeRut(row.rutBase);
-      if (rut) ruts.add(rut);
-    }
-    return { vieneRows, uniqueRutViene: ruts.size };
-  }, [result]);
+  const canUpload = !!selectedFile && !uploading && adminKey.trim().length > 0;
 
   const handleUpload = async () => {
-    if (!allValid || !selectedFile) return;
+    if (!selectedFile) return;
     if (uploadLockRef.current) return;
+
     uploadLockRef.current = true;
     setUploading(true);
-    setUploadError(null);
+    setUploadState({
+      type: "progress",
+      message: `Subiendo ${selectedFile.name}...`,
+    });
 
     try {
-      setUploadProgress(`Subiendo: ${selectedFile.name}...`);
       const form = new FormData();
       form.set("file", selectedFile);
+
       const res = await fetch("/api/snapshot", {
         method: "POST",
         headers: {
@@ -130,26 +113,97 @@ export function DataUploadDialog({ triggerLabel, triggerIcon }: {
         },
         body: form,
       });
+
       if (!res.ok) {
         const contentType = res.headers.get("content-type") ?? "";
         if (contentType.includes("application/json")) {
           const body = await res.json().catch(() => null);
-          setUploadError(`(${res.status}) ${body?.error ?? JSON.stringify(body) ?? "Error desconocido"}`);
+          setUploadState({
+            type: "fatal_error",
+            error: `(${res.status}) ${body?.error ?? JSON.stringify(body) ?? "Error desconocido"}`,
+          });
         } else {
           const text = await res.text().catch(() => "");
-          setUploadError(`(${res.status}) ${text.trim().slice(0, 300) || "Error desconocido"}`);
+          setUploadState({
+            type: "fatal_error",
+            error: `(${res.status}) ${text.trim().slice(0, 300) || "Error desconocido"}`,
+          });
         }
         return;
       }
 
-      setUploadProgress(null);
+      const reader = res.body?.getReader();
+      if (!reader) {
+        setUploadState({
+          type: "fatal_error",
+          error: "La respuesta del servidor no soporta streaming.",
+        });
+        return;
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let shouldRefresh = false;
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+
+          const event = JSON.parse(line) as
+            | {
+              type: "progress";
+              message: string;
+              processedRows?: number;
+              totalRows?: number;
+              uploadedChunks?: number;
+              totalChunks?: number;
+            }
+            | { type: "completed"; totalRows: number }
+            | { type: "validation_error"; issues: ParseIssue[] }
+            | { type: "fatal_error"; error: string };
+
+          if (event.type === "progress") {
+            setUploadState({
+              type: "progress",
+              message: event.message,
+              processedRows: event.processedRows,
+              totalRows: event.totalRows,
+              uploadedChunks: event.uploadedChunks,
+              totalChunks: event.totalChunks,
+            });
+            continue;
+          }
+
+          if (event.type === "validation_error") {
+            setUploadState({ type: "validation_error", issues: event.issues });
+            continue;
+          }
+
+          if (event.type === "fatal_error") {
+            setUploadState({ type: "fatal_error", error: event.error });
+            continue;
+          }
+
+          shouldRefresh = true;
+          setUploadState({ type: "completed", rowCount: event.totalRows });
+        }
+      }
+
+      if (!shouldRefresh) return;
+
       await refreshDataset();
       setOpen(false);
-      setResult(null);
       setSelectedFile(null);
+      setUploadState({ type: "idle" });
     } finally {
       setUploading(false);
-      setUploadProgress(null);
       uploadLockRef.current = false;
     }
   };
@@ -161,9 +215,8 @@ export function DataUploadDialog({ triggerLabel, triggerIcon }: {
         size="sm"
         onClick={() => {
           setOpen(true);
-          setResult(null);
           setSelectedFile(null);
-          setUploadError(null);
+          setUploadState({ type: "idle" });
         }}
         className="w-full justify-start gap-2"
       >
@@ -174,17 +227,14 @@ export function DataUploadDialog({ triggerLabel, triggerIcon }: {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>
-              Reemplazar dataset
-            </DialogTitle>
+            <DialogTitle>Reemplazar dataset</DialogTitle>
             <DialogDescription>
-              Se cargará un único archivo Excel y se reemplazará completamente la data actual.
+              La carga se procesa en el servidor por lotes y reemplaza completamente la data actual.
             </DialogDescription>
           </DialogHeader>
 
           <Separator className="my-2" />
 
-          {/* Admin Key */}
           <div className="rounded-xl border border-white/10 bg-white/3 p-3">
             <div className="text-[11px] font-medium text-white/55">Clave de carga</div>
             <Input
@@ -196,12 +246,9 @@ export function DataUploadDialog({ triggerLabel, triggerIcon }: {
               placeholder="admin123"
               className="mt-1 h-8"
             />
-            <div className="mt-1 text-[10px] text-white/40">
-              Se guarda en localStorage.
-            </div>
+            <div className="mt-1 text-[10px] text-white/40">Se guarda en localStorage.</div>
           </div>
 
-          {/* Drop Zone */}
           <div
             {...getRootProps()}
             className={cn(
@@ -210,83 +257,67 @@ export function DataUploadDialog({ triggerLabel, triggerIcon }: {
             )}
           >
             <input {...getInputProps()} />
-            <FileSpreadsheet className="size-5 text-cyan-200/90 mb-1" />
-            <div className="text-sm font-medium">
-              Arrastra tu XLSX aquí o haz click
-            </div>
-            <div className="text-xs text-white/50 mt-1">
-              Solo se permite <strong>1 archivo</strong>; se reemplazará el dataset completo.
+            <FileSpreadsheet className="mb-1 size-5 text-cyan-200/90" />
+            <div className="text-sm font-medium">Arrastra tu XLSX aqui o haz click</div>
+            <div className="mt-1 text-xs text-white/50">
+              Solo se permite <strong>1 archivo</strong>; se reemplazara el dataset completo.
             </div>
           </div>
 
-          {/* File Results */}
-          {result && selectedFile && (
+          {selectedFile && (
             <div className="space-y-2 max-h-[200px] overflow-y-auto">
-              <div className="flex items-center gap-2 text-xs p-2 rounded-lg bg-white/3 border border-white/10">
-                <FileSpreadsheet className="size-4 text-cyan-300/80 flex-shrink-0" />
-                <span className="truncate flex-1 text-white/80">{selectedFile.name}</span>
-                {parsing ? (
-                  <Badge variant="neutral">Procesando…</Badge>
-                ) : result.ok ? (
-                  <>
-                    <Badge variant="success">{formatInt(result.dataset.rows.length)} filas</Badge>
-                    <Badge variant="neutral">
-                      Viene: {formatInt(vieneStats?.vieneRows ?? 0)}
-                    </Badge>
-                    <Badge variant="neutral">
-                      RUT Viene: {formatInt(vieneStats?.uniqueRutViene ?? 0)}
-                    </Badge>
-                  </>
-                ) : (
+              <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/3 p-2 text-xs">
+                <FileSpreadsheet className="size-4 flex-shrink-0 text-cyan-300/80" />
+                <span className="flex-1 truncate text-white/80">{selectedFile.name}</span>
+                {uploadState.type === "completed" ? (
+                  <Badge variant="success">{formatInt(uploadState.rowCount)} filas</Badge>
+                ) : uploadState.type === "validation_error" || uploadState.type === "fatal_error" ? (
                   <Badge variant="danger">Error</Badge>
+                ) : uploading ? (
+                  <Badge variant="neutral">Procesando...</Badge>
+                ) : (
+                  <Badge variant="neutral">Listo para cargar</Badge>
                 )}
               </div>
-              {allValid && (
-                <div className="text-xs text-white/50 text-right">
-                  Total: <strong className="text-white/80">{formatInt(totalRows)}</strong> filas
+            </div>
+          )}
+
+          {uploadState.type === "progress" && (
+            <div className="rounded-xl border border-cyan-400/15 bg-cyan-400/5 p-3 text-xs text-cyan-100">
+              <div>{uploadState.message}</div>
+              {uploadState.totalRows ? (
+                <div className="mt-1 text-cyan-100/75">
+                  {formatInt(uploadState.processedRows ?? 0)} / {formatInt(uploadState.totalRows)} filas
+                  {uploadState.totalChunks
+                    ? ` · bloque ${formatInt(uploadState.uploadedChunks ?? 0)} / ${formatInt(uploadState.totalChunks)}`
+                    : null}
                 </div>
-              )}
+              ) : null}
             </div>
           )}
 
-          {/* Errors */}
-          {result && !result.ok ? (
-            <IssueList result={result as Extract<ParseResult, { ok: false }>} />
-          ) : null}
+          {uploadState.type === "validation_error" && <IssueList issues={uploadState.issues} />}
 
-          {uploadError && (
+          {uploadState.type === "fatal_error" && (
             <div className="rounded-xl border border-red-400/15 bg-red-400/5 p-3 text-xs text-red-200">
-              {uploadError}
+              {uploadState.error}
             </div>
           )}
 
-          {/* Current Data Info */}
           {meta && (
-            <div className="text-xs text-white/45 p-2 rounded-lg bg-white/3 border border-white/10">
+            <div className="rounded-lg border border-white/10 bg-white/3 p-2 text-xs text-white/45">
               Datos actuales: <strong>{meta.sourceFileName}</strong> · {formatInt(meta.rowCount)} filas ·
               Importado {new Date(meta.importedAtISO).toLocaleString("es-CL")}
             </div>
           )}
 
-          {/* Upload Button */}
           <Button
             className="w-full"
             disabled={!canUpload}
             onClick={handleUpload}
           >
-            {uploading
-              ? uploadProgress || "Subiendo…"
-              : `Reemplazar dataset con ${formatInt(totalRows)} filas`
-            }
+            {uploading ? "Procesando carga..." : "Reemplazar dataset"}
           </Button>
-
-          {/* Preview */}
-          {result?.preview?.length ? (
-            <div className="space-y-1">
-              <div className="text-xs text-white/70 font-medium">Preview</div>
-              <PreviewGrid rows={result.preview} />
-            </div>
-          ) : null}
         </DialogContent>
       </Dialog>
     </>

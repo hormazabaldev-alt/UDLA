@@ -11,6 +11,8 @@ import {
 } from "@/lib/persistence/dataset";
 import { useDashboardStore } from "@/store/dashboard-store";
 
+const MAX_PERSISTED_ROWS = 100_000;
+
 export function useData() {
   const dataset = useDashboardStore((s) => s.dataset);
   const setDataset = useDashboardStore((s) => s.setDataset);
@@ -29,7 +31,11 @@ export function useData() {
     const rawDs = (await res.json()) as Dataset;
     const ds = reviveDataset(rawDs);
     setDataset(ds);
-    await persistDataset(ds);
+    if (ds.meta.rowCount <= MAX_PERSISTED_ROWS) {
+      await persistDataset(ds);
+    } else {
+      await clearPersistedDataset();
+    }
     return ds;
   }, [setDataset]);
 
@@ -53,7 +59,11 @@ export function useData() {
   const replaceDataset = useCallback(
     async (next: Dataset) => {
       setDataset(next);
-      await persistDataset(next);
+      if (next.meta.rowCount <= MAX_PERSISTED_ROWS) {
+        await persistDataset(next);
+      } else {
+        await clearPersistedDataset();
+      }
     },
     [setDataset],
   );

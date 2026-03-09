@@ -43,6 +43,8 @@ const DEFAULT_FILTERS: Filters = {
   carreraInteres: [],
 };
 
+const MAX_INDEXED_ROWS = 150_000;
+
 export function applyFilters(
   rows: DataRow[],
   filters: Filters,
@@ -114,6 +116,7 @@ export const useDashboardStore = create<DashboardState>((set) => ({
     set(() => ({
       dataset,
       tipoIndex: dataset
+        && dataset.rows.length <= MAX_INDEXED_ROWS
         ? dataset.rows.reduce<Record<string, DataRow[]>>((acc, r) => {
           const key = r.tipoBase ?? "Desconocido";
           (acc[key] ||= []).push(r);
