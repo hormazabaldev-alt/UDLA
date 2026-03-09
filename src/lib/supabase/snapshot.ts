@@ -187,7 +187,12 @@ async function listFolderPaths(
 export async function getActiveSnapshot(): Promise<Dataset | null> {
   try {
     const supabase = getSupabaseServerClient();
-    const manifest = await readManifest(supabase);
+    let manifest: StoredDatasetManifest | null = null;
+    try {
+      manifest = await readManifest(supabase);
+    } catch (error) {
+      console.warn("readManifest failed, falling back to dataset.json:", error);
+    }
 
     if (manifest) {
       const rows: DataRow[] = [];
@@ -317,7 +322,6 @@ export async function finalizeSnapshotWrite(session: SnapshotWriteSession): Prom
     rowCount: session.rowCount,
   };
 
-  const previousManifest = await readManifest(session.supabase);
   const manifest: StoredDatasetManifest = {
     version: session.version,
     meta: nextMeta,
@@ -327,10 +331,6 @@ export async function finalizeSnapshotWrite(session: SnapshotWriteSession): Prom
 
   await uploadJSON(session.supabase, MANIFEST_PATH, manifest);
   await cleanupLegacyActiveDataset(session.supabase);
-
-  if (previousManifest && previousManifest.version !== session.version) {
-    await removeFilesOptional(session.supabase, previousManifest.chunkPaths);
-  }
 
   await addLogEntry(session.supabase, {
     timestamp: new Date().toISOString(),
