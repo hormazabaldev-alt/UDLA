@@ -50,6 +50,16 @@ function cleanKey(key: string) {
     .trim();
 }
 
+function getSheetCellValue(sheet: XLSX.WorkSheet, row: number, column: number) {
+  if (Array.isArray(sheet)) {
+    const denseRow = sheet[row] as XLSX.CellObject[] | undefined;
+    return denseRow?.[column]?.v;
+  }
+
+  const cellRef = XLSX.utils.encode_cell({ r: row, c: column });
+  return sheet[cellRef]?.v;
+}
+
 function getSheetHeaders(sheet: XLSX.WorkSheet) {
   const ref = sheet["!ref"];
   if (!ref) return null;
@@ -58,9 +68,8 @@ function getSheetHeaders(sheet: XLSX.WorkSheet) {
   const headers: string[] = [];
 
   for (let c = range.s.c; c <= range.e.c; c++) {
-    const cellRef = XLSX.utils.encode_cell({ r: range.s.r, c });
-    const cell = sheet[cellRef];
-    const rawValue = cell?.v == null ? "" : String(cell.v);
+    const rawCellValue = getSheetCellValue(sheet, range.s.r, c);
+    const rawValue = rawCellValue == null ? "" : String(rawCellValue);
     const cleaned = cleanKey(rawValue);
     headers.push(cleaned || `__EMPTY_${c}`);
   }
