@@ -14,10 +14,11 @@ import {
   type SnapshotWriteSession,
 } from "@/lib/supabase/snapshot";
 
-const PROCESS_BATCH_SIZE = 2_000;
-const STORAGE_CHUNK_SIZE = 5_000;
+const PROCESS_BATCH_SIZE = 10_000;
+const STORAGE_CHUNK_SIZE = 20_000;
 const MAX_ISSUES = 100;
 const PREVIEW_LIMIT = 25;
+const PROGRESS_STEP = 10_000;
 
 type SheetCandidate = {
   sheetName: string;
@@ -154,6 +155,22 @@ async function flushChunk(
   });
 }
 
+async function emitProcessingProgress(
+  processedRows: number,
+  totalRows: number,
+  uploadedChunks: number,
+  onProgress?: (event: ImportProgressEvent) => Promise<void> | void,
+) {
+  await onProgress?.({
+    stage: "processing",
+    message: `Procesando ${Math.min(totalRows, processedRows)} de ${totalRows} filas...`,
+    processedRows: Math.min(totalRows, processedRows),
+    totalRows,
+    uploadedChunks,
+    totalChunks: Math.max(1, Math.ceil(totalRows / STORAGE_CHUNK_SIZE)),
+  });
+}
+
 export async function importXlsxSnapshot(
   file: File,
   onProgress?: (event: ImportProgressEvent) => Promise<void> | void,
@@ -209,6 +226,7 @@ export async function importXlsxSnapshot(
   const storageBuffer: DataRow[] = [];
   let session: SnapshotWriteSession | null = null;
   let processedRows = 0;
+  let nextProgressAt = PROGRESS_STEP;
   let stoppedByIssues = false;
 
   try {
@@ -244,6 +262,17 @@ export async function importXlsxSnapshot(
         seen.add(dedupeKey);
         storageBuffer.push(normalized.row);
 
+        const absoluteProcessedRows = Math.min(best.rowCount, rowIndex + 1);
+        if (absoluteProcessedRows >= nextProgressAt) {
+          await emitProcessingProgress(
+            absoluteProcessedRows,
+            best.rowCount,
+            session.chunkPaths.length,
+            onProgress,
+          );
+          nextProgressAt += PROGRESS_STEP;
+        }
+
         if (storageBuffer.length >= STORAGE_CHUNK_SIZE) {
           await flushChunk(
             session,
@@ -260,15 +289,6 @@ export async function importXlsxSnapshot(
       }
 
       processedRows += rawRows.length;
-
-      await onProgress?.({
-        stage: "processing",
-        message: `Procesando ${Math.min(best.rowCount, processedRows)} de ${best.rowCount} filas...`,
-        processedRows: Math.min(best.rowCount, processedRows),
-        totalRows: best.rowCount,
-        uploadedChunks: session.chunkPaths.length,
-        totalChunks: Math.max(1, Math.ceil(best.rowCount / STORAGE_CHUNK_SIZE)),
-      });
 
       if (stoppedByIssues) break;
     }
@@ -294,6 +314,8 @@ export async function importXlsxSnapshot(
       },
       onProgress,
     );
+
+    await emitProcessingProgress(best.rowCount, best.rowCount, session.chunkPaths.length, onProgress);
 
     const finalized = await finalizeSnapshotWrite(session);
 

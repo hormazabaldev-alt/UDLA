@@ -22,6 +22,7 @@ import { Separator } from "@/components/ui/separator";
 import { useData } from "@/features/dashboard/hooks/useData";
 
 const MAX_UPLOAD_RETRIES = 3;
+const MAX_PARALLEL_UPLOADS = 3;
 
 type UploadState =
   | { type: "idle" }
@@ -168,32 +169,42 @@ export function DataUploadDialog({ triggerLabel, triggerIcon }: {
       uploadId = initBody.uploadId;
       const chunkSize = initBody.chunkSize;
       const totalChunks = Math.max(1, Math.ceil(selectedFile.size / chunkSize));
+      let nextPartNumber = 0;
+      let uploadedChunks = 0;
+      const workerCount = Math.min(MAX_PARALLEL_UPLOADS, totalChunks);
+      const uploadWorker = async () => {
+        while (nextPartNumber < totalChunks) {
+          const partNumber = nextPartNumber;
+          nextPartNumber += 1;
 
-      for (let partNumber = 0; partNumber < totalChunks; partNumber++) {
-        const start = partNumber * chunkSize;
-        const end = Math.min(selectedFile.size, start + chunkSize);
-        const chunk = selectedFile.slice(start, end);
+          const start = partNumber * chunkSize;
+          const end = Math.min(selectedFile.size, start + chunkSize);
+          const chunk = selectedFile.slice(start, end);
 
-        setUploadState({
-          type: "progress",
-          message: `Subiendo bloque ${partNumber + 1} de ${totalChunks}...`,
-          uploadedChunks: partNumber,
-          totalChunks,
-        });
+          await uploadChunkWithRetry(
+            `/api/snapshot/uploads/${uploadId}?partNumber=${partNumber}`,
+            adminKey.trim(),
+            chunk,
+          );
 
-        await uploadChunkWithRetry(
-          `/api/snapshot/uploads/${uploadId}?partNumber=${partNumber}`,
-          adminKey.trim(),
-          chunk,
-        );
+          uploadedChunks += 1;
+          setUploadState({
+            type: "progress",
+            message: `Subiendo bloques ${uploadedChunks} de ${totalChunks}...`,
+            uploadedChunks,
+            totalChunks,
+          });
+        }
+      };
 
-        setUploadState({
-          type: "progress",
-          message: `Subiendo bloque ${partNumber + 1} de ${totalChunks}...`,
-          uploadedChunks: partNumber + 1,
-          totalChunks,
-        });
-      }
+      setUploadState({
+        type: "progress",
+        message: `Subiendo bloques 0 de ${totalChunks}...`,
+        uploadedChunks: 0,
+        totalChunks,
+      });
+
+      await Promise.all(Array.from({ length: workerCount }, () => uploadWorker()));
 
       setUploadState({
         type: "progress",

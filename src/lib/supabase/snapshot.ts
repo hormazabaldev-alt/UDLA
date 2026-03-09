@@ -8,7 +8,7 @@ const BUCKET = "snapshots";
 const DATASET_PATH = "active/dataset.json";
 const MANIFEST_PATH = "active/manifest.json";
 const LOGS_PATH = "logs/upload-log.json";
-const DEFAULT_CHUNK_SIZE = 5_000;
+const DEFAULT_CHUNK_SIZE = 20_000;
 const TEMP_UPLOAD_PREFIX = "uploads";
 const TEMP_UPLOAD_CHUNK_SIZE = 3 * 1024 * 1024;
 
@@ -247,15 +247,16 @@ export async function assembleTempUploadFile(uploadId: string, fileName: string,
     throw new Error("No existe una sesion de carga activa para este archivo.");
   }
 
-  const parts: ArrayBuffer[] = [];
-  for (let partNumber = 0; partNumber < totalChunks; partNumber++) {
-    const { data, error } = await supabase.storage.from(BUCKET).download(buildTempUploadChunkPath(uploadId, partNumber));
-    if (error) {
-      throw new Error(`Falta el bloque ${partNumber + 1} del archivo temporal.`);
-    }
+  const parts = await Promise.all(
+    Array.from({ length: totalChunks }, async (_, partNumber) => {
+      const { data, error } = await supabase.storage.from(BUCKET).download(buildTempUploadChunkPath(uploadId, partNumber));
+      if (error) {
+        throw new Error(`Falta el bloque ${partNumber + 1} del archivo temporal.`);
+      }
 
-    parts.push(await data.arrayBuffer());
-  }
+      return data.arrayBuffer();
+    }),
+  );
 
   return new File(parts, fileName || session.fileName, {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
