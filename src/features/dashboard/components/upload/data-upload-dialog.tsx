@@ -6,6 +6,7 @@ import { AlertTriangle, FileSpreadsheet, Upload } from "lucide-react";
 
 import type { ParseIssue } from "@/lib/data-processing/types";
 import { loadAdminKey, persistAdminKey } from "@/lib/persistence/admin-key";
+import { broadcastDatasetUpdated } from "@/lib/persistence/dataset-sync";
 import { cn } from "@/lib/utils/cn";
 import { formatInt } from "@/lib/utils/format";
 import { Button } from "@/components/ui/button";
@@ -313,6 +314,7 @@ export function DataUploadDialog({ triggerLabel, triggerIcon }: {
       if (!shouldRefresh) return;
 
       await refreshDataset();
+      broadcastDatasetUpdated();
       setOpen(false);
       setSelectedFile(null);
       setUploadState({ type: "idle" });

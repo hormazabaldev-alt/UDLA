@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { startTransition, useDeferredValue, useMemo, useState } from "react";
 import Link from "next/link";
 import ReactECharts from "echarts-for-react";
 import { ArrowLeft, BarChart3, TrendingUp, Loader2 } from "lucide-react";
@@ -148,6 +148,11 @@ export default function AnalyticsPage() {
     const [selectedDays, setSelectedDays] = useState<string[]>([]);
     const [selectedWeeks, setSelectedWeeks] = useState<string[]>([]);
     const [selectedMarketing5, setSelectedMarketing5] = useState<string[]>([]);
+    const deferredSelectedMetrics = useDeferredValue(selectedMetrics);
+    const deferredSelectedMonths = useDeferredValue(selectedMonths);
+    const deferredSelectedDays = useDeferredValue(selectedDays);
+    const deferredSelectedWeeks = useDeferredValue(selectedWeeks);
+    const deferredSelectedMarketing5 = useDeferredValue(selectedMarketing5);
 
     // Available options
     const availableMonths = useMemo(() => {
@@ -176,30 +181,30 @@ export default function AnalyticsPage() {
     }, [rows]);
 
     const marketingFilteredRows = useMemo(() => {
-        if (selectedMarketing5.length === 0) return rows;
+        if (deferredSelectedMarketing5.length === 0) return rows;
         return rows.filter((row) => {
             const marketing5 = row.marketing5?.trim();
-            return !!marketing5 && selectedMarketing5.includes(marketing5);
+            return !!marketing5 && deferredSelectedMarketing5.includes(marketing5);
         });
-    }, [rows, selectedMarketing5]);
+    }, [rows, deferredSelectedMarketing5]);
 
     // Filtered rows based on selections
     const filteredRows = useMemo(() => {
         let r = marketingFilteredRows;
-        if (selectedMonths.length > 0) r = r.filter(row => row.mes !== null && selectedMonths.includes(String(row.mes)));
-        if (selectedDays.length > 0) r = r.filter(row => row.diaSemana !== null && selectedDays.includes(row.diaSemana));
-        if (selectedWeeks.length > 0) r = r.filter(row => row.semana !== null && selectedWeeks.includes(row.semana));
+        if (deferredSelectedMonths.length > 0) r = r.filter(row => row.mes !== null && deferredSelectedMonths.includes(String(row.mes)));
+        if (deferredSelectedDays.length > 0) r = r.filter(row => row.diaSemana !== null && deferredSelectedDays.includes(row.diaSemana));
+        if (deferredSelectedWeeks.length > 0) r = r.filter(row => row.semana !== null && deferredSelectedWeeks.includes(row.semana));
         return r;
-    }, [marketingFilteredRows, selectedMonths, selectedDays, selectedWeeks]);
+    }, [marketingFilteredRows, deferredSelectedMonths, deferredSelectedDays, deferredSelectedWeeks]);
 
     // --------- CHART 1: Monthly Comparison -----------
     const monthlyChart = useMemo(() => {
-        const months = selectedMonths.length > 0
-            ? availableMonths.filter(m => selectedMonths.includes(String(m)))
+        const months = deferredSelectedMonths.length > 0
+            ? availableMonths.filter(m => deferredSelectedMonths.includes(String(m)))
             : availableMonths;
 
         const labels = months.map(m => `Mes ${m}`);
-        const series = selectedMetrics.map(metric => ({
+        const series = deferredSelectedMetrics.map(metric => ({
             name: METRIC_INFO[metric].label,
             type: "bar" as const,
             data: months.map(m => {
@@ -219,14 +224,14 @@ export default function AnalyticsPage() {
             yAxis: { type: "value", splitLine: { lineStyle: { color: "#1a1a1a" } }, axisLabel: { color: "#888", fontSize: 10 } },
             series,
         };
-    }, [marketingFilteredRows, availableMonths, selectedMonths, selectedMetrics]);
+    }, [marketingFilteredRows, availableMonths, deferredSelectedMonths, deferredSelectedMetrics]);
 
     // --------- CHART 2: Day comparison -----------
     const dailyChart = useMemo(() => {
         const dayOrder = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
-        const days = selectedDays.length > 0 ? dayOrder.filter(d => selectedDays.includes(d)) : availableDays;
+        const days = deferredSelectedDays.length > 0 ? dayOrder.filter(d => deferredSelectedDays.includes(d)) : availableDays;
 
-        const series = selectedMetrics.map(metric => ({
+        const series = deferredSelectedMetrics.map(metric => ({
             name: METRIC_INFO[metric].label,
             type: "bar" as const,
             data: days.map(d => {
@@ -246,15 +251,15 @@ export default function AnalyticsPage() {
             yAxis: { type: "value", splitLine: { lineStyle: { color: "#1a1a1a" } }, axisLabel: { color: "#888", fontSize: 10 } },
             series,
         };
-    }, [filteredRows, availableDays, selectedDays, selectedMetrics]);
+    }, [filteredRows, availableDays, deferredSelectedDays, deferredSelectedMetrics]);
 
     // --------- CHART 3: Weekly Trend -----------
     const weeklyTrend = useMemo(() => {
-        const weeks = selectedWeeks.length > 0
-            ? availableWeeks.filter(w => selectedWeeks.includes(w))
+        const weeks = deferredSelectedWeeks.length > 0
+            ? availableWeeks.filter(w => deferredSelectedWeeks.includes(w))
             : availableWeeks;
 
-        const series = selectedMetrics.map(metric => ({
+        const series = deferredSelectedMetrics.map(metric => ({
             name: METRIC_INFO[metric].label,
             type: "line" as const,
             data: weeks.map(w => {
@@ -277,12 +282,12 @@ export default function AnalyticsPage() {
             yAxis: { type: "value", splitLine: { lineStyle: { color: "#1a1a1a" } }, axisLabel: { color: "#888", fontSize: 10 } },
             series,
         };
-    }, [marketingFilteredRows, availableWeeks, selectedWeeks, selectedMetrics]);
+    }, [marketingFilteredRows, availableWeeks, deferredSelectedWeeks, deferredSelectedMetrics]);
 
     // --------- CHART 4: Conversion Rate Trend (6 correct rates) -----------
     const conversionChart = useMemo(() => {
-        const months = selectedMonths.length > 0
-            ? availableMonths.filter(m => selectedMonths.includes(String(m)))
+        const months = deferredSelectedMonths.length > 0
+            ? availableMonths.filter(m => deferredSelectedMonths.includes(String(m)))
             : availableMonths;
         const labels = months.map(m => `Mes ${m}`);
 
@@ -326,7 +331,7 @@ export default function AnalyticsPage() {
                 { name: "C% MC/Leads", type: "line", data: rates.map(r => +r.cMcLeads.toFixed(1)), itemStyle: { color: "#f43f5e" }, lineStyle: { width: 2, type: "dashed" }, smooth: true, symbol: "diamond", symbolSize: 5 },
             ],
         };
-    }, [marketingFilteredRows, availableMonths, selectedMonths]);
+    }, [marketingFilteredRows, availableMonths, deferredSelectedMonths]);
 
     // Summary KPIs for filtered data
     const summaryKPIs = useMemo(() => {
@@ -400,25 +405,25 @@ export default function AnalyticsPage() {
                             label="Meses a comparar"
                             options={availableMonths.map(m => ({ value: String(m), label: `Mes ${m}` }))}
                             selected={selectedMonths}
-                            onChange={setSelectedMonths}
+                            onChange={(value) => startTransition(() => setSelectedMonths(value))}
                         />
                         <MultiSelect
                             label="Días de semana"
                             options={availableDays.map(d => ({ value: d, label: d }))}
                             selected={selectedDays}
-                            onChange={setSelectedDays}
+                            onChange={(value) => startTransition(() => setSelectedDays(value))}
                         />
                         <MultiSelect
                             label="Semanas"
                             options={availableWeeks.map(w => ({ value: w, label: w }))}
                             selected={selectedWeeks}
-                            onChange={setSelectedWeeks}
+                            onChange={(value) => startTransition(() => setSelectedWeeks(value))}
                         />
                         <MultiSelect
                             label="Marketing 5"
                             options={availableMarketing5.map(v => ({ value: v, label: v }))}
                             selected={selectedMarketing5}
-                            onChange={setSelectedMarketing5}
+                            onChange={(value) => startTransition(() => setSelectedMarketing5(value))}
                         />
                     </div>
 
@@ -435,13 +440,15 @@ export default function AnalyticsPage() {
                                     color={METRIC_INFO[metric].color}
                                     active={selectedMetrics.includes(metric)}
                                     onClick={() => {
-                                        if (selectedMetrics.includes(metric)) {
-                                            if (selectedMetrics.length > 1) {
-                                                setSelectedMetrics(selectedMetrics.filter(m => m !== metric));
+                                        startTransition(() => {
+                                            if (selectedMetrics.includes(metric)) {
+                                                if (selectedMetrics.length > 1) {
+                                                    setSelectedMetrics(selectedMetrics.filter(m => m !== metric));
+                                                }
+                                            } else {
+                                                setSelectedMetrics([...selectedMetrics, metric]);
                                             }
-                                        } else {
-                                            setSelectedMetrics([...selectedMetrics, metric]);
-                                        }
+                                        });
                                     }}
                                 />
                             ))}
@@ -451,7 +458,7 @@ export default function AnalyticsPage() {
                         </div>
                         <div className="flex gap-2 mt-2">
                             <button
-                                onClick={() => setSelectedMetrics([...ALL_METRICS])}
+                                onClick={() => startTransition(() => setSelectedMetrics([...ALL_METRICS]))}
                                 className="text-[10px] text-[#00d4ff] hover:underline"
                             >
                                 Seleccionar todas
@@ -459,11 +466,13 @@ export default function AnalyticsPage() {
                             <span className="text-white/20">|</span>
                             <button
                                 onClick={() => {
-                                    setSelectedMonths([]);
-                                    setSelectedDays([]);
-                                    setSelectedWeeks([]);
-                                    setSelectedMarketing5([]);
-                                    setSelectedMetrics([...ALL_METRICS]);
+                                    startTransition(() => {
+                                        setSelectedMonths([]);
+                                        setSelectedDays([]);
+                                        setSelectedWeeks([]);
+                                        setSelectedMarketing5([]);
+                                        setSelectedMetrics([...ALL_METRICS]);
+                                    });
                                 }}
                                 className="text-[10px] text-white/40 hover:text-white/70"
                             >

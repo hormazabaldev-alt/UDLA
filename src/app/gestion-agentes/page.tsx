@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { startTransition, useDeferredValue, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ChevronDown, ChevronUp } from "lucide-react";
 
@@ -459,8 +459,9 @@ export default function GestionAgentesPage() {
   const [agentsCollapsed, setAgentsCollapsed] = useState(true);
 
   const rows = useMemo(() => dataset?.rows ?? [], [dataset]);
+  const deferredFilters = useDeferredValue(filters);
   const options = useMemo(() => collectAgentFilterOptions(rows), [rows]);
-  const filteredRows = useMemo(() => applyAgentFilters(rows, filters), [rows, filters]);
+  const filteredRows = useMemo(() => applyAgentFilters(rows, deferredFilters), [rows, deferredFilters]);
 
   const totals = useMemo(() => {
     const counts = emptyCounts();
@@ -509,10 +510,12 @@ export default function GestionAgentesPage() {
   );
 
   const setSingleFilter = (key: FilterArrayKey, value: string) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: value === "__ALL__" ? [] : [value],
-    }));
+    startTransition(() => {
+      setFilters((prev) => ({
+        ...prev,
+        [key]: value === "__ALL__" ? [] : [value],
+      }));
+    });
   };
 
   const selected = {
@@ -524,8 +527,10 @@ export default function GestionAgentesPage() {
   };
 
   const resetAll = () => {
-    setFilters(EMPTY_FILTERS);
-    setAgentsCollapsed(true);
+    startTransition(() => {
+      setFilters(EMPTY_FILTERS);
+      setAgentsCollapsed(true);
+    });
   };
 
   if (hydrating) {
@@ -574,13 +579,19 @@ export default function GestionAgentesPage() {
               <Input
                 type="date"
                 value={filters.dateFrom}
-                onChange={(e) => setFilters((prev) => ({ ...prev, dateFrom: e.target.value }))}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  startTransition(() => setFilters((prev) => ({ ...prev, dateFrom: value })));
+                }}
                 className="h-8 border-[#2f2f2f] bg-[#0b0b0b] text-xs text-white"
               />
               <Input
                 type="date"
                 value={filters.dateTo}
-                onChange={(e) => setFilters((prev) => ({ ...prev, dateTo: e.target.value }))}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  startTransition(() => setFilters((prev) => ({ ...prev, dateTo: value })));
+                }}
                 className="h-8 border-[#2f2f2f] bg-[#0b0b0b] text-xs text-white"
               />
             </div>
@@ -601,7 +612,7 @@ export default function GestionAgentesPage() {
               <span className="text-white/70">Agregar</span>
               <button
                 type="button"
-                onClick={() => setShowAF((prev) => !prev)}
+                onClick={() => startTransition(() => setShowAF((prev) => !prev))}
                 className={`rounded px-2 py-1 text-xs font-semibold ${
                   showAF ? "border border-[#00d4ff] bg-[#00d4ff]/20 text-[#00d4ff]" : "border border-white/10 bg-white/5 text-white/70"
                 }`}
@@ -610,7 +621,7 @@ export default function GestionAgentesPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setShowMC((prev) => !prev)}
+                onClick={() => startTransition(() => setShowMC((prev) => !prev))}
                 className={`rounded px-2 py-1 text-xs font-semibold ${
                   showMC ? "border border-[#00d4ff] bg-[#00d4ff]/20 text-[#00d4ff]" : "border border-white/10 bg-white/5 text-white/70"
                 }`}
@@ -682,7 +693,7 @@ export default function GestionAgentesPage() {
               collapsed: agentsCollapsed,
               totalRows: agentRows.length,
             }}
-            onToggleCollapse={() => setAgentsCollapsed((prev) => !prev)}
+            onToggleCollapse={() => startTransition(() => setAgentsCollapsed((prev) => !prev))}
           />
 
           <DataSection
