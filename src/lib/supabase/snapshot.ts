@@ -77,9 +77,17 @@ function sleep(ms: number) {
 
 function isNotFoundError(error: unknown) {
   if (!error || typeof error !== "object") return false;
-  const anyErr = error as { statusCode?: number; message?: string };
+  const anyErr = error as {
+    statusCode?: number;
+    message?: string;
+    name?: string;
+    originalError?: unknown;
+  };
   if (anyErr.statusCode === 404) return true;
   const message = String(anyErr.message ?? "");
+  if (anyErr.name === "StorageUnknownError" && (!anyErr.originalError || Object.keys(anyErr.originalError as object).length === 0)) {
+    return true;
+  }
   return message.toLowerCase().includes("not found") || message.toLowerCase().includes("object not found");
 }
 
