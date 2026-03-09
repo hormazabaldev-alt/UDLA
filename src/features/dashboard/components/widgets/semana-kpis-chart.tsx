@@ -51,10 +51,13 @@ function ToggleButton({
 }
 
 export function SemanaKpisChart() {
-  const { rows } = useMetrics();
+  const { rows, filters } = useMetrics();
   const [lineMetric, setLineMetric] = useState<LineMetric>("pctMatriculas");
 
-  const resumen = useMemo(() => calcResumenSemanal(rows), [rows]);
+  const resumen = useMemo(
+    () => calcResumenSemanal(rows, { temporalFilters: filters ?? undefined }),
+    [filters, rows],
+  );
 
   const option = useMemo(() => {
     const labels = resumen.rows.map((r) => r.semana);

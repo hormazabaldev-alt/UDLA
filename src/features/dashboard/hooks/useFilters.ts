@@ -9,6 +9,7 @@ import {
   compareSemanaLabels,
   FECHA_GESTION_PERIOD_END,
   FECHA_GESTION_PERIOD_START,
+  getSemanaCorrelativaLabel,
 } from "@/lib/utils/semana";
 
 function campaignMonthSortKey(month: number) {
@@ -26,17 +27,17 @@ export function useFilters() {
     const rows = dataset?.rows ?? [];
     const now = new Date();
     const maxAllowedDate = now < FECHA_GESTION_PERIOD_END ? now : FECHA_GESTION_PERIOD_END;
-    const fechasGestion = rows
-      .map((r) => r.fechaGestion)
+    const fechasTemporales = rows
+      .flatMap((r) => [r.fechaGestion, r.fechaAf, r.fechaMc])
       .filter((d): d is Date => d instanceof Date && !Number.isNaN(d.getTime()))
       .filter((d) => d >= FECHA_GESTION_PERIOD_START && d <= maxAllowedDate);
 
     const meses = Array.from(
-      new Set(fechasGestion.map((d) => d.getMonth() + 1)),
+      new Set(fechasTemporales.map((d) => d.getMonth() + 1)),
     ).sort((a, b) => campaignMonthSortKey(a) - campaignMonthSortKey(b));
     const dias = Array.from(
       new Set(
-        fechasGestion.map((d) => d.getDate()),
+        fechasTemporales.map((d) => d.getDate()),
       ),
     ).sort((a, b) => a - b);
 
@@ -45,7 +46,13 @@ export function useFilters() {
     ).sort();
 
     const semanas = Array.from(
-      new Set(rows.map((r) => r.semana).filter((v): v is string => v !== null && v !== undefined))
+      new Set(
+        rows.flatMap((r) => [
+          r.semana,
+          getSemanaCorrelativaLabel(r.fechaAf),
+          getSemanaCorrelativaLabel(r.fechaMc),
+        ]).filter((v): v is string => v !== null && v !== undefined),
+      ),
     ).sort(compareSemanaLabels);
 
     const campus = Array.from(

@@ -1,5 +1,6 @@
 import type { DataRow } from "@/lib/data-processing/types";
 import { isAfluenciaValue } from "@/lib/data-processing/predicates";
+import { matchesTemporalFiltersForMetric, type TemporalFilters } from "@/lib/data-processing/temporal";
 import { normalizeRut } from "@/lib/utils/rut";
 import { isInteresaViene } from "@/lib/utils/interesa";
 
@@ -33,7 +34,7 @@ export type Totals = {
   tcMc: number | null; // Alias of tcMcAf
 };
 
-export function computeTotals(rows: DataRow[]): Totals {
+export function computeTotals(rows: DataRow[], temporalFilters?: TemporalFilters): Totals {
   let cargada = 0;
   let recorrido = 0;
   let contactado = 0;
@@ -50,38 +51,43 @@ export function computeTotals(rows: DataRow[]): Totals {
 
   for (const row of rows) {
     // BASE (Cargada) = total de filas
-    cargada++;
     const rut = normalizeRut(row.rutBase);
-    if (rut) cargadaRuts.add(rut);
+    if (matchesTemporalFiltersForMetric(row, temporalFilters, "cargada")) {
+      cargada++;
+      if (rut) cargadaRuts.add(rut);
+    }
 
     // RECORRIDO = contar filas donde "Conecta" es "Conecta" o "No Conecta"
     const conectaVal = row.conecta?.trim().toLowerCase() ?? "";
-    if (conectaVal === "conecta" || conectaVal === "no conecta") {
+    if (
+      (conectaVal === "conecta" || conectaVal === "no conecta")
+      && matchesTemporalFiltersForMetric(row, temporalFilters, "recorrido")
+    ) {
       recorrido++;
       if (rut) recorridoRuts.add(rut);
     }
 
     // CONTACTABILIDAD EXITOSA (Contactado) = contar solo "Conecta"
-    if (conectaVal === "conecta") {
+    if (conectaVal === "conecta" && matchesTemporalFiltersForMetric(row, temporalFilters, "contactado")) {
       contactado++;
       if (rut) contactadoRuts.add(rut);
     }
 
     // CITAS = contar filas donde "Interesa" = "Viene"
-    if (isInteresaViene(row.interesa)) {
+    if (isInteresaViene(row.interesa) && matchesTemporalFiltersForMetric(row, temporalFilters, "citas")) {
       citas++;
       if (rut) citasRuts.add(rut);
     }
 
     // AFLUENCIA = contar filas donde columna AF contiene "A", "MC" o "M"
-    if (isAfluenciaValue(row.af)) {
+    if (isAfluenciaValue(row.af) && matchesTemporalFiltersForMetric(row, temporalFilters, "af")) {
       af++;
       if (rut) afRuts.add(rut);
     }
 
     // MATRÍCULAS (MC) = contar filas donde columna MC contiene "M" o "MC"
     const mcVal = row.mc?.trim().toUpperCase() ?? "";
-    if (mcVal === "M" || mcVal === "MC") {
+    if ((mcVal === "M" || mcVal === "MC") && matchesTemporalFiltersForMetric(row, temporalFilters, "mc")) {
       mc++;
       if (rut) mcRuts.add(rut);
     }

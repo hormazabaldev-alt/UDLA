@@ -4,6 +4,7 @@ import ReactECharts from "echarts-for-react";
 import { useMemo } from "react";
 import { useMetrics } from "@/features/dashboard/hooks/useMetrics";
 import { isAfluenciaValue } from "@/lib/data-processing/predicates";
+import { getMetricDate, matchesTemporalFiltersForMetric } from "@/lib/data-processing/temporal";
 import { normalizeRut } from "@/lib/utils/rut";
 import { isInteresaViene } from "@/lib/utils/interesa";
 
@@ -12,7 +13,7 @@ import { isInteresaViene } from "@/lib/utils/interesa";
  * Uses stacked area to visualize the full conversion pipeline.
  */
 export function EvolutionChart() {
-    const { rows } = useMetrics();
+    const { rows, filters } = useMetrics();
 
     const chartData = useMemo(() => {
         if (!rows || rows.length === 0) return null;
@@ -23,20 +24,29 @@ export function EvolutionChart() {
             citasRuts: Set<string>; af: number; mc: number;
         }>();
 
-        for (const r of rows) {
-            if (!r.fechaGestion) continue;
-            const ym = r.fechaGestion.getFullYear() * 100 + (r.fechaGestion.getMonth() + 1);
+        const ensureGroup = (ym: number) => {
             if (!groups.has(ym)) {
                 groups.set(ym, { recorrido: 0, contactado: 0, citasRuts: new Set(), af: 0, mc: 0 });
             }
-            const g = groups.get(ym)!;
+            return groups.get(ym)!;
+        };
+
+        for (const r of rows) {
+            const add = (metric: "recorrido" | "contactado" | "citas" | "af" | "mc", updater: (group: { recorrido: number; contactado: number; citasRuts: Set<string>; af: number; mc: number }) => void) => {
+                if (!matchesTemporalFiltersForMetric(r, filters, metric)) return;
+                const date = getMetricDate(r, metric);
+                if (!(date instanceof Date) || Number.isNaN(date.getTime())) return;
+                const ym = date.getFullYear() * 100 + (date.getMonth() + 1);
+                updater(ensureGroup(ym));
+            };
+
             const c = r.conecta?.trim().toLowerCase() ?? "";
-            if (c === "conecta" || c === "no conecta") g.recorrido++;
-            if (c === "conecta") g.contactado++;
-            if (isInteresaViene(r.interesa)) g.citasRuts.add(normalizeRut(r.rutBase));
-            if (isAfluenciaValue(r.af)) g.af++;
+            if (c === "conecta" || c === "no conecta") add("recorrido", (g) => { g.recorrido++; });
+            if (c === "conecta") add("contactado", (g) => { g.contactado++; });
+            if (isInteresaViene(r.interesa)) add("citas", (g) => { g.citasRuts.add(normalizeRut(r.rutBase)); });
+            if (isAfluenciaValue(r.af)) add("af", (g) => { g.af++; });
             const mcVal = r.mc?.trim().toUpperCase() ?? "";
-            if (mcVal === "M" || mcVal === "MC") g.mc++;
+            if (mcVal === "M" || mcVal === "MC") add("mc", (g) => { g.mc++; });
         }
 
         const months = Array.from(groups.keys()).sort((a, b) => a - b);
@@ -55,7 +65,7 @@ export function EvolutionChart() {
             af: months.map(m => groups.get(m)!.af),
             mc: months.map(m => groups.get(m)!.mc),
         };
-    }, [rows]);
+    }, [filters, rows]);
 
     const areaStyle = { opacity: 0.15 };
 

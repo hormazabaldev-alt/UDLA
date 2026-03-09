@@ -48,9 +48,10 @@ const MAX_INDEXED_ROWS = 150_000;
 export function applyFilters(
   rows: DataRow[],
   filters: Filters,
-  opts?: { tipoIndex?: Record<string, DataRow[]> | null },
+  opts?: { tipoIndex?: Record<string, DataRow[]> | null; includeTemporal?: boolean },
 ): DataRow[] {
   let baseRows = rows;
+  const includeTemporal = opts?.includeTemporal ?? true;
 
   if (filters.tipo.length > 0 && opts?.tipoIndex) {
     const indexed: DataRow[] = [];
@@ -63,18 +64,18 @@ export function applyFilters(
 
   return baseRows.filter((r) => {
     if (filters.tipo.length > 0 && !filters.tipo.includes(r.tipoBase)) return false;
-    if (filters.mes.length > 0) {
+    if (includeTemporal && filters.mes.length > 0) {
       if (!isValidDate(r.fechaGestion)) return false;
       const month = r.fechaGestion.getMonth() + 1;
       if (!filters.mes.includes(month)) return false;
     }
-    if (filters.diaNumero.length > 0) {
+    if (includeTemporal && filters.diaNumero.length > 0) {
       if (!isValidDate(r.fechaGestion)) return false;
       const day = r.fechaGestion.getDate();
       if (!filters.diaNumero.includes(day)) return false;
     }
 
-    if (filters.semanas.length > 0) {
+    if (includeTemporal && filters.semanas.length > 0) {
       const semana = (r.semana ?? "").trim();
       if (!semana) return false;
       if (!filters.semanas.includes(semana)) return false;
@@ -104,8 +105,8 @@ export function applyFilters(
 
 export function computeFilteredTotals(dataset: Dataset | null, filters: Filters): Totals | null {
   if (!dataset) return null;
-  const filtered = applyFilters(dataset.rows, filters);
-  return computeTotals(filtered);
+  const filtered = applyFilters(dataset.rows, filters, { includeTemporal: false });
+  return computeTotals(filtered, filters);
 }
 
 export const useDashboardStore = create<DashboardState>((set) => ({

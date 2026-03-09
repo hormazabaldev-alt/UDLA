@@ -22,7 +22,7 @@ function formatPct(value: number, digits: number) {
 }
 
 export function ResumenSemanalTable() {
-  const { rows } = useMetrics();
+  const { rows, filters } = useMetrics();
   const [sortConfig, setSortConfig] = useState<{
     key: keyof ResumenSemanalRow;
     direction: "asc" | "desc" | null;
@@ -42,7 +42,10 @@ export function ResumenSemanalTable() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const resumen = useMemo(() => calcResumenSemanal(rows), [rows]);
+  const resumen = useMemo(
+    () => calcResumenSemanal(rows, { temporalFilters: filters ?? undefined }),
+    [filters, rows],
+  );
 
   const uniqueValues = useMemo(() => {
     const vals: Partial<Record<keyof ResumenSemanalRow, string[]>> = {};

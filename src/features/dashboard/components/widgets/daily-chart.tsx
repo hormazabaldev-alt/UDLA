@@ -4,6 +4,7 @@ import ReactECharts from "echarts-for-react";
 import { useMemo } from "react";
 import { useMetrics } from "@/features/dashboard/hooks/useMetrics";
 import { isAfluenciaValue } from "@/lib/data-processing/predicates";
+import { getMetricDate, getMetricDayLabel, matchesTemporalFiltersForMetric, type MetricKey } from "@/lib/data-processing/temporal";
 import { useDashboardStore } from "@/store/dashboard-store";
 import { normalizeRut } from "@/lib/utils/rut";
 import { isInteresaViene } from "@/lib/utils/interesa";
@@ -11,8 +12,6 @@ import { formatInt } from "@/lib/utils/format";
 
 const DIAS_ORDER = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const MONTH_LABELER = new Intl.DateTimeFormat("es-CL", { month: "short" });
-
-type MetricKey = "cargada" | "recorrido" | "contactado" | "citas" | "af" | "mc";
 
 const METRIC_CONFIG: Array<{ key: MetricKey; label: string; color: string }> = [
   { key: "cargada", label: "Base", color: "#00d4ff" },
@@ -79,7 +78,7 @@ function getMonthAlpha(index: number, total: number): number {
  * Daily comparison chart: shows KPI metrics grouped by day of week.
  */
 export function DailyChart() {
-  const { rows } = useMetrics();
+  const { rows, filters } = useMetrics();
   const selectedMonths = useDashboardStore((s) => s.filters.mes);
 
   const chartData = useMemo(() => {
@@ -91,18 +90,33 @@ export function DailyChart() {
       const groups = new Map<string, DayCounters>();
 
       for (const r of rows) {
-        const day = r.diaSemana?.trim() || null;
-        if (!day) continue;
-        if (!groups.has(day)) groups.set(day, emptyDayCounters());
-        const g = groups.get(day)!;
-        g.cargada++;
+        const assign = (metric: MetricKey, updater: (group: DayCounters) => void) => {
+          if (!matchesTemporalFiltersForMetric(r, filters, metric)) return;
+          const day = getMetricDayLabel(r, metric);
+          if (!day) return;
+          if (!groups.has(day)) groups.set(day, emptyDayCounters());
+          updater(groups.get(day)!);
+        };
+
+        assign("cargada", (g) => { g.cargada++; });
+
         const c = r.conecta?.trim().toLowerCase() ?? "";
-        if (c === "conecta" || c === "no conecta") g.recorrido++;
-        if (c === "conecta") g.contactado++;
-        if (isInteresaViene(r.interesa)) g.citasRuts.add(normalizeRut(r.rutBase));
-        if (isAfluenciaValue(r.af)) g.af++;
+        if (c === "conecta" || c === "no conecta") {
+          assign("recorrido", (g) => { g.recorrido++; });
+        }
+        if (c === "conecta") {
+          assign("contactado", (g) => { g.contactado++; });
+        }
+        if (isInteresaViene(r.interesa)) {
+          assign("citas", (g) => { g.citasRuts.add(normalizeRut(r.rutBase)); });
+        }
+        if (isAfluenciaValue(r.af)) {
+          assign("af", (g) => { g.af++; });
+        }
         const mcVal = r.mc?.trim().toUpperCase() ?? "";
-        if (mcVal === "M" || mcVal === "MC") g.mc++;
+        if (mcVal === "M" || mcVal === "MC") {
+          assign("mc", (g) => { g.mc++; });
+        }
       }
 
       const days = DIAS_ORDER.filter((d) => groups.has(d));
@@ -128,23 +142,38 @@ export function DailyChart() {
     for (const month of months) monthGroups.set(month, new Map());
 
     for (const r of rows) {
-      const day = r.diaSemana?.trim() || null;
-      const date = r.fechaGestion;
-      if (!day || !(date instanceof Date) || Number.isNaN(date.getTime())) continue;
-      const month = date.getMonth() + 1;
-      if (!monthSet.has(month)) continue;
+      const assign = (metric: MetricKey, updater: (group: DayCounters) => void) => {
+        if (!matchesTemporalFiltersForMetric(r, filters, metric)) return;
+        const date = getMetricDate(r, metric);
+        const day = getMetricDayLabel(r, metric);
+        if (!(date instanceof Date) || Number.isNaN(date.getTime()) || !day) return;
+        const month = date.getMonth() + 1;
+        if (!monthSet.has(month)) return;
 
-      const perMonth = monthGroups.get(month)!;
-      if (!perMonth.has(day)) perMonth.set(day, emptyDayCounters());
-      const g = perMonth.get(day)!;
-      g.cargada++;
+        const perMonth = monthGroups.get(month)!;
+        if (!perMonth.has(day)) perMonth.set(day, emptyDayCounters());
+        updater(perMonth.get(day)!);
+      };
+
+      assign("cargada", (g) => { g.cargada++; });
+
       const c = r.conecta?.trim().toLowerCase() ?? "";
-      if (c === "conecta" || c === "no conecta") g.recorrido++;
-      if (c === "conecta") g.contactado++;
-      if (isInteresaViene(r.interesa)) g.citasRuts.add(normalizeRut(r.rutBase));
-      if (isAfluenciaValue(r.af)) g.af++;
+      if (c === "conecta" || c === "no conecta") {
+        assign("recorrido", (g) => { g.recorrido++; });
+      }
+      if (c === "conecta") {
+        assign("contactado", (g) => { g.contactado++; });
+      }
+      if (isInteresaViene(r.interesa)) {
+        assign("citas", (g) => { g.citasRuts.add(normalizeRut(r.rutBase)); });
+      }
+      if (isAfluenciaValue(r.af)) {
+        assign("af", (g) => { g.af++; });
+      }
       const mcVal = r.mc?.trim().toUpperCase() ?? "";
-      if (mcVal === "M" || mcVal === "MC") g.mc++;
+      if (mcVal === "M" || mcVal === "MC") {
+        assign("mc", (g) => { g.mc++; });
+      }
     }
 
     const series: Array<Record<string, unknown>> = [];
@@ -172,7 +201,7 @@ export function DailyChart() {
       legendData: series.map((s) => String(s.name)),
       comparisonMonths: months,
     };
-  }, [rows, selectedMonths]);
+  }, [filters, rows, selectedMonths]);
 
   const option = useMemo(() => {
     const hasMonthComparison = (chartData?.comparisonMonths?.length ?? 0) > 1;

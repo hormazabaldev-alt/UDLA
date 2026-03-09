@@ -4,9 +4,10 @@ import ReactECharts from "echarts-for-react";
 import { useMemo } from "react";
 import { useMetrics } from "@/features/dashboard/hooks/useMetrics";
 import { isAfluenciaValue } from "@/lib/data-processing/predicates";
+import { matchesTemporalFiltersForMetric } from "@/lib/data-processing/temporal";
 
 export function RegimenBreakdownChart() {
-    const { rows } = useMetrics();
+    const { rows, filters } = useMetrics();
 
     const option = useMemo(() => {
         // Group by Regimen
@@ -21,13 +22,13 @@ export function RegimenBreakdownChart() {
             const data = grouped.get(regimen)!;
 
             // AFI
-            if (isAfluenciaValue(row.af)) {
+            if (isAfluenciaValue(row.af) && matchesTemporalFiltersForMetric(row, filters, "af")) {
                 data.afluencias++;
             }
 
             // MAT
             const mcVal = row.mc?.trim().toUpperCase() ?? "";
-            if (mcVal === "M" || mcVal === "MC") {
+            if ((mcVal === "M" || mcVal === "MC") && matchesTemporalFiltersForMetric(row, filters, "mc")) {
                 data.matriculas++;
             }
         }
@@ -82,7 +83,7 @@ export function RegimenBreakdownChart() {
                 },
             ],
         };
-    }, [rows]);
+    }, [filters, rows]);
 
     return <ReactECharts option={option} style={{ height: "100%", width: "100%" }} />;
 }

@@ -82,9 +82,12 @@ function Card({
 }
 
 export function KpiCardsExtra() {
-  const { rows, totals } = useMetrics();
+  const { rows, totals, filters } = useMetrics();
 
-  const resumen = useMemo(() => calcResumenSemanal(rows), [rows]);
+  const resumen = useMemo(
+    () => calcResumenSemanal(rows, { temporalFilters: filters ?? undefined }),
+    [filters, rows],
+  );
 
   const excludedTotal = resumen.excluded.invalidRows + resumen.excluded.missingSemana;
   const hint =

@@ -5,6 +5,7 @@ import { useMemo } from "react";
 
 import { useMetrics } from "@/features/dashboard/hooks/useMetrics";
 import { isAfluenciaValue } from "@/lib/data-processing/predicates";
+import { matchesTemporalFiltersForMetric } from "@/lib/data-processing/temporal";
 import { toCampusCode } from "@/lib/utils/campus";
 
 type Metric = "af" | "mc";
@@ -26,7 +27,7 @@ export function MetricBreakdownChart({
   metric: Metric;
   dimension: Dimension;
 }) {
-  const { rows } = useMetrics();
+  const { rows, filters } = useMetrics();
 
   const option = useMemo(() => {
     const grouped = new Map<string, number>();
@@ -35,6 +36,7 @@ export function MetricBreakdownChart({
       const counts =
         metric === "af" ? isAfluenciaRow(row) : isMatriculaRow(row);
       if (!counts) continue;
+      if (!matchesTemporalFiltersForMetric(row, filters, metric)) continue;
 
       const label =
         dimension === "campus"
@@ -105,7 +107,7 @@ export function MetricBreakdownChart({
         },
       ],
     };
-  }, [dimension, metric, rows]);
+  }, [dimension, filters, metric, rows]);
 
   return (
     <ReactECharts option={option} style={{ height: "100%", width: "100%" }} />

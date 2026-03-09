@@ -1,4 +1,5 @@
 import { isAfluenciaValue } from "@/lib/data-processing/predicates";
+import { getMetricWeekLabel, matchesTemporalFiltersForMetric, type TemporalFilters } from "@/lib/data-processing/temporal";
 import type { DataRow } from "@/lib/data-processing/types";
 import { normalizeRut } from "@/lib/utils/rut";
 import { isInteresaViene } from "@/lib/utils/interesa";
@@ -63,6 +64,7 @@ export function calcResumenSemanal(
   opts?: {
     excludeMissingSemana?: boolean;
     afluenciaValues?: ReadonlySet<string>;
+    temporalFilters?: TemporalFilters;
   },
 ): ResumenSemanalResult {
   const excludeMissingSemana = opts?.excludeMissingSemana ?? true;
@@ -86,29 +88,42 @@ export function calcResumenSemanal(
       continue;
     }
 
-    const semana = norm(r.semana);
-    if (!semana) {
-      excluded.missingSemana++;
-      if (excludeMissingSemana) continue;
-    }
+    const stageEntries: Array<{
+      metric: "cargada" | "recorrido" | "citas" | "af" | "mc";
+      key: keyof Pick<ResumenSemanalRow, "base" | "recorrido" | "citas" | "afluencias" | "matriculas">;
+      active: boolean;
+    }> = [
+      { metric: "cargada", key: "base", active: true },
+      { metric: "recorrido", key: "recorrido", active: isRecorridoRow(r) },
+      { metric: "citas", key: "citas", active: isCitaRow(r) },
+      { metric: "af", key: "afluencias", active: isAfTotalRow(r) },
+      { metric: "mc", key: "matriculas", active: isMatriculaRow(r) },
+    ];
 
-    const key = semana ?? "Semana N/A";
-    if (!groups.has(key)) {
-      groups.set(key, {
-        base: 0,
-        recorrido: 0,
-        citas: 0,
-        afluencias: 0,
-        matriculas: 0,
-      });
-    }
+    for (const stage of stageEntries) {
+      if (!stage.active) continue;
+      if (!matchesTemporalFiltersForMetric(r, opts?.temporalFilters, stage.metric)) continue;
 
-    const g = groups.get(key)!;
-    g.base++;
-    if (isRecorridoRow(r)) g.recorrido++;
-    if (isCitaRow(r)) g.citas++;
-    if (isAfTotalRow(r)) g.afluencias++;
-    if (isMatriculaRow(r)) g.matriculas++;
+      const semana = norm(getMetricWeekLabel(r, stage.metric));
+      if (!semana) {
+        excluded.missingSemana++;
+        if (excludeMissingSemana) continue;
+      }
+
+      const key = semana ?? "Semana N/A";
+      if (!groups.has(key)) {
+        groups.set(key, {
+          base: 0,
+          recorrido: 0,
+          citas: 0,
+          afluencias: 0,
+          matriculas: 0,
+        });
+      }
+
+      const g = groups.get(key)!;
+      g[stage.key]++;
+    }
   }
 
   const sortedWeeks = Array.from(groups.keys()).sort(compareSemanaLabels);

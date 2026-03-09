@@ -44,10 +44,10 @@ function toGridRow(r: DataRow): Record<string, unknown> {
 }
 
 export function DetalleRegistrosTable({ height = 520 }: { height?: number }) {
-  const { rows } = useMetrics();
+  const { detailRows } = useMetrics();
   const [search, setSearch] = useState("");
 
-  const gridRows = useMemo(() => rows.map(toGridRow), [rows]);
+  const gridRows = useMemo(() => detailRows.map(toGridRow), [detailRows]);
 
   const columnDefs = useMemo<ColDef[]>(() => {
     const first = gridRows[0];
@@ -79,7 +79,7 @@ export function DetalleRegistrosTable({ height = 520 }: { height?: number }) {
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <div className="text-[11px] text-white/50">
           Filas (con filtros globales aplicados):{" "}
-          <span className="text-white/80 tabular-nums">{formatInt(rows.length)}</span>
+          <span className="text-white/80 tabular-nums">{formatInt(detailRows.length)}</span>
         </div>
         <div className="w-full sm:w-[360px]">
           <Input

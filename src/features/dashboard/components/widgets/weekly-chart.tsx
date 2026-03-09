@@ -3,52 +3,38 @@
 import ReactECharts from "echarts-for-react";
 import { useMemo } from "react";
 import { useMetrics } from "@/features/dashboard/hooks/useMetrics";
-import { isAfluenciaValue } from "@/lib/data-processing/predicates";
-import { normalizeRut } from "@/lib/utils/rut";
-import { isInteresaViene } from "@/lib/utils/interesa";
-import { compareSemanaLabels } from "@/lib/utils/semana";
+import { getMetricWeekLabel, matchesTemporalFiltersForMetric } from "@/lib/data-processing/temporal";
+import { calcResumenSemanal } from "@/lib/metrics/resumen-semanal";
 
 /**
  * Weekly evolution chart: shows KPI metrics grouped by "Semana" field.
  */
 export function WeeklyChart() {
-    const { rows } = useMetrics();
+    const { rows, filters } = useMetrics();
 
     const chartData = useMemo(() => {
         if (!rows || rows.length === 0) return null;
-
-        const groups = new Map<string, {
-            cargada: number; recorrido: number; contactado: number;
-            citasRuts: Set<string>; af: number; mc: number;
-        }>();
-
-        for (const r of rows) {
-            const week = r.semana?.trim() || "Sin Semana";
-            if (!groups.has(week)) {
-                groups.set(week, { cargada: 0, recorrido: 0, contactado: 0, citasRuts: new Set(), af: 0, mc: 0 });
-            }
-            const g = groups.get(week)!;
-            g.cargada++;
-            const c = r.conecta?.trim().toLowerCase() ?? "";
-            if (c === "conecta" || c === "no conecta") g.recorrido++;
-            if (c === "conecta") g.contactado++;
-            if (isInteresaViene(r.interesa)) g.citasRuts.add(normalizeRut(r.rutBase));
-            if (isAfluenciaValue(r.af)) g.af++;
-            const mcVal = r.mc?.trim().toUpperCase() ?? "";
-            if (mcVal === "M" || mcVal === "MC") g.mc++;
+        const resumen = calcResumenSemanal(rows, { temporalFilters: filters ?? undefined });
+        const contactadoByWeek = new Map<string, number>();
+        for (const row of rows) {
+            const conecta = row.conecta?.trim().toLowerCase() ?? "";
+            if (conecta !== "conecta") continue;
+            if (!matchesTemporalFiltersForMetric(row, filters, "contactado")) continue;
+            const week = getMetricWeekLabel(row, "contactado");
+            if (!week) continue;
+            contactadoByWeek.set(week, (contactadoByWeek.get(week) ?? 0) + 1);
         }
-
-        const weeks = Array.from(groups.keys()).sort(compareSemanaLabels);
+        const weeks = resumen.rows.map((row) => row.semana);
         return {
             weeks,
-            cargada: weeks.map(w => groups.get(w)!.cargada),
-            recorrido: weeks.map(w => groups.get(w)!.recorrido),
-            contactado: weeks.map(w => groups.get(w)!.contactado),
-            citas: weeks.map(w => groups.get(w)!.citasRuts.size),
-            af: weeks.map(w => groups.get(w)!.af),
-            mc: weeks.map(w => groups.get(w)!.mc),
+            cargada: resumen.rows.map((row) => row.base),
+            recorrido: resumen.rows.map((row) => row.recorrido),
+            contactado: weeks.map((week) => contactadoByWeek.get(week) ?? 0),
+            citas: resumen.rows.map((row) => row.citas),
+            af: resumen.rows.map((row) => row.afluencias),
+            mc: resumen.rows.map((row) => row.matriculas),
         };
-    }, [rows]);
+    }, [filters, rows]);
 
     const option = {
         backgroundColor: "transparent",
