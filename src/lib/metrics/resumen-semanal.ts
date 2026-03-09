@@ -1,3 +1,4 @@
+import { isAfluenciaValue } from "@/lib/data-processing/predicates";
 import type { DataRow } from "@/lib/data-processing/types";
 import { normalizeRut } from "@/lib/utils/rut";
 import { isInteresaViene } from "@/lib/utils/interesa";
@@ -54,7 +55,7 @@ export function isMatriculaRow(row: DataRow) {
 }
 
 export function isAfTotalRow(row: DataRow) {
-  return isInteresaViene(row.interesa);
+  return isAfluenciaValue(row.af);
 }
 
 export function calcResumenSemanal(
@@ -65,7 +66,7 @@ export function calcResumenSemanal(
   },
 ): ResumenSemanalResult {
   const excludeMissingSemana = opts?.excludeMissingSemana ?? true;
-  // Backward compat: opts.afluenciaValues is ignored (Afluencia comes from `Interesa = Viene`).
+  // Backward compat: opts.afluenciaValues is ignored (Afluencia viene desde columna `AF`).
 
   const excluded: ResumenExclusion = { invalidRows: 0, missingSemana: 0 };
   const groups = new Map<

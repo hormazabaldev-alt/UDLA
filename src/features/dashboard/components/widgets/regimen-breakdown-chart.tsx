@@ -3,7 +3,7 @@
 import ReactECharts from "echarts-for-react";
 import { useMemo } from "react";
 import { useMetrics } from "@/features/dashboard/hooks/useMetrics";
-import { isInteresaViene } from "@/lib/utils/interesa";
+import { isAfluenciaValue } from "@/lib/data-processing/predicates";
 
 export function RegimenBreakdownChart() {
     const { rows } = useMetrics();
@@ -21,7 +21,7 @@ export function RegimenBreakdownChart() {
             const data = grouped.get(regimen)!;
 
             // AFI
-            if (isInteresaViene(row.interesa)) {
+            if (isAfluenciaValue(row.af)) {
                 data.afluencias++;
             }
 

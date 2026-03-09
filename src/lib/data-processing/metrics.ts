@@ -1,4 +1,5 @@
 import type { DataRow } from "@/lib/data-processing/types";
+import { isAfluenciaValue } from "@/lib/data-processing/predicates";
 import { normalizeRut } from "@/lib/utils/rut";
 import { isInteresaViene } from "@/lib/utils/interesa";
 
@@ -72,8 +73,8 @@ export function computeTotals(rows: DataRow[]): Totals {
       if (rut) citasRuts.add(rut);
     }
 
-    // AFLUENCIA = contar filas donde "Interesa" = "Viene"
-    if (isInteresaViene(row.interesa)) {
+    // AFLUENCIA = contar filas donde columna AF contiene "A", "MC" o "M"
+    if (isAfluenciaValue(row.af)) {
       af++;
       if (rut) afRuts.add(rut);
     }

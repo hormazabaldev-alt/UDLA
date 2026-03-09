@@ -110,7 +110,7 @@ export function KpiCardsExtra() {
       value: formatInt(totals.af),
       subValue: `RUT: ${formatInt(totals.afRutUnico)}`,
       icon: PhoneCall,
-      tooltip: "Afluencias (Interesa = Viene).",
+      tooltip: "Afluencias (AF = A, M o MC).",
     },
     {
       label: "Matrículas",
@@ -125,7 +125,7 @@ export function KpiCardsExtra() {
       value: formatPct(totals.tcAfCitas, 0),
       subValue: `RUT: ${formatInt(totals.afRutUnico)} / ${formatInt(totals.citasRutUnico)}`,
       icon: Percent,
-      tooltip: "Afluencias / Citas. Con la regla actual, ambas salen de Interesa = Viene.",
+      tooltip: "Afluencias / Citas.",
     },
     {
       label: "% Matrículas",

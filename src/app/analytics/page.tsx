@@ -7,6 +7,7 @@ import { ArrowLeft, BarChart3, TrendingUp, Loader2 } from "lucide-react";
 import { formatInt } from "@/lib/utils/format";
 import type { DataRow } from "@/lib/data-processing/types";
 import { useData } from "@/features/dashboard/hooks/useData";
+import { isAfluenciaValue } from "@/lib/data-processing/predicates";
 import { normalizeRut } from "@/lib/utils/rut";
 import { isInteresaViene } from "@/lib/utils/interesa";
 import { compareSemanaLabels } from "@/lib/utils/semana";
@@ -35,7 +36,7 @@ function computeRowKPI(row: DataRow, metric: Metric): number {
         }
         case "contactado": return row.conecta?.trim().toLowerCase() === "conecta" ? 1 : 0;
         case "citas": return isInteresaViene(row.interesa) ? 1 : 0;
-        case "af": return isInteresaViene(row.interesa) ? 1 : 0;
+        case "af": return isAfluenciaValue(row.af) ? 1 : 0;
         case "mc": {
             const v = row.mc?.trim().toUpperCase() ?? "";
             return (v === "M" || v === "MC") ? 1 : 0;

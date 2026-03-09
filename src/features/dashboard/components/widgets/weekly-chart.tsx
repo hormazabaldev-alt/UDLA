@@ -3,6 +3,7 @@
 import ReactECharts from "echarts-for-react";
 import { useMemo } from "react";
 import { useMetrics } from "@/features/dashboard/hooks/useMetrics";
+import { isAfluenciaValue } from "@/lib/data-processing/predicates";
 import { normalizeRut } from "@/lib/utils/rut";
 import { isInteresaViene } from "@/lib/utils/interesa";
 import { compareSemanaLabels } from "@/lib/utils/semana";
@@ -32,7 +33,7 @@ export function WeeklyChart() {
             if (c === "conecta" || c === "no conecta") g.recorrido++;
             if (c === "conecta") g.contactado++;
             if (isInteresaViene(r.interesa)) g.citasRuts.add(normalizeRut(r.rutBase));
-            if (isInteresaViene(r.interesa)) g.af++;
+            if (isAfluenciaValue(r.af)) g.af++;
             const mcVal = r.mc?.trim().toUpperCase() ?? "";
             if (mcVal === "M" || mcVal === "MC") g.mc++;
         }
