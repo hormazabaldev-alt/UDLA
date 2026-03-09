@@ -1,7 +1,6 @@
 import "server-only";
 
 import type { Dataset, DatasetMeta, DataRow } from "@/lib/data-processing/types";
-import { dedupeRows } from "@/lib/data-processing/dedupe";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 const BUCKET = "snapshots";
@@ -349,15 +348,14 @@ export async function abortSnapshotWrite(session: SnapshotWriteSession) {
 }
 
 export async function replaceSnapshot(dataset: Dataset): Promise<{ meta: DatasetMeta }> {
-  const dedupedRows = dedupeRows(dataset.rows);
   const session = await beginSnapshotWrite({
     sourceFileName: dataset.meta.sourceFileName,
     sheetName: dataset.meta.sheetName,
   });
 
   try {
-    for (let index = 0; index < dedupedRows.length; index += DEFAULT_CHUNK_SIZE) {
-      await appendSnapshotChunk(session, dedupedRows.slice(index, index + DEFAULT_CHUNK_SIZE));
+    for (let index = 0; index < dataset.rows.length; index += DEFAULT_CHUNK_SIZE) {
+      await appendSnapshotChunk(session, dataset.rows.slice(index, index + DEFAULT_CHUNK_SIZE));
     }
 
     return await finalizeSnapshotWrite(session);

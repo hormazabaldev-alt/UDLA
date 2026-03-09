@@ -92,20 +92,36 @@ export function normalizeRow(raw: RawRow, rowIndex: number): {
   const fechaAf = af ? fechaAfRaw : null;
   const fechaMc = mc ? fechaMcRaw : null;
 
-  // Validaciones críticas
-  if (!rutBase) {
-    issues.push({ rowIndex, column: "Rut Base", message: "RUT faltante" });
-  }
+  const hasAnyBusinessValue = [
+    tipoLlamada,
+    fechaCarga,
+    rutBase,
+    tipoBase,
+    fechaGestion,
+    conecta,
+    interesa,
+    regimen,
+    sedeInteres,
+    afCampus,
+    mcCampus,
+    semana,
+    af,
+    fechaAf,
+    mc,
+    fechaMc,
+    agente,
+    marketing5,
+    codigoBanner,
+    carreraInteres,
+  ].some((value) => value !== null && value !== undefined && String(value).trim() !== "");
 
-  // Si no hay errores bloqueantes, retornamos la fila
-  // Nota: Permitimos filas con datos parciales (ej. sin fecha gestión) si cuentan para "Cargada"
-
-  if (!rutBase) return { row: null, issues };
+  // Solo descartamos filas totalmente vacías.
+  if (!hasAnyBusinessValue) return { row: null, issues };
 
   const row: DataRow = {
     tipoLlamada: tipoLlamada ?? "Desconocido",
     fechaCarga,
-    rutBase,
+    rutBase: rutBase ?? "",
     tipoBase: tipoBase ?? "Desconocido",
     fechaGestion,
     conecta,

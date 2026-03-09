@@ -3,7 +3,6 @@ import "server-only";
 import * as XLSX from "xlsx";
 
 import { REQUIRED_COLUMNS } from "@/lib/data-processing/columns";
-import { buildRowKey } from "@/lib/data-processing/dedupe";
 import { normalizeRow } from "@/lib/data-processing/normalize";
 import type { DatasetMeta, DataRow, ParseIssue } from "@/lib/data-processing/types";
 import {
@@ -222,7 +221,6 @@ export async function importXlsxSnapshot(
 
   const preview: Record<string, unknown>[] = [];
   const issues: ParseIssue[] = [];
-  const seen = new Set<string>();
   const storageBuffer: DataRow[] = [];
   let session: SnapshotWriteSession | null = null;
   let processedRows = 0;
@@ -257,9 +255,6 @@ export async function importXlsxSnapshot(
 
         if (!normalized.row) continue;
 
-        const dedupeKey = buildRowKey(normalized.row);
-        if (seen.has(dedupeKey)) continue;
-        seen.add(dedupeKey);
         storageBuffer.push(normalized.row);
 
         const absoluteProcessedRows = Math.min(best.rowCount, rowIndex + 1);

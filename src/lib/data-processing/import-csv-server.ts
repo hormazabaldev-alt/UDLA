@@ -3,7 +3,6 @@ import "server-only";
 import Papa from "papaparse";
 
 import { REQUIRED_COLUMNS } from "@/lib/data-processing/columns";
-import { buildRowKey } from "@/lib/data-processing/dedupe";
 import { normalizeRow } from "@/lib/data-processing/normalize";
 import type { DataRow, ParseIssue } from "@/lib/data-processing/types";
 import {
@@ -130,7 +129,6 @@ export async function importCsvSnapshot(
   }
 
   const issues: ParseIssue[] = [];
-  const seen = new Set<string>();
   const storageBuffer: DataRow[] = [];
   let session: SnapshotWriteSession | null = null;
   let nextProgressAt = PROGRESS_STEP;
@@ -160,9 +158,6 @@ export async function importCsvSnapshot(
 
         if (!normalized.row) continue;
 
-        const dedupeKey = buildRowKey(normalized.row);
-        if (seen.has(dedupeKey)) continue;
-        seen.add(dedupeKey);
         storageBuffer.push(normalized.row);
 
         const processedRows = Math.min(rawRows.length, rowIndex + 1);
