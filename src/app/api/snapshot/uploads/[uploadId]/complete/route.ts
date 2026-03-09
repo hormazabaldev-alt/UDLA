@@ -1,41 +1,21 @@
 import { NextResponse } from "next/server";
 
 import { importXlsxSnapshot, type ImportProgressEvent } from "@/lib/data-processing/import-xlsx-server";
-import { getActiveSnapshot } from "@/lib/supabase/snapshot";
+import { assembleTempUploadFile, cleanupTempUpload } from "@/lib/supabase/snapshot";
 import { assertDashboardAdmin } from "@/lib/server/dashboard-admin";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-export async function GET() {
-  try {
-    const dataset = await getActiveSnapshot();
-    if (!dataset) return new NextResponse(null, { status: 204 });
-    return NextResponse.json(dataset, {
-      headers: { "Cache-Control": "no-store" },
-    });
-  } catch (error) {
-    return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 },
-    );
-  }
-}
-
-export async function POST(req: Request) {
+export async function POST(
+  req: Request,
+  context: { params: Promise<{ uploadId: string }> },
+) {
   const auth = assertDashboardAdmin(req);
   if (!auth.ok) {
     return NextResponse.json(
       { ok: false, error: auth.message },
       { status: auth.status },
-    );
-  }
-
-  const contentType = req.headers.get("content-type") ?? "";
-  if (!contentType.includes("multipart/form-data")) {
-    return NextResponse.json(
-      { ok: false, error: "Expected multipart/form-data with a file field." },
-      { status: 400 },
     );
   }
 
@@ -46,15 +26,20 @@ export async function POST(req: Request) {
         controller.enqueue(encoder.encode(`${JSON.stringify(payload)}\n`));
       };
 
+      let uploadId = "";
       try {
-        const form = await req.formData();
-        const files = form.getAll("file").filter((file): file is File => file instanceof File);
-        if (files.length !== 1) {
-          send({ type: "fatal_error", error: "Debes subir exactamente 1 archivo XLSX." });
+        const params = await context.params;
+        uploadId = params.uploadId;
+        const body = (await req.json()) as { fileName?: string; totalChunks?: number } | null;
+        const fileName = body?.fileName?.trim();
+        const totalChunks = Number(body?.totalChunks);
+
+        if (!fileName || !Number.isInteger(totalChunks) || totalChunks <= 0) {
+          send({ type: "fatal_error", error: "Parametros de carga incompletos." });
           return;
         }
 
-        const file = files[0]!;
+        const file = await assembleTempUploadFile(uploadId, fileName, totalChunks);
         const result = await importXlsxSnapshot(file, async (event: ImportProgressEvent) => {
           send({ type: "progress", ...event });
         });
@@ -72,11 +57,14 @@ export async function POST(req: Request) {
           totalRows: result.meta.rowCount,
         });
       } catch (error) {
-        console.error("POST /api/snapshot error:", error);
+        console.error("POST /api/snapshot/uploads/[uploadId]/complete error:", error);
         const message =
           error instanceof Error ? error.message : typeof error === "object" ? JSON.stringify(error) : "Unknown error";
         send({ type: "fatal_error", error: message });
       } finally {
+        if (uploadId) {
+          await cleanupTempUpload(uploadId);
+        }
         controller.close();
       }
     },

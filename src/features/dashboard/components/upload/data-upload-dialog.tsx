@@ -21,6 +21,8 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { useData } from "@/features/dashboard/hooks/useData";
 
+const MAX_UPLOAD_RETRIES = 3;
+
 type UploadState =
   | { type: "idle" }
   | {
@@ -34,6 +36,36 @@ type UploadState =
   | { type: "completed"; rowCount: number }
   | { type: "validation_error"; issues: ParseIssue[] }
   | { type: "fatal_error"; error: string };
+
+async function uploadChunkWithRetry(
+  url: string,
+  adminKey: string,
+  chunk: Blob,
+  retries = MAX_UPLOAD_RETRIES,
+) {
+  let lastError = "Error desconocido";
+
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    const res = await fetch(url, {
+      method: "PUT",
+      headers: {
+        "x-admin-key": adminKey,
+        "content-type": "application/octet-stream",
+      },
+      body: chunk,
+    });
+
+    if (res.ok) return;
+
+    const text = await res.text().catch(() => "");
+    lastError = text.trim() || `HTTP ${res.status}`;
+    if (attempt < retries) {
+      await new Promise((resolve) => setTimeout(resolve, 300 * attempt));
+    }
+  }
+
+  throw new Error(lastError);
+}
 
 function IssueList({ issues }: { issues: ParseIssue[] }) {
   const items = issues.slice(0, 10);
@@ -102,16 +134,84 @@ export function DataUploadDialog({ triggerLabel, triggerIcon }: {
       message: `Subiendo ${selectedFile.name}...`,
     });
 
-    try {
-      const form = new FormData();
-      form.set("file", selectedFile);
+    let uploadId: string | null = null;
 
-      const res = await fetch("/api/snapshot", {
+    try {
+      const initRes = await fetch("/api/snapshot/uploads", {
         method: "POST",
         headers: {
           "x-admin-key": adminKey.trim(),
+          "content-type": "application/json",
         },
-        body: form,
+        body: JSON.stringify({ fileName: selectedFile.name }),
+      });
+
+      if (!initRes.ok) {
+        const contentType = initRes.headers.get("content-type") ?? "";
+        if (contentType.includes("application/json")) {
+          const body = await initRes.json().catch(() => null);
+          setUploadState({
+            type: "fatal_error",
+            error: `(${initRes.status}) ${body?.error ?? JSON.stringify(body) ?? "Error desconocido"}`,
+          });
+        } else {
+          const text = await initRes.text().catch(() => "");
+          setUploadState({
+            type: "fatal_error",
+            error: `(${initRes.status}) ${text.trim().slice(0, 300) || "Error desconocido"}`,
+          });
+        }
+        return;
+      }
+
+      const initBody = (await initRes.json()) as { uploadId: string; chunkSize: number };
+      uploadId = initBody.uploadId;
+      const chunkSize = initBody.chunkSize;
+      const totalChunks = Math.max(1, Math.ceil(selectedFile.size / chunkSize));
+
+      for (let partNumber = 0; partNumber < totalChunks; partNumber++) {
+        const start = partNumber * chunkSize;
+        const end = Math.min(selectedFile.size, start + chunkSize);
+        const chunk = selectedFile.slice(start, end);
+
+        setUploadState({
+          type: "progress",
+          message: `Subiendo bloque ${partNumber + 1} de ${totalChunks}...`,
+          uploadedChunks: partNumber,
+          totalChunks,
+        });
+
+        await uploadChunkWithRetry(
+          `/api/snapshot/uploads/${uploadId}?partNumber=${partNumber}`,
+          adminKey.trim(),
+          chunk,
+        );
+
+        setUploadState({
+          type: "progress",
+          message: `Subiendo bloque ${partNumber + 1} de ${totalChunks}...`,
+          uploadedChunks: partNumber + 1,
+          totalChunks,
+        });
+      }
+
+      setUploadState({
+        type: "progress",
+        message: "Archivo recibido. Iniciando procesamiento...",
+        uploadedChunks: totalChunks,
+        totalChunks,
+      });
+
+      const res = await fetch(`/api/snapshot/uploads/${uploadId}/complete`, {
+        method: "POST",
+        headers: {
+          "x-admin-key": adminKey.trim(),
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          fileName: selectedFile.name,
+          totalChunks,
+        }),
       });
 
       if (!res.ok) {
@@ -175,8 +275,8 @@ export function DataUploadDialog({ triggerLabel, triggerIcon }: {
               message: event.message,
               processedRows: event.processedRows,
               totalRows: event.totalRows,
-              uploadedChunks: event.uploadedChunks,
-              totalChunks: event.totalChunks,
+              uploadedChunks: event.uploadedChunks ?? totalChunks,
+              totalChunks: event.totalChunks ?? totalChunks,
             });
             continue;
           }
@@ -202,6 +302,18 @@ export function DataUploadDialog({ triggerLabel, triggerIcon }: {
       setOpen(false);
       setSelectedFile(null);
       setUploadState({ type: "idle" });
+    } catch (error) {
+      if (uploadId) {
+        await fetch(`/api/snapshot/uploads/${uploadId}`, {
+          method: "DELETE",
+          headers: { "x-admin-key": adminKey.trim() },
+        }).catch(() => undefined);
+      }
+
+      setUploadState({
+        type: "fatal_error",
+        error: error instanceof Error ? error.message : "Error desconocido durante la carga.",
+      });
     } finally {
       setUploading(false);
       uploadLockRef.current = false;

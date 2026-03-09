@@ -9,6 +9,8 @@ const DATASET_PATH = "active/dataset.json";
 const MANIFEST_PATH = "active/manifest.json";
 const LOGS_PATH = "logs/upload-log.json";
 const DEFAULT_CHUNK_SIZE = 5_000;
+const TEMP_UPLOAD_PREFIX = "uploads";
+const TEMP_UPLOAD_CHUNK_SIZE = 3 * 1024 * 1024;
 
 type StoredDatasetManifest = {
   version: string;
@@ -37,6 +39,12 @@ export type SnapshotWriteSession = {
   nextChunkIndex: number;
 };
 
+type TempUploadSession = {
+  uploadId: string;
+  fileName: string;
+  createdAtISO: string;
+};
+
 async function ensureBucket(supabase: ReturnType<typeof getSupabaseServerClient>) {
   await supabase.storage.createBucket(BUCKET, {
     public: false,
@@ -47,9 +55,18 @@ async function ensureBucket(supabase: ReturnType<typeof getSupabaseServerClient>
 async function uploadJSON(supabase: ReturnType<typeof getSupabaseServerClient>, path: string, data: unknown) {
   const json = JSON.stringify(data);
   const blob = new Blob([json], { type: "application/json" });
+  await uploadBlob(supabase, path, blob, "application/json");
+}
+
+async function uploadBlob(
+  supabase: ReturnType<typeof getSupabaseServerClient>,
+  path: string,
+  blob: Blob,
+  contentType: string,
+) {
   const { error } = await supabase.storage
     .from(BUCKET)
-    .upload(path, blob, { upsert: true, contentType: "application/json" });
+    .upload(path, blob, { upsert: true, contentType });
 
   if (error) throw new Error(`Storage upload failed: ${error.message}`);
 }
@@ -132,6 +149,33 @@ async function cleanupLegacyActiveDataset(supabase: ReturnType<typeof getSupabas
   await removeFilesOptional(supabase, [DATASET_PATH]);
 }
 
+function buildTempUploadSessionPath(uploadId: string) {
+  return `${TEMP_UPLOAD_PREFIX}/${uploadId}/session.json`;
+}
+
+function buildTempUploadChunkPath(uploadId: string, partNumber: number) {
+  return `${TEMP_UPLOAD_PREFIX}/${uploadId}/part-${String(partNumber).padStart(6, "0")}.bin`;
+}
+
+async function listFolderPaths(
+  supabase: ReturnType<typeof getSupabaseServerClient>,
+  folder: string,
+) {
+  const { data, error } = await supabase.storage.from(BUCKET).list(folder, {
+    limit: 1_000,
+    sortBy: { column: "name", order: "asc" },
+  });
+
+  if (error) {
+    console.warn("Storage list failed:", error.message);
+    return [];
+  }
+
+  return (data ?? [])
+    .filter((entry) => entry.name !== ".emptyFolderPlaceholder")
+    .map((entry) => `${folder}/${entry.name}`);
+}
+
 export async function getActiveSnapshot(): Promise<Dataset | null> {
   try {
     const supabase = getSupabaseServerClient();
@@ -155,6 +199,74 @@ export async function getActiveSnapshot(): Promise<Dataset | null> {
     console.warn("getActiveSnapshot failed:", error);
     return null;
   }
+}
+
+export function getTempUploadChunkSize() {
+  return TEMP_UPLOAD_CHUNK_SIZE;
+}
+
+export async function beginTempUpload(fileName: string) {
+  const supabase = getSupabaseServerClient();
+  await ensureBucket(supabase);
+
+  const uploadId = crypto.randomUUID();
+  const session: TempUploadSession = {
+    uploadId,
+    fileName,
+    createdAtISO: new Date().toISOString(),
+  };
+
+  await uploadJSON(supabase, buildTempUploadSessionPath(uploadId), session);
+
+  return {
+    uploadId,
+    chunkSize: TEMP_UPLOAD_CHUNK_SIZE,
+  };
+}
+
+export async function storeTempUploadChunk(uploadId: string, partNumber: number, chunk: Uint8Array) {
+  const supabase = getSupabaseServerClient();
+  await ensureBucket(supabase);
+  const chunkBuffer = new Uint8Array(chunk).buffer;
+
+  await uploadBlob(
+    supabase,
+    buildTempUploadChunkPath(uploadId, partNumber),
+    new Blob([chunkBuffer], { type: "application/octet-stream" }),
+    "application/octet-stream",
+  );
+}
+
+export async function assembleTempUploadFile(uploadId: string, fileName: string, totalChunks: number) {
+  const supabase = getSupabaseServerClient();
+  const session = await downloadJSONOptional<TempUploadSession>(supabase, buildTempUploadSessionPath(uploadId), {
+    retries: 1,
+  });
+
+  if (!session) {
+    throw new Error("No existe una sesion de carga activa para este archivo.");
+  }
+
+  const parts: ArrayBuffer[] = [];
+  for (let partNumber = 0; partNumber < totalChunks; partNumber++) {
+    const { data, error } = await supabase.storage.from(BUCKET).download(buildTempUploadChunkPath(uploadId, partNumber));
+    if (error) {
+      throw new Error(`Falta el bloque ${partNumber + 1} del archivo temporal.`);
+    }
+
+    parts.push(await data.arrayBuffer());
+  }
+
+  return new File(parts, fileName || session.fileName, {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+}
+
+export async function cleanupTempUpload(uploadId: string) {
+  const supabase = getSupabaseServerClient();
+  const folder = `${TEMP_UPLOAD_PREFIX}/${uploadId}`;
+  const paths = await listFolderPaths(supabase, folder);
+  await removeFilesOptional(supabase, paths);
 }
 
 export async function beginSnapshotWrite(meta: {
