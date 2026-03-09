@@ -15,19 +15,30 @@ const STAGES = [
 export function FunnelChart() {
     const { totals } = useMetrics();
 
-    const base = totals?.cargada || 1;
+    const uniqueTotals = {
+        cargada: totals?.cargadaRutUnico ?? 0,
+        recorrido: totals?.recorridoRutUnico ?? 0,
+        contactado: totals?.contactadoRutUnico ?? 0,
+        citas: totals?.citasRutUnico ?? 0,
+        af: totals?.afRutUnico ?? 0,
+        mc: totals?.mcRutUnico ?? 0,
+    };
+
+    const base = uniqueTotals.cargada || 1;
 
     const data = STAGES.map((s) => {
-        const value = totals?.[s.key] ?? 0;
+        const value = uniqueTotals[s.key];
         const pctOfBase = (value / base) * 100;
+        const prevValue =
+            s.key === "cargada" ? base
+                : s.key === "recorrido" ? uniqueTotals.cargada
+                    : s.key === "contactado" ? uniqueTotals.recorrido
+                        : s.key === "citas" ? uniqueTotals.contactado
+                            : s.key === "af" ? uniqueTotals.citas
+                                : uniqueTotals.af;
 
         const pctStep =
-            s.key === "cargada" ? 100
-                : s.key === "recorrido" ? ((totals?.tcLlaLeads ?? 0) * 100)
-                    : s.key === "contactado" ? ((totals?.tcContLla ?? 0) * 100)
-                        : s.key === "citas" ? ((totals?.cCitasCon ?? 0) * 100)
-                            : s.key === "af" ? ((totals?.tcAfCitas ?? 0) * 100)
-                                : ((totals?.tcMcAf ?? 0) * 100);
+            s.key === "cargada" ? 100 : prevValue > 0 ? (value / prevValue) * 100 : 0;
 
         return { ...s, value, pctOfBase, pctStep };
     });

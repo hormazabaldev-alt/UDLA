@@ -515,7 +515,7 @@ export function PowerBILayout() {
 
                     {/* Row 1: Funnel full-width */}
                     <div className="h-[300px]">
-                        <ChartCard title="Embudo de Conversión" tooltip="Visualiza la pérdida de leads en cada etapa del funnel: desde Carga hasta Matrícula.">
+                        <ChartCard title="Embudo de Conversión" tooltip="Visualiza la pérdida de leads por RUT único en cada etapa del funnel: desde Carga hasta Matrícula.">
                             <FunnelChart />
                         </ChartCard>
                     </div>
