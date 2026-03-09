@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils/cn";
 
 import {
@@ -296,11 +296,13 @@ function VerticalFilters() {
 
     const toggleFilter = (key: keyof typeof filters, val: string | number) => {
         const current = filters[key] as (string | number)[];
-        if (current.includes(val)) {
-            set({ [key]: current.filter(v => v !== val) });
-        } else {
-            set({ [key]: [...current, val] });
-        }
+        startTransition(() => {
+            if (current.includes(val)) {
+                set({ [key]: current.filter(v => v !== val) });
+            } else {
+                set({ [key]: [...current, val] });
+            }
+        });
     };
 
     const temporalActiveCount = filters.mes.length + filters.diaNumero.length + filters.semanas.length;
@@ -314,28 +316,28 @@ function VerticalFilters() {
                     options={options.tipos}
                     selected={filters.tipo}
                     onToggle={(v) => toggleFilter("tipo", v)}
-                    onClear={() => set({ tipo: [] })}
+                    onClear={() => startTransition(() => set({ tipo: [] }))}
                 />
                 <MultiSelectGroup
                     label="Campus (Sede)"
                     options={options.campus ?? []}
                     selected={filters.campus}
                     onToggle={(v) => toggleFilter("campus", v)}
-                    onClear={() => set({ campus: [] })}
+                    onClear={() => startTransition(() => set({ campus: [] }))}
                 />
                 <MultiSelectGroup
                     label="Régimen"
                     options={options.regimen ?? []}
                     selected={filters.regimen}
                     onToggle={(v) => toggleFilter("regimen", v)}
-                    onClear={() => set({ regimen: [] })}
+                    onClear={() => startTransition(() => set({ regimen: [] }))}
                 />
                 <SearchableMultiSelect
                     label="Carrera"
                     options={options.carreraInteres ?? []}
                     selected={filters.carreraInteres}
                     onToggle={(v) => toggleFilter("carreraInteres", v)}
-                    onClear={() => set({ carreraInteres: [] })}
+                    onClear={() => startTransition(() => set({ carreraInteres: [] }))}
                 />
             </div>
             {/* Filtros Temporales (Colapsables) */}
@@ -357,7 +359,7 @@ function VerticalFilters() {
                             options={options.meses}
                             selected={filters.mes}
                             onToggle={(v) => toggleFilter("mes", v)}
-                            onClear={() => set({ mes: [] })}
+                            onClear={() => startTransition(() => set({ mes: [] }))}
                             getDisplayLabel={(v) => `Mes ${v}`}
                         />
                         <MultiSelectGroup
@@ -365,21 +367,21 @@ function VerticalFilters() {
                             options={options.semanas}
                             selected={filters.semanas}
                             onToggle={(v) => toggleFilter("semanas", v)}
-                            onClear={() => set({ semanas: [] })}
+                            onClear={() => startTransition(() => set({ semanas: [] }))}
                         />
                         <MultiSelectGroup
                             label="Día"
                             options={options.dias}
                             selected={filters.diaNumero}
                             onToggle={(v) => toggleFilter("diaNumero", v)}
-                            onClear={() => set({ diaNumero: [] })}
+                            onClear={() => startTransition(() => set({ diaNumero: [] }))}
                             getDisplayLabel={(v) => `Día ${v}`}
                         />
                     </AccordionContent>
                 </AccordionItem>
             </Accordion>
 
-            <Button onClick={() => resetFilters()} variant="outline" className="mt-2 border-[#333] hover:bg-[#222] text-white/70">
+            <Button onClick={() => startTransition(() => resetFilters())} variant="outline" className="mt-2 border-[#333] hover:bg-[#222] text-white/70">
                 Limpiar Todos los Filtros
             </Button>
         </div>
