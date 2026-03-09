@@ -206,6 +206,13 @@ function VerticalFilters() {
                     onToggle={(v) => toggleFilter("regimen", v)}
                     onClear={() => set({ regimen: [] })}
                 />
+                <MultiSelectGroup
+                    label="Carrera"
+                    options={options.carreraInteres ?? []}
+                    selected={filters.carreraInteres}
+                    onToggle={(v) => toggleFilter("carreraInteres", v)}
+                    onClear={() => set({ carreraInteres: [] })}
+                />
             </div>
             {/* Filtros Temporales (Colapsables) */}
             <Accordion type="single" collapsible className="w-full">

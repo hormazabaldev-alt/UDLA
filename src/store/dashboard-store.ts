@@ -15,6 +15,7 @@ export type Filters = {
   semanas: string[];
   campus: string[];
   regimen: string[];
+  carreraInteres: string[];
 };
 
 export type DashboardState = {
@@ -39,6 +40,7 @@ const DEFAULT_FILTERS: Filters = {
   semanas: [],
   campus: [],
   regimen: [],
+  carreraInteres: [],
 };
 
 export function applyFilters(
@@ -86,6 +88,12 @@ export function applyFilters(
       const regimen = (r.regimen ?? "").trim();
       if (!regimen) return false;
       if (!filters.regimen.includes(regimen)) return false;
+    }
+
+    if (filters.carreraInteres.length > 0) {
+      const carreraInteres = (r.carreraInteres ?? "").trim();
+      if (!carreraInteres) return false;
+      if (!filters.carreraInteres.includes(carreraInteres)) return false;
     }
 
     return true;

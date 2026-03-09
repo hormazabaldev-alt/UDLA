@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 import type { Filters } from "@/store/dashboard-store";
 import { useDashboardStore } from "@/store/dashboard-store";
@@ -56,8 +56,54 @@ export function useFilters() {
       new Set(rows.map((r) => r.regimen).filter((v): v is string => !!v))
     ).sort();
 
-    return { meses, dias, tipos, semanas, campus, regimen };
-  }, [dataset]);
+    const carreraBaseRows = rows.filter((r) => {
+      if (filters.tipo.length > 0 && !filters.tipo.includes(r.tipoBase)) return false;
+
+      if (filters.campus.length > 0) {
+        const campus = toCampusCode(r.sedeInteres);
+        if (!campus || !filters.campus.includes(campus)) return false;
+      }
+
+      if (filters.regimen.length > 0) {
+        const regimen = (r.regimen ?? "").trim();
+        if (!regimen || !filters.regimen.includes(regimen)) return false;
+      }
+
+      if (filters.mes.length > 0) {
+        if (!(r.fechaGestion instanceof Date) || Number.isNaN(r.fechaGestion.getTime())) return false;
+        const month = r.fechaGestion.getMonth() + 1;
+        if (!filters.mes.includes(month)) return false;
+      }
+
+      if (filters.diaNumero.length > 0) {
+        if (!(r.fechaGestion instanceof Date) || Number.isNaN(r.fechaGestion.getTime())) return false;
+        const day = r.fechaGestion.getDate();
+        if (!filters.diaNumero.includes(day)) return false;
+      }
+
+      if (filters.semanas.length > 0) {
+        const semana = (r.semana ?? "").trim();
+        if (!semana || !filters.semanas.includes(semana)) return false;
+      }
+
+      return true;
+    });
+
+    const carreraInteres = Array.from(
+      new Set(carreraBaseRows.map((r) => r.carreraInteres?.trim()).filter((v): v is string => !!v))
+    ).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+
+    return { meses, dias, tipos, semanas, campus, regimen, carreraInteres };
+  }, [dataset, filters.tipo, filters.campus, filters.regimen, filters.mes, filters.diaNumero, filters.semanas]);
+
+  useEffect(() => {
+    if (filters.carreraInteres.length === 0) return;
+
+    const next = filters.carreraInteres.filter((value) => options.carreraInteres.includes(value));
+    if (next.length !== filters.carreraInteres.length) {
+      setFilters({ carreraInteres: next });
+    }
+  }, [filters.carreraInteres, options.carreraInteres, setFilters]);
 
   const set = (partial: Partial<Filters>) => setFilters(partial);
 
