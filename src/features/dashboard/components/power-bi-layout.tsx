@@ -44,21 +44,34 @@ import {
 } from "@/components/ui/accordion";
 
 function MetricItem({ label, value, subValue, tooltip }: { label: string; value: string; subValue?: string; tooltip?: string }) {
+    const rutValue = subValue?.replace(/^RUT:\s*/i, "").trim();
+
     return (
         <TooltipProvider>
             <Tooltip delayDuration={300}>
                 <TooltipTrigger asChild>
                     <div className="flex flex-col cursor-help">
-                        <span className="text-3xl font-bold text-[#00d4ff] tracking-tighter leading-none">{value}</span>
+                        <span className="text-3xl font-bold text-[#00d4ff] tracking-tighter leading-none">
+                            {rutValue || value}
+                        </span>
+                        {rutValue ? (
+                            <span className="mt-1 text-[10px] font-bold uppercase tracking-[0.22em] text-[#00d4ff]/80">
+                                RUT unico
+                            </span>
+                        ) : null}
                         <div className="flex items-center gap-1.5 mt-1.5">
                             <span className="text-[13px] text-white/90 uppercase tracking-wide font-bold">{label}</span>
                             {tooltip && <Info className="size-3.5 text-white/40 hover:text-white/80 transition-colors" />}
                         </div>
-                        {subValue && (
-                            <span className="text-[10px] text-white/75 mt-1 font-semibold tracking-wide">
+                        {rutValue ? (
+                            <span className="mt-1 text-[11px] font-semibold tracking-wide text-white/65">
+                                Gestion: {value}
+                            </span>
+                        ) : subValue ? (
+                            <span className="mt-1 text-[10px] font-semibold tracking-wide text-white/75">
                                 {subValue}
                             </span>
-                        )}
+                        ) : null}
                     </div>
                 </TooltipTrigger>
                 {tooltip && (
