@@ -396,6 +396,17 @@ function DataSection({
   onToggleCollapse?: () => void;
 }) {
   const hasRows = rows.length > 0;
+  const dataColSpan =
+    1
+    + (showSecondary ? 1 : 0)
+    + 4
+    + (showAF ? 1 : 0)
+    + (showMC ? 1 : 0);
+  const quartileColSpan =
+    2
+    + (showAF ? 1 : 0)
+    + (showAF && showMC ? 1 : 0)
+    + (showMC ? 1 : 0);
 
   return (
     <section className="space-y-2">
@@ -422,108 +433,94 @@ function DataSection({
         ) : null}
       </div>
 
-      <div className="grid gap-2 xl:grid-cols-[1.2fr_0.9fr]">
-        <div className="overflow-auto rounded-lg border border-[#1f1f1f] bg-[#080808]">
-          <table className="w-full min-w-[620px] border-collapse text-[12px] text-white/80">
-            <thead>
-              <tr>
-                <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-left text-[10px] uppercase tracking-wider text-[#00d4ff]">{labelHeader}</th>
-                {showSecondary ? (
-                  <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-left text-[10px] uppercase tracking-wider text-[#00d4ff]">Marketing 5</th>
-                ) : null}
-                <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">Recorrido</th>
-                <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">Conecta</th>
-                <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">No conecta</th>
-                <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">Citas</th>
-                {showAF ? <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">AF</th> : null}
-                {showMC ? <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">MC</th> : null}
-              </tr>
-            </thead>
-            <tbody>
-              {hasRows ? (
-                rows.map((row) => (
-                  <tr key={`${title}:${row.label}:${row.secondary}`}>
-                    <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-white/85">{row.label}</td>
-                    {showSecondary ? (
-                      <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-white/70">{row.secondary}</td>
-                    ) : null}
-                    <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-right tabular-nums text-white/90">{formatInt(row.recorrido)}</td>
-                    <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-right tabular-nums text-white/90">{formatInt(row.conecta)}</td>
-                    <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-right tabular-nums text-white/90">{formatInt(row.noConecta)}</td>
-                    <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-right tabular-nums text-white/90">{formatInt(row.citas)}</td>
-                    {showAF ? (
-                      <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-right tabular-nums text-white/90">{formatInt(row.af)}</td>
-                    ) : null}
-                    {showMC ? (
-                      <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-right tabular-nums text-white/90">{formatInt(row.mc)}</td>
-                    ) : null}
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td
-                    colSpan={showSecondary ? (showAF && showMC ? 8 : showAF || showMC ? 7 : 6) : showAF && showMC ? 7 : showAF || showMC ? 6 : 5}
-                    className="border border-[#1f1f1f] bg-[#080808] px-3 py-2 text-center text-white/45"
-                  >
-                    Sin datos para los filtros seleccionados.
+      <div className="overflow-auto rounded-lg border border-[#1f1f1f] bg-[#080808]">
+        <table className="w-full min-w-[1080px] border-collapse text-[12px] text-white/80">
+          <thead>
+            <tr>
+              <th
+                colSpan={dataColSpan}
+                className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-left text-[10px] uppercase tracking-wider text-[#00d4ff]"
+              >
+                Datos finales
+              </th>
+              <th
+                colSpan={quartileColSpan}
+                className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-left text-[10px] uppercase tracking-wider text-[#00d4ff]"
+              >
+                Cuartiles
+              </th>
+            </tr>
+            <tr>
+              <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-left text-[10px] uppercase tracking-wider text-[#00d4ff]">{labelHeader}</th>
+              {showSecondary ? (
+                <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-left text-[10px] uppercase tracking-wider text-[#00d4ff]">Marketing 5</th>
+              ) : null}
+              <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">Recorrido</th>
+              <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">Conecta</th>
+              <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">No conecta</th>
+              <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">Citas</th>
+              {showAF ? <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">AF</th> : null}
+              {showMC ? <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">MC</th> : null}
+              <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">TC% Cont/Reco.</th>
+              <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">TC% Cit/Cont</th>
+              {showAF ? <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">TC% AF/Cit</th> : null}
+              {showAF && showMC ? <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">TC% MC/AF</th> : null}
+              {showMC ? <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">TC% MC/Reco.</th> : null}
+            </tr>
+          </thead>
+          <tbody>
+            {hasRows ? (
+              rows.map((row) => (
+                <tr key={`${title}:${row.label}:${row.secondary}`}>
+                  <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-white/85">{row.label}</td>
+                  {showSecondary ? (
+                    <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-white/70">{row.secondary}</td>
+                  ) : null}
+                  <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-right tabular-nums text-white/90">{formatInt(row.recorrido)}</td>
+                  <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-right tabular-nums text-white/90">{formatInt(row.conecta)}</td>
+                  <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-right tabular-nums text-white/90">{formatInt(row.noConecta)}</td>
+                  <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-right tabular-nums text-white/90">{formatInt(row.citas)}</td>
+                  {showAF ? (
+                    <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-right tabular-nums text-white/90">{formatInt(row.af)}</td>
+                  ) : null}
+                  {showMC ? (
+                    <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-right tabular-nums text-white/90">{formatInt(row.mc)}</td>
+                  ) : null}
+                  <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-center">
+                    <SemaforoBadge value={row.tcContReco} band={quartiles.tcContReco} />
                   </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="overflow-auto rounded-lg border border-[#1f1f1f] bg-[#080808]">
-          <table className="w-full min-w-[460px] border-collapse text-[12px] text-white/80">
-            <thead>
-              <tr>
-                <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">TC% Cont/Reco.</th>
-                <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">TC% Cit/Cont</th>
-                {showAF ? <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">TC% AF/Cit</th> : null}
-                {showAF && showMC ? <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">TC% MC/AF</th> : null}
-                {showMC ? <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">TC% MC/Reco.</th> : null}
-              </tr>
-            </thead>
-            <tbody>
-              {hasRows ? (
-                rows.map((row) => (
-                  <tr key={`${title}:pct:${row.label}:${row.secondary}`}>
-                    <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-center">
-                      <SemaforoBadge value={row.tcContReco} band={quartiles.tcContReco} />
-                    </td>
-                    <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-center">
-                      <SemaforoBadge value={row.tcCitCont} band={quartiles.tcCitCont} />
-                    </td>
-                    {showAF ? (
-                      <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-center">
-                        <SemaforoBadge value={row.tcAfCit} band={quartiles.tcAfCit} />
-                      </td>
-                    ) : null}
-                    {showAF && showMC ? (
-                      <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-center">
-                        <SemaforoBadge value={row.tcMcAf} band={quartiles.tcMcAf} />
-                      </td>
-                    ) : null}
-                    {showMC ? (
-                      <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-center">
-                        <SemaforoBadge value={row.tcMcReco} band={quartiles.tcMcReco} />
-                      </td>
-                    ) : null}
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td
-                    colSpan={showAF && showMC ? 5 : showAF || showMC ? 4 : 2}
-                    className="border border-[#1f1f1f] bg-[#080808] px-3 py-2 text-center text-white/45"
-                  >
-                    Sin datos.
+                  <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-center">
+                    <SemaforoBadge value={row.tcCitCont} band={quartiles.tcCitCont} />
                   </td>
+                  {showAF ? (
+                    <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-center">
+                      <SemaforoBadge value={row.tcAfCit} band={quartiles.tcAfCit} />
+                    </td>
+                  ) : null}
+                  {showAF && showMC ? (
+                    <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-center">
+                      <SemaforoBadge value={row.tcMcAf} band={quartiles.tcMcAf} />
+                    </td>
+                  ) : null}
+                  {showMC ? (
+                    <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-center">
+                      <SemaforoBadge value={row.tcMcReco} band={quartiles.tcMcReco} />
+                    </td>
+                  ) : null}
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              ))
+            ) : (
+              <tr>
+                <td
+                  colSpan={dataColSpan + quartileColSpan}
+                  className="border border-[#1f1f1f] bg-[#080808] px-3 py-2 text-center text-white/45"
+                >
+                  Sin datos para los filtros seleccionados.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </section>
   );
