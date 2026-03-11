@@ -18,13 +18,11 @@ import { isInteresaViene } from "@/lib/utils/interesa";
 import { toCampusCode } from "@/lib/utils/campus";
 import { normalizeRut } from "@/lib/utils/rut";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
-type FilterArrayKey = keyof Omit<AgentFilters, "dateFrom" | "dateTo">;
+type FilterArrayKey = keyof Omit<AgentFilters, "meses">;
 
 const EMPTY_FILTERS: AgentFilters = {
-  dateFrom: "",
-  dateTo: "",
+  meses: [],
   semanas: [],
   regimenes: [],
   sedesInteres: [],
@@ -315,6 +313,64 @@ function FilterSelect({
   );
 }
 
+function campaignMonthLabel(month: number) {
+  return `Mes ${month}`;
+}
+
+function MonthFilterGroup({
+  selected,
+  options,
+  onToggle,
+  onClear,
+}: {
+  selected: number[];
+  options: number[];
+  onToggle: (month: number) => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className="rounded-md border border-[#2a2a2a] bg-[#050505] p-3 text-white">
+      <div className="mb-2 text-[10px] uppercase tracking-[0.16em] text-white/60">Mes</div>
+      <div className="flex flex-wrap gap-1.5">
+        {options.length === 0 ? (
+          <span className="text-[11px] text-white/35 italic">Sin datos</span>
+        ) : (
+          options.map((month) => {
+            const active = selected.includes(month);
+            return (
+              <button
+                key={month}
+                type="button"
+                onClick={() => onToggle(month)}
+                className="rounded-md border px-2.5 py-1.5 text-[11px] font-medium transition-colors hover:bg-white/5 hover:text-white"
+                style={{
+                  backgroundColor: active ? "rgba(0,212,255,0.15)" : "rgba(255,255,255,0.04)",
+                  borderColor: active ? "#00d4ff" : "rgba(255,255,255,0.08)",
+                  color: active ? "#00d4ff" : "rgba(255,255,255,0.65)",
+                }}
+              >
+                {campaignMonthLabel(month)}
+              </button>
+            );
+          })
+        )}
+      </div>
+      <div className="mt-2 flex items-center justify-between gap-2 text-[10px] text-white/45">
+        <span>Usa Fecha Gestión; si viene vacía usa Fecha Carga.</span>
+        {selected.length > 0 ? (
+          <button
+            type="button"
+            onClick={onClear}
+            className="text-white/55 transition hover:text-white/80"
+          >
+            Limpiar ({selected.length})
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 function DataSection({
   title,
   labelHeader,
@@ -540,6 +596,17 @@ export default function GestionAgentesPage() {
     [agentRows, agentsCollapsed],
   );
 
+  const toggleMonthFilter = (month: number) => {
+    startTransition(() => {
+      setFilters((prev) => ({
+        ...prev,
+        meses: prev.meses.includes(month)
+          ? prev.meses.filter((value) => value !== month)
+          : [...prev.meses, month],
+      }));
+    });
+  };
+
   const setSingleFilter = (key: FilterArrayKey, value: string) => {
     startTransition(() => {
       setFilters((prev) => ({
@@ -604,30 +671,12 @@ export default function GestionAgentesPage() {
         </div>
 
         <section className="grid gap-2 xl:grid-cols-[340px_minmax(0,1fr)_300px]">
-          <div className="rounded-md border border-[#2a2a2a] bg-[#050505] p-3 text-white">
-            <div className="mb-2 text-[10px] uppercase tracking-[0.16em] text-white/60">Rango de fechas</div>
-            <div className="grid grid-cols-2 gap-2">
-              <Input
-                type="date"
-                value={filters.dateFrom}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  startTransition(() => setFilters((prev) => ({ ...prev, dateFrom: value })));
-                }}
-                className="h-8 border-[#2f2f2f] bg-[#0b0b0b] text-xs text-white"
-              />
-              <Input
-                type="date"
-                value={filters.dateTo}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  startTransition(() => setFilters((prev) => ({ ...prev, dateTo: value })));
-                }}
-                className="h-8 border-[#2f2f2f] bg-[#0b0b0b] text-xs text-white"
-              />
-            </div>
-            <div className="mt-2 text-[10px] text-white/45">Usa Fecha Gestión; si viene vacía usa Fecha Carga.</div>
-          </div>
+          <MonthFilterGroup
+            options={options.meses}
+            selected={filters.meses}
+            onToggle={toggleMonthFilter}
+            onClear={() => startTransition(() => setFilters((prev) => ({ ...prev, meses: [] })))}
+          />
 
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
             <MetricCard
