@@ -6,7 +6,8 @@ import { isInteresaViene } from "@/lib/utils/interesa";
 export const NO_ASIGNADO = "No asignado";
 
 export type AgentFilters = {
-  meses: number[];
+  dateFrom: string;
+  dateTo: string;
   semanas: string[];
   regimenes: string[];
   sedesInteres: string[];
@@ -43,8 +44,14 @@ function isValidDate(value: unknown): value is Date {
   return value instanceof Date && !Number.isNaN(value.getTime());
 }
 
-function campaignMonthSortKey(month: number) {
-  return month >= 8 ? month - 8 : month + 4;
+function parseDateInput(value: string, endOfDay = false): Date | null {
+  const s = value.trim();
+  if (!s) return null;
+  const [yRaw, mRaw, dRaw] = s.split("-").map((v) => Number.parseInt(v, 10));
+  if (!yRaw || !mRaw || !dRaw) return null;
+  return endOfDay
+    ? new Date(yRaw, mRaw - 1, dRaw, 23, 59, 59, 999)
+    : new Date(yRaw, mRaw - 1, dRaw, 0, 0, 0, 0);
 }
 
 function rowDate(row: DataRow): Date | null {
@@ -81,13 +88,13 @@ function inSelection(selected: string[], value: string): boolean {
 }
 
 export function applyAgentFilters(rows: DataRow[], filters: AgentFilters): DataRow[] {
+  const fromDate = parseDateInput(filters.dateFrom, false);
+  const toDate = parseDateInput(filters.dateTo, true);
+
   return rows.filter((row) => {
     const d = rowDate(row);
-    if (filters.meses.length > 0) {
-      if (!d) return false;
-      const month = d.getMonth() + 1;
-      if (!filters.meses.includes(month)) return false;
-    }
+    if (fromDate && (!d || d < fromDate)) return false;
+    if (toDate && (!d || d > toDate)) return false;
 
     if (!inSelection(filters.semanas, normText(row.semana))) return false;
     if (!inSelection(filters.regimenes, normText(row.regimen))) return false;
@@ -252,7 +259,6 @@ export function collectAgentFilterOptions(rows: DataRow[]) {
   return {
     minDate: dates[0] ?? null,
     maxDate: dates[dates.length - 1] ?? null,
-    meses: Array.from(new Set(dates.map((date) => date.getMonth() + 1))).sort((a, b) => campaignMonthSortKey(a) - campaignMonthSortKey(b)),
     semanas: unique(rows.map((r) => normText(r.semana))),
     regimenes: unique(rows.map((r) => normText(r.regimen))),
     sedesInteres: unique(rows.map((r) => normCampus(r.sedeInteres))),
