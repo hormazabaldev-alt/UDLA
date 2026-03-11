@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useEffect, useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 import type { Filters } from "@/store/dashboard-store";
 import { useDashboardStore } from "@/store/dashboard-store";
@@ -22,7 +22,6 @@ export function useFilters() {
   const filters = useDashboardStore((s) => s.filters);
   const setFilters = useDashboardStore((s) => s.setFilters);
   const resetFilters = useDashboardStore((s) => s.resetFilters);
-  const deferredFilters = useDeferredValue(filters);
 
   const options = useMemo(() => {
     const rows = dataset?.rows ?? [];
@@ -65,33 +64,33 @@ export function useFilters() {
     ).sort();
 
     const carreraBaseRows = rows.filter((r) => {
-      if (deferredFilters.tipo.length > 0 && !deferredFilters.tipo.includes(r.tipoBase)) return false;
+      if (filters.tipo.length > 0 && !filters.tipo.includes(r.tipoBase)) return false;
 
-      if (deferredFilters.campus.length > 0) {
+      if (filters.campus.length > 0) {
         const campus = toCampusCode(r.sedeInteres);
-        if (!campus || !deferredFilters.campus.includes(campus)) return false;
+        if (!campus || !filters.campus.includes(campus)) return false;
       }
 
-      if (deferredFilters.regimen.length > 0) {
+      if (filters.regimen.length > 0) {
         const regimen = (r.regimen ?? "").trim();
-        if (!regimen || !deferredFilters.regimen.includes(regimen)) return false;
+        if (!regimen || !filters.regimen.includes(regimen)) return false;
       }
 
-      if (deferredFilters.mes.length > 0) {
+      if (filters.mes.length > 0) {
         if (!(r.fechaGestion instanceof Date) || Number.isNaN(r.fechaGestion.getTime())) return false;
         const month = r.fechaGestion.getMonth() + 1;
-        if (!deferredFilters.mes.includes(month)) return false;
+        if (!filters.mes.includes(month)) return false;
       }
 
-      if (deferredFilters.diaNumero.length > 0) {
+      if (filters.diaNumero.length > 0) {
         if (!(r.fechaGestion instanceof Date) || Number.isNaN(r.fechaGestion.getTime())) return false;
         const day = r.fechaGestion.getDate();
-        if (!deferredFilters.diaNumero.includes(day)) return false;
+        if (!filters.diaNumero.includes(day)) return false;
       }
 
-      if (deferredFilters.semanas.length > 0) {
+      if (filters.semanas.length > 0) {
         const semana = (r.semana ?? "").trim();
-        if (!semana || !deferredFilters.semanas.includes(semana)) return false;
+        if (!semana || !filters.semanas.includes(semana)) return false;
       }
 
       return true;
@@ -102,15 +101,7 @@ export function useFilters() {
     ).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
 
     return { meses, dias, tipos, semanas, campus, regimen, carreraInteres };
-  }, [
-    dataset,
-    deferredFilters.tipo,
-    deferredFilters.campus,
-    deferredFilters.regimen,
-    deferredFilters.mes,
-    deferredFilters.diaNumero,
-    deferredFilters.semanas,
-  ]);
+  }, [dataset, filters.tipo, filters.campus, filters.regimen, filters.mes, filters.diaNumero, filters.semanas]);
 
   useEffect(() => {
     if (filters.carreraInteres.length === 0) return;
@@ -121,7 +112,7 @@ export function useFilters() {
     }
   }, [filters.carreraInteres, options.carreraInteres, setFilters]);
 
-  const set = (partial: Partial<Filters> | ((current: Filters) => Partial<Filters> | Filters)) => setFilters(partial);
+  const set = (partial: Partial<Filters>) => setFilters(partial);
 
   return { filters, set, resetFilters, options };
 }

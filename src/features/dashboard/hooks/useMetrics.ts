@@ -4,7 +4,7 @@ import { useDeferredValue, useMemo } from "react";
 
 import type { Dataset, DataRow } from "@/lib/data-processing/types";
 import { applyFilters, useDashboardStore } from "@/store/dashboard-store";
-import { hasTemporalFilters, matchesTemporalFiltersForAnyMetric } from "@/lib/data-processing/temporal";
+import { matchesTemporalFiltersForAnyMetric } from "@/lib/data-processing/temporal";
 import { computeTotals, computeTrend } from "@/lib/data-processing/metrics";
 
 type MetricsResult = {
@@ -34,13 +34,8 @@ function getMetricsResult(
   }
 
   const rows = applyFilters(dataset.rows, filters, { tipoIndex, includeTemporal: false });
-  const hasTemporalSelection = hasTemporalFilters(filters);
-  const detailRows = hasTemporalSelection
-    ? rows.filter((row) => matchesTemporalFiltersForAnyMetric(row, filters))
-    : rows;
-  const trendRows = hasTemporalSelection
-    ? applyFilters(rows, filters)
-    : rows;
+  const detailRows = rows.filter((row) => matchesTemporalFiltersForAnyMetric(row, filters));
+  const trendRows = applyFilters(dataset.rows, filters, { tipoIndex });
   const totals = computeTotals(rows, filters);
   const trend = computeTrend(trendRows, { tipoUniverse: filters.tipo.length > 0 ? filters.tipo : undefined });
 

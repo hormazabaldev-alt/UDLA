@@ -123,49 +123,6 @@ function ChartCard({
     );
 }
 
-function DeferredSection({
-    children,
-    placeholderClassName,
-}: {
-    children: React.ReactNode;
-    placeholderClassName?: string;
-}) {
-    const containerRef = useRef<HTMLDivElement>(null);
-    const [isVisible, setIsVisible] = useState(false);
-
-    useEffect(() => {
-        if (isVisible) return;
-
-        const node = containerRef.current;
-        if (!node) {
-            return;
-        }
-        if (typeof IntersectionObserver === "undefined") {
-            const frameId = window.requestAnimationFrame(() => setIsVisible(true));
-            return () => window.cancelAnimationFrame(frameId);
-        }
-
-        const observer = new IntersectionObserver(
-            (entries) => {
-                if (entries.some((entry) => entry.isIntersecting)) {
-                    setIsVisible(true);
-                    observer.disconnect();
-                }
-            },
-            { rootMargin: "320px 0px" },
-        );
-
-        observer.observe(node);
-        return () => observer.disconnect();
-    }, [isVisible]);
-
-    return (
-        <div ref={containerRef} className="h-full w-full">
-            {isVisible ? children : <div className={cn("h-full w-full animate-pulse rounded-lg bg-[#0b0b0b] border border-[#1f1f1f]", placeholderClassName)} />}
-        </div>
-    );
-}
-
 function MultiSelectGroup({
     label,
     options,
@@ -351,13 +308,13 @@ function VerticalFilters() {
     const { filters, set, resetFilters, options } = useFilters();
 
     const toggleFilter = (key: keyof typeof filters, val: string | number) => {
+        const current = filters[key] as (string | number)[];
         startTransition(() => {
-            set((currentFilters) => {
-                const current = currentFilters[key] as (string | number)[];
-                return current.includes(val)
-                    ? { [key]: current.filter((v) => v !== val) }
-                    : { [key]: [...current, val] };
-            });
+            if (current.includes(val)) {
+                set({ [key]: current.filter(v => v !== val) });
+            } else {
+                set({ [key]: [...current, val] });
+            }
         });
     };
 
@@ -603,81 +560,59 @@ export function PowerBILayout() {
 
                     {/* Row 3: Resultado Mensual + Evolución */}
                     <div className="grid grid-cols-2 gap-4 h-[320px]">
-                        <DeferredSection>
-                            <ChartCard title="Resultado Mensual (por Tipo Base)" tooltip="Comportamiento y rendimiento histórico por tipo de base a lo largo de los meses.">
-                                <TrendChart />
-                            </ChartCard>
-                        </DeferredSection>
-                        <DeferredSection>
-                            <ChartCard title="Evolución Mensual (KPIs)" tooltip="Muestra cómo varían las métricas clave porcentuales (ej. % Contactabilidad, Cierre) mensualmente.">
-                                <EvolutionChart />
-                            </ChartCard>
-                        </DeferredSection>
+                        <ChartCard title="Resultado Mensual (por Tipo Base)" tooltip="Comportamiento y rendimiento histórico por tipo de base a lo largo de los meses.">
+                            <TrendChart />
+                        </ChartCard>
+                        <ChartCard title="Evolución Mensual (KPIs)" tooltip="Muestra cómo varían las métricas clave porcentuales (ej. % Contactabilidad, Cierre) mensualmente.">
+                            <EvolutionChart />
+                        </ChartCard>
                     </div>
 
                     {/* Row 4: Semanal + Diario */}
                     <div className="grid grid-cols-2 gap-4 h-[320px]">
-                        <DeferredSection>
-                            <ChartCard title="Comparativa Semanal" tooltip="Volumen de Citas, AF y MC consolidado por semana del año.">
-                                <WeeklyChart />
-                            </ChartCard>
-                        </DeferredSection>
-                        <DeferredSection>
-                            <ChartCard title="Comparativa por Día" tooltip="Distribución del rendimiento según los días calendario.">
-                                <DailyChart />
-                            </ChartCard>
-                        </DeferredSection>
+                        <ChartCard title="Comparativa Semanal" tooltip="Volumen de Citas, AF y MC consolidado por semana del año.">
+                            <WeeklyChart />
+                        </ChartCard>
+                        <ChartCard title="Comparativa por Día" tooltip="Distribución del rendimiento según los días calendario.">
+                            <DailyChart />
+                        </ChartCard>
                     </div>
 
                     {/* Row 5: Nuevo chart semanal */}
                     <div className="h-[520px]">
-                        <DeferredSection>
-                            <ChartCard title="KPIs por Semana (Nuevo)" tooltip="Gráfico detallado de las métricas agrupadas por semana específica con metas comparativas." className="h-full">
-                                <SemanaKpisChart />
-                            </ChartCard>
-                        </DeferredSection>
+                        <ChartCard title="KPIs por Semana (Nuevo)" tooltip="Gráfico detallado de las métricas agrupadas por semana específica con metas comparativas." className="h-full">
+                            <SemanaKpisChart />
+                        </ChartCard>
                     </div>
 
                     {/* Row 6: Resumen Semanal */}
                     <div className="h-[420px]">
-                        <DeferredSection>
-                            <ChartCard title="Resumen Semanal" tooltip="Tabla consolidada que muestra el rendimiento detallado semana a semana.">
-                                <ResumenSemanalTable />
-                            </ChartCard>
-                        </DeferredSection>
+                        <ChartCard title="Resumen Semanal" tooltip="Tabla consolidada que muestra el rendimiento detallado semana a semana.">
+                            <ResumenSemanalTable />
+                        </ChartCard>
                     </div>
 
 	                    {/* Row 7: Desglose por Campus y Regimen (separado por métrica) */}
 	                    <div className="grid grid-cols-1 xl:grid-cols-2 auto-rows-fr gap-4 h-[880px]">
-                            <DeferredSection>
-		                            <ChartCard title="Afluencias por Campus" tooltip="Conteo de AF agrupado por campus (columna `afcampus` si existe; si no, usa `Sede Interes`)." className="h-full" bodyClassName="p-2">
-		                                <MetricBreakdownChart metric="af" dimension="campus" />
-		                            </ChartCard>
-                            </DeferredSection>
-                            <DeferredSection>
-		                            <ChartCard title="Matrículas por Campus" tooltip="Conteo de MC agrupado por campus (columna `mccampus` si existe; si no, usa `Sede Interes`)." className="h-full" bodyClassName="p-2">
-		                                <MetricBreakdownChart metric="mc" dimension="campus" />
-		                            </ChartCard>
-                            </DeferredSection>
-                            <DeferredSection>
-		                            <ChartCard title="Afluencias por Régimen" tooltip="Conteo de AF agrupado por régimen." className="h-full" bodyClassName="p-2">
-		                                <MetricBreakdownChart metric="af" dimension="regimen" />
-		                            </ChartCard>
-                            </DeferredSection>
-                            <DeferredSection>
-		                            <ChartCard title="Matrículas por Régimen" tooltip="Conteo de MC agrupado por régimen." className="h-full" bodyClassName="p-2">
-		                                <MetricBreakdownChart metric="mc" dimension="regimen" />
-		                            </ChartCard>
-                            </DeferredSection>
+		                        <ChartCard title="Afluencias por Campus" tooltip="Conteo de AF agrupado por campus (columna `afcampus` si existe; si no, usa `Sede Interes`)." className="h-full" bodyClassName="p-2">
+		                            <MetricBreakdownChart metric="af" dimension="campus" />
+		                        </ChartCard>
+		                        <ChartCard title="Matrículas por Campus" tooltip="Conteo de MC agrupado por campus (columna `mccampus` si existe; si no, usa `Sede Interes`)." className="h-full" bodyClassName="p-2">
+		                            <MetricBreakdownChart metric="mc" dimension="campus" />
+		                        </ChartCard>
+		                        <ChartCard title="Afluencias por Régimen" tooltip="Conteo de AF agrupado por régimen." className="h-full" bodyClassName="p-2">
+		                            <MetricBreakdownChart metric="af" dimension="regimen" />
+		                        </ChartCard>
+		                        <ChartCard title="Matrículas por Régimen" tooltip="Conteo de MC agrupado por régimen." className="h-full" bodyClassName="p-2">
+		                            <MetricBreakdownChart metric="mc" dimension="regimen" />
+		                        </ChartCard>
 		                    </div>
 
                     {/* Row 8: Detalle */}
                     <div className="h-[620px]">
-                        <DeferredSection>
-                            <ChartCard title="Detalle de Registros (Nuevo)" tooltip="Tabla de datos granulares para revisión uno a uno de los registros que componen los KPIs.">
-                                <DetalleRegistrosTable height={560} />
-                            </ChartCard>
-                        </DeferredSection>
+                        <ChartCard title="Detalle de Registros (Nuevo)" tooltip="Tabla de datos granulares para revisión uno a uno de los registros que componen los KPIs.">
+                            <DetalleRegistrosTable height={560} />
+                        </ChartCard>
                     </div>
                 </div>
             </main>
