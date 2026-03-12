@@ -29,12 +29,17 @@ function formatPct(value01: number | null | undefined, digits: number) {
   }).format(v);
 }
 
+function formatPctFromCounts(numerator: number, denominator: number, digits: number) {
+  return formatPct(denominator > 0 ? numerator / denominator : 0, digits);
+}
+
 function Card({
   label,
   value,
   icon: Icon,
   hint,
   subValue,
+  accentLabel,
   tooltip,
 }: {
   label: string;
@@ -42,6 +47,7 @@ function Card({
   icon: React.ComponentType<{ className?: string }>;
   hint?: string;
   subValue?: string;
+  accentLabel?: string;
   tooltip?: string;
 }) {
   return (
@@ -67,6 +73,11 @@ function Card({
         <div className="text-2xl font-bold tracking-tight text-white mt-1 tabular-nums">
           {value}
         </div>
+        {accentLabel ? (
+          <div className="text-[10px] text-[#00d4ff]/80 mt-1 font-bold uppercase tracking-[0.18em]">
+            {accentLabel}
+          </div>
+        ) : null}
         {subValue ? (
           <div className="text-[10px] text-white/80 mt-1 font-semibold tracking-wide">
             {subValue}
@@ -102,40 +113,56 @@ export function KpiCardsExtra() {
   const cards = [
     {
       label: "Citas",
-      value: formatInt(totals.citas),
-      subValue: `RUT: ${formatInt(totals.citasRutUnico)}`,
+      value: formatInt(totals.citasRutUnico),
+      subValue: `Gestion: ${formatInt(totals.citas)}`,
+      accentLabel: "RUT unico",
       icon: CalendarCheck2,
-      tooltip: "Citas (Interesa = Viene) por volumen; abajo se muestra RUT único.",
+      tooltip: "Citas (Interesa = Viene). Se muestra primero RUT único y abajo el total de gestión.",
     },
-    { label: "Recorrido", value: formatInt(totals.recorrido), icon: Route, tooltip: "Recorrido (Conecta o No Conecta)." },
+    {
+      label: "Recorrido",
+      value: formatInt(totals.recorridoRutUnico),
+      subValue: `Gestion: ${formatInt(totals.recorrido)}`,
+      accentLabel: "RUT unico",
+      icon: Route,
+      tooltip: "Recorrido (Conecta o No Conecta). Se muestra primero RUT único y abajo el total de gestión.",
+    },
     {
       label: "Afluencias",
-      value: formatInt(totals.af),
-      subValue: `RUT: ${formatInt(totals.afRutUnico)}`,
+      value: formatInt(totals.afRutUnico),
+      subValue: `Gestion: ${formatInt(totals.af)}`,
+      accentLabel: "RUT unico",
       icon: PhoneCall,
-      tooltip: "Afluencias (AF = A, M o MC).",
+      tooltip: "Afluencias (AF = A, M o MC). Se muestra primero RUT único y abajo el total de gestión.",
     },
     {
       label: "Matrículas",
-      value: formatInt(totals.mc),
-      subValue: `RUT: ${formatInt(totals.mcRutUnico)}`,
+      value: formatInt(totals.mcRutUnico),
+      subValue: `Gestion: ${formatInt(totals.mc)}`,
+      accentLabel: "RUT unico",
       icon: GraduationCap,
-      tooltip: "Matrículas (MC = M o MC).",
+      tooltip: "Matrículas (MC = M o MC). Se muestra primero RUT único y abajo el total de gestión.",
     },
-    { label: "% Recorrido", value: formatPct(totals.tcLlaLeads, 1), icon: Percent, tooltip: "Recorrido / Base Gestión." },
+    {
+      label: "% Recorrido",
+      value: formatPctFromCounts(totals.recorridoRutUnico, totals.cargadaRutUnico, 1),
+      subValue: `RUT: ${formatInt(totals.recorridoRutUnico)} / ${formatInt(totals.cargadaRutUnico)}`,
+      icon: Percent,
+      tooltip: "Recorrido / Base Gestión usando RUT únicos.",
+    },
     {
       label: "% Afluencia",
-      value: formatPct(totals.tcAfCitas, 0),
+      value: formatPctFromCounts(totals.afRutUnico, totals.citasRutUnico, 0),
       subValue: `RUT: ${formatInt(totals.afRutUnico)} / ${formatInt(totals.citasRutUnico)}`,
       icon: Percent,
-      tooltip: "Afluencias / Citas.",
+      tooltip: "Afluencias / Citas usando RUT únicos.",
     },
     {
       label: "% Matrículas",
-      value: formatPct(totals.tcMcAf, 0),
+      value: formatPctFromCounts(totals.mcRutUnico, totals.afRutUnico, 0),
       subValue: `RUT: ${formatInt(totals.mcRutUnico)} / ${formatInt(totals.afRutUnico)}`,
       icon: Percent,
-      tooltip: "Matrículas / Afluencias.",
+      tooltip: "Matrículas / Afluencias usando RUT únicos.",
     },
   ] as const;
 
