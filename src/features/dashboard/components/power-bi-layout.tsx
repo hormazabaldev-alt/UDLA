@@ -308,13 +308,13 @@ function VerticalFilters() {
     const { filters, set, resetFilters, options } = useFilters();
 
     const toggleFilter = (key: keyof typeof filters, val: string | number) => {
-        const current = filters[key] as (string | number)[];
         startTransition(() => {
-            if (current.includes(val)) {
-                set({ [key]: current.filter(v => v !== val) });
-            } else {
-                set({ [key]: [...current, val] });
-            }
+            set((currentFilters) => {
+                const current = currentFilters[key] as (string | number)[];
+                return current.includes(val)
+                    ? { [key]: current.filter((v) => v !== val) }
+                    : { [key]: [...current, val] };
+            });
         });
     };
 

@@ -26,22 +26,30 @@ export type DashboardState = {
   currentView: "overview" | "analytics" | "reports" | "live";
   widgetOrder: string[];
   setDataset: (dataset: Dataset | null) => void;
-  setFilters: (filters: Partial<Filters>) => void;
+  setFilters: (filters: Partial<Filters> | ((current: Filters) => Partial<Filters> | Filters)) => void;
   setComparisonMode: (mode: "week" | "day") => void;
   setCurrentView: (view: "overview" | "analytics" | "reports" | "live") => void;
   setWidgetOrder: (order: string[]) => void;
   resetFilters: () => void;
 };
 
-const DEFAULT_FILTERS: Filters = {
-  tipo: [],
-  mes: [],
-  diaNumero: [],
-  semanas: [],
-  campus: [],
-  regimen: [],
-  carreraInteres: [],
-};
+function createDefaultFilters(): Filters {
+  return {
+    tipo: [],
+    mes: [],
+    diaNumero: [],
+    semanas: [],
+    campus: [],
+    regimen: [],
+    carreraInteres: [],
+  };
+}
+
+function getDatasetSignature(dataset: Dataset | null) {
+  if (!dataset) return null;
+  const { importedAtISO, sourceFileName, sheetName, rowCount } = dataset.meta;
+  return `${importedAtISO}|${sourceFileName}|${sheetName}|${rowCount}`;
+}
 
 const MAX_INDEXED_ROWS = 150_000;
 
@@ -112,29 +120,38 @@ export function computeFilteredTotals(dataset: Dataset | null, filters: Filters)
 export const useDashboardStore = create<DashboardState>((set) => ({
   dataset: null,
   tipoIndex: null,
-  filters: DEFAULT_FILTERS,
+  filters: createDefaultFilters(),
   setDataset: (dataset) =>
-    set(() => ({
-      dataset,
-      tipoIndex: dataset
+    set((state) => {
+      const nextTipoIndex = dataset
         && dataset.rows.length <= MAX_INDEXED_ROWS
         ? dataset.rows.reduce<Record<string, DataRow[]>>((acc, r) => {
           const key = r.tipoBase ?? "Desconocido";
           (acc[key] ||= []).push(r);
           return acc;
         }, {})
-        : null,
-      filters: DEFAULT_FILTERS,
-    })),
+        : null;
+      const sameDataset = getDatasetSignature(state.dataset) === getDatasetSignature(dataset);
+
+      return {
+        dataset,
+        tipoIndex: nextTipoIndex,
+        // Keep active selections if the same snapshot is reloaded during hydration/refresh.
+        filters: dataset && sameDataset ? state.filters : createDefaultFilters(),
+      };
+    }),
   comparisonMode: "week",
   currentView: "overview", // Default view
   widgetOrder: ["kpi-1", "kpi-2", "kpi-3", "kpi-4", "chart-main", "gauge-group", "funnel", "table"],
   setFilters: (filters) =>
     set((state) => ({
-      filters: { ...state.filters, ...filters },
+      filters: {
+        ...state.filters,
+        ...(typeof filters === "function" ? filters(state.filters) : filters),
+      },
     })),
   setComparisonMode: (mode) => set(() => ({ comparisonMode: mode })),
   setCurrentView: (view) => set(() => ({ currentView: view })),
   setWidgetOrder: (order) => set(() => ({ widgetOrder: order })),
-  resetFilters: () => set(() => ({ filters: DEFAULT_FILTERS })),
+  resetFilters: () => set(() => ({ filters: createDefaultFilters() })),
 }));
