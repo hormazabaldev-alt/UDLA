@@ -12,6 +12,10 @@ import {
   type AgentFilters,
 } from "@/lib/agent-analytics/agentMetrics";
 import type { DataRow } from "@/lib/data-processing/types";
+import {
+  matchesTemporalFiltersForMetric,
+  type TemporalFilters,
+} from "@/lib/data-processing/temporal";
 import { isAfluenciaValue, isMatriculaValue } from "@/lib/data-processing/predicates";
 import { formatInt } from "@/lib/utils/format";
 import { isInteresaViene } from "@/lib/utils/interesa";
@@ -97,6 +101,14 @@ function safeDiv(numerator: number, denominator: number) {
   return denominator > 0 ? numerator / denominator : 0;
 }
 
+function toTemporalFilters(filters: Pick<AgentFilters, "meses" | "semanas">): TemporalFilters {
+  return {
+    mes: filters.meses,
+    diaNumero: [],
+    semanas: filters.semanas,
+  };
+}
+
 function countUniqueRuts(rows: DataRow[], predicate: (row: DataRow) => boolean) {
   const ruts = new Set<string>();
   for (const row of rows) {
@@ -139,24 +151,58 @@ function emptyCounts(): SummaryCounts {
   };
 }
 
-function addRowToCounts(counts: SummaryCounts, row: MetricInputRow) {
-  counts.recorrido += 1;
-  if (isConecta(row.conecta)) counts.conecta += 1;
-  if (isNoConecta(row.conecta)) counts.noConecta += 1;
-  if (isInteresaViene(row.interesa)) counts.citas += 1;
-  if (isAfluenciaValue(row.af)) counts.af += 1;
-  if (isMatriculaValue(row.mc)) counts.mc += 1;
+function rowMatchesAnyTemporalMetric(row: DataRow, temporalFilters: TemporalFilters) {
+  return (
+    matchesTemporalFiltersForMetric(row, temporalFilters, "recorrido")
+    || matchesTemporalFiltersForMetric(row, temporalFilters, "citas")
+    || matchesTemporalFiltersForMetric(row, temporalFilters, "af")
+    || matchesTemporalFiltersForMetric(row, temporalFilters, "mc")
+  );
+}
+
+function addRowToCounts(
+  counts: SummaryCounts,
+  row: MetricInputRow & DataRow,
+  temporalFilters: TemporalFilters,
+) {
+  let contributed = false;
+
+  if (matchesTemporalFiltersForMetric(row, temporalFilters, "recorrido")) {
+    counts.recorrido += 1;
+    if (isConecta(row.conecta)) counts.conecta += 1;
+    if (isNoConecta(row.conecta)) counts.noConecta += 1;
+    contributed = true;
+  }
+
+  if (isInteresaViene(row.interesa) && matchesTemporalFiltersForMetric(row, temporalFilters, "citas")) {
+    counts.citas += 1;
+    contributed = true;
+  }
+
+  if (isAfluenciaValue(row.af) && matchesTemporalFiltersForMetric(row, temporalFilters, "af")) {
+    counts.af += 1;
+    contributed = true;
+  }
+
+  if (isMatriculaValue(row.mc) && matchesTemporalFiltersForMetric(row, temporalFilters, "mc")) {
+    counts.mc += 1;
+    contributed = true;
+  }
+
+  return contributed;
 }
 
 function aggregateByLabel(
   rows: DataRow[],
   getLabel: (row: DataRow) => string,
+  temporalFilters: TemporalFilters,
 ): PerformanceRow[] {
   const groups = new Map<string, SummaryCounts>();
   for (const row of rows) {
+    if (!rowMatchesAnyTemporalMetric(row, temporalFilters)) continue;
     const label = getLabel(row);
     if (!groups.has(label)) groups.set(label, emptyCounts());
-    addRowToCounts(groups.get(label)!, row);
+    addRowToCounts(groups.get(label)!, row, temporalFilters);
   }
 
   return Array.from(groups.entries())
@@ -169,6 +215,7 @@ function aggregateByLabel(
 
 function aggregateByAgent(
   rows: DataRow[],
+  temporalFilters: TemporalFilters,
 ): PerformanceRow[] {
   const groups = new Map<
     string,
@@ -179,6 +226,7 @@ function aggregateByAgent(
   >();
 
   for (const row of rows) {
+    if (!rowMatchesAnyTemporalMetric(row, temporalFilters)) continue;
     const agent = normalizeLabel(row.agente);
     const marketing = normalizeLabel(row.marketing5);
 
@@ -190,7 +238,7 @@ function aggregateByAgent(
     }
 
     const current = groups.get(agent)!;
-    addRowToCounts(current.counts, row);
+    addRowToCounts(current.counts, row, temporalFilters);
     current.marketingCounts.set(marketing, (current.marketingCounts.get(marketing) ?? 0) + 1);
   }
 
@@ -356,7 +404,7 @@ function MonthFilterGroup({
         )}
       </div>
       <div className="mt-2 flex items-center justify-between gap-2 text-[10px] text-white/45">
-        <span>Usa Fecha Gestión; si viene vacía usa Fecha Carga.</span>
+        <span>Recorrido y citas usan Fecha Gestión; AF y MC usan sus fechas propias.</span>
         {selected.length > 0 ? (
           <button
             type="button"
@@ -535,46 +583,63 @@ export default function GestionAgentesPage() {
 
   const rows = useMemo(() => dataset?.rows ?? [], [dataset]);
   const deferredFilters = useDeferredValue(filters);
+  const temporalFilters = useMemo(() => toTemporalFilters(deferredFilters), [deferredFilters]);
   const options = useMemo(() => collectAgentFilterOptions(rows), [rows]);
-  const filteredRows = useMemo(() => applyAgentFilters(rows, deferredFilters), [rows, deferredFilters]);
+  const baseRows = useMemo(
+    () => applyAgentFilters(rows, deferredFilters, { includeTemporal: false }),
+    [rows, deferredFilters],
+  );
+  const filteredRows = useMemo(
+    () => baseRows.filter((row) => rowMatchesAnyTemporalMetric(row, temporalFilters)),
+    [baseRows, temporalFilters],
+  );
 
   const totals = useMemo(() => {
     const counts = emptyCounts();
-    for (const row of filteredRows) {
-      addRowToCounts(counts, row);
+    for (const row of baseRows) {
+      addRowToCounts(counts, row, temporalFilters);
     }
     return {
       ...counts,
       pctConecta: safeDiv(counts.conecta, counts.recorrido),
       pctInteresaSobreConecta: safeDiv(counts.citas, counts.conecta),
     };
-  }, [filteredRows]);
+  }, [baseRows, temporalFilters]);
 
   const uniqueTotals = useMemo(
     () => ({
-      recorrido: countUniqueRuts(filteredRows, () => true),
-      conecta: countUniqueRuts(filteredRows, (row) => isConecta(row.conecta)),
-      citas: countUniqueRuts(filteredRows, (row) => isInteresaViene(row.interesa)),
+      recorrido: countUniqueRuts(
+        baseRows,
+        (row) => matchesTemporalFiltersForMetric(row, temporalFilters, "recorrido"),
+      ),
+      conecta: countUniqueRuts(
+        baseRows,
+        (row) => isConecta(row.conecta) && matchesTemporalFiltersForMetric(row, temporalFilters, "contactado"),
+      ),
+      citas: countUniqueRuts(
+        baseRows,
+        (row) => isInteresaViene(row.interesa) && matchesTemporalFiltersForMetric(row, temporalFilters, "citas"),
+      ),
     }),
-    [filteredRows],
+    [baseRows, temporalFilters],
   );
 
-  const agentRows = useMemo(() => aggregateByAgent(filteredRows), [filteredRows]);
+  const agentRows = useMemo(() => aggregateByAgent(baseRows, temporalFilters), [baseRows, temporalFilters]);
   const origenRows = useMemo(
-    () => aggregateByLabel(filteredRows, (row) => normalizeLabel(row.tipoBase)),
-    [filteredRows],
+    () => aggregateByLabel(baseRows, (row) => normalizeLabel(row.tipoBase), temporalFilters),
+    [baseRows, temporalFilters],
   );
   const semanaRows = useMemo(
-    () => aggregateByLabel(filteredRows, (row) => normalizeLabel(row.semana)),
-    [filteredRows],
+    () => aggregateByLabel(baseRows, (row) => normalizeLabel(row.semana), temporalFilters),
+    [baseRows, temporalFilters],
   );
   const regimenRows = useMemo(
-    () => aggregateByLabel(filteredRows, (row) => normalizeLabel(row.regimen)),
-    [filteredRows],
+    () => aggregateByLabel(baseRows, (row) => normalizeLabel(row.regimen), temporalFilters),
+    [baseRows, temporalFilters],
   );
   const campusRows = useMemo(
-    () => aggregateByLabel(filteredRows, (row) => normalizeCampus(row.sedeInteres)),
-    [filteredRows],
+    () => aggregateByLabel(baseRows, (row) => normalizeCampus(row.sedeInteres), temporalFilters),
+    [baseRows, temporalFilters],
   );
 
   const quartilesBySection = useMemo(

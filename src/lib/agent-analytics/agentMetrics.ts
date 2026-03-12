@@ -1,5 +1,6 @@
 import type { DataRow } from "@/lib/data-processing/types";
 import { isRecorridoConecta } from "@/lib/data-processing/predicates";
+import { getSemanaCorrelativaLabel } from "@/lib/utils/semana";
 import { toCampusCode } from "@/lib/utils/campus";
 import { isInteresaViene } from "@/lib/utils/interesa";
 
@@ -38,6 +39,10 @@ export type ComboAggregateRow = {
   carreraInteres: string;
   codigoBanner: string;
 } & RowProductivity;
+
+type ApplyAgentFilterOptions = {
+  includeTemporal?: boolean;
+};
 
 function isValidDate(value: unknown): value is Date {
   return value instanceof Date && !Number.isNaN(value.getTime());
@@ -80,16 +85,22 @@ function inSelection(selected: string[], value: string): boolean {
   return selected.includes(value);
 }
 
-export function applyAgentFilters(rows: DataRow[], filters: AgentFilters): DataRow[] {
+export function applyAgentFilters(
+  rows: DataRow[],
+  filters: AgentFilters,
+  opts?: ApplyAgentFilterOptions,
+): DataRow[] {
+  const includeTemporal = opts?.includeTemporal ?? true;
+
   return rows.filter((row) => {
     const d = rowDate(row);
-    if (filters.meses.length > 0) {
+    if (includeTemporal && filters.meses.length > 0) {
       if (!d) return false;
       const month = d.getMonth() + 1;
       if (!filters.meses.includes(month)) return false;
     }
 
-    if (!inSelection(filters.semanas, normText(row.semana))) return false;
+    if (includeTemporal && !inSelection(filters.semanas, normText(row.semana))) return false;
     if (!inSelection(filters.regimenes, normText(row.regimen))) return false;
     if (!inSelection(filters.sedesInteres, normCampus(row.sedeInteres))) return false;
     if (!inSelection(filters.afValues, normUpper(row.af))) return false;
@@ -243,9 +254,19 @@ export function aggByCombo(
 
 export function collectAgentFilterOptions(rows: DataRow[]) {
   const dates = rows
-    .map((r) => rowDate(r))
+    .flatMap((r) => [rowDate(r), r.fechaAf, r.fechaMc])
     .filter((d): d is Date => !!d)
     .sort((a, b) => a.getTime() - b.getTime());
+
+  const semanas = Array.from(
+    new Set(
+      rows.flatMap((row) => [
+        normText(row.semana),
+        getSemanaCorrelativaLabel(row.fechaAf),
+        getSemanaCorrelativaLabel(row.fechaMc),
+      ]).filter((value): value is string => !!value),
+    ),
+  ).sort((a, b) => a.localeCompare(b, "es", { numeric: true, sensitivity: "base" }));
 
   const unique = (values: string[]) => Array.from(new Set(values)).sort((a, b) => a.localeCompare(b, "es"));
 
@@ -253,7 +274,7 @@ export function collectAgentFilterOptions(rows: DataRow[]) {
     minDate: dates[0] ?? null,
     maxDate: dates[dates.length - 1] ?? null,
     meses: Array.from(new Set(dates.map((date) => date.getMonth() + 1))).sort((a, b) => campaignMonthSortKey(a) - campaignMonthSortKey(b)),
-    semanas: unique(rows.map((r) => normText(r.semana))),
+    semanas,
     regimenes: unique(rows.map((r) => normText(r.regimen))),
     sedesInteres: unique(rows.map((r) => normCampus(r.sedeInteres))),
     afValues: unique(rows.map((r) => normUpper(r.af))),
