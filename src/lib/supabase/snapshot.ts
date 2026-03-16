@@ -286,19 +286,33 @@ export async function beginSnapshotWrite(meta: {
   sourceFileName: string;
   sheetName: string;
   importedAtISO?: string;
+  append?: boolean;
 }): Promise<SnapshotWriteSession> {
   const supabase = getSupabaseServerClient();
   await ensureBucket(supabase);
+
+  let existingChunks: string[] = [];
+  let existingRowCount = 0;
+  let sourceFileName = meta.sourceFileName;
+
+  if (meta.append) {
+    const manifest = await readManifest(supabase);
+    if (manifest) {
+      existingChunks = [...manifest.chunkPaths];
+      existingRowCount = manifest.meta.rowCount;
+      sourceFileName = `${manifest.meta.sourceFileName} + ${meta.sourceFileName}`;
+    }
+  }
 
   return {
     supabase,
     version: crypto.randomUUID(),
     importedAtISO: meta.importedAtISO ?? new Date().toISOString(),
-    sourceFileName: meta.sourceFileName,
+    sourceFileName: sourceFileName.substring(0, 200),
     sheetName: meta.sheetName,
-    rowCount: 0,
-    chunkPaths: [],
-    nextChunkIndex: 0,
+    rowCount: existingRowCount,
+    chunkPaths: existingChunks,
+    nextChunkIndex: existingChunks.length,
   };
 }
 

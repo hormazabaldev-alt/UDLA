@@ -7,7 +7,7 @@ export type DataRow = {
   rutBase: string;
   tipoBase: string;
   fechaGestion: Date | null;
-  conecta: "Conecta" | "No Conecta" | string | null;
+  conecta: "Conecta" | "No Conecta" | "No Gestionado" | string | null;
   interesa: string | null;
   regimen: string | null;
   sedeInteres: string | null;

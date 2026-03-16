@@ -30,9 +30,10 @@ export async function POST(
       try {
         const params = await context.params;
         uploadId = params.uploadId;
-        const body = (await req.json()) as { fileName?: string; totalChunks?: number } | null;
+        const body = (await req.json()) as { fileName?: string; totalChunks?: number; append?: boolean } | null;
         const fileName = body?.fileName?.trim();
         const totalChunks = Number(body?.totalChunks);
+        const append = Boolean(body?.append);
 
         if (!fileName || !Number.isInteger(totalChunks) || totalChunks <= 0) {
           send({ type: "fatal_error", error: "Parametros de carga incompletos." });
@@ -42,7 +43,7 @@ export async function POST(
         const file = await assembleTempUploadFile(uploadId, fileName, totalChunks);
         const result = await importDatasetSnapshot(file, async (event: ImportProgressEvent) => {
           send({ type: "progress", ...event });
-        });
+        }, { append });
 
         if (!result.ok) {
           send({ type: "validation_error", issues: result.issues, preview: result.preview });

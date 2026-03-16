@@ -11,6 +11,10 @@ export function isContactadoConecta(value: string | null | undefined): boolean {
   return normalizeConectaValue(value) === "conecta";
 }
 
+export function isNoGestionadoConecta(value: string | null | undefined): boolean {
+  return normalizeConectaValue(value) === "no gestionado";
+}
+
 export function isAfluenciaValue(value: string | null | undefined): boolean {
   const af = value?.trim().toUpperCase() ?? "";
   return af === "A" || af === "MC" || af === "M";

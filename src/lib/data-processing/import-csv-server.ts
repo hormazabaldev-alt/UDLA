@@ -69,6 +69,7 @@ async function emitProcessingProgress(
 export async function importCsvSnapshot(
   file: File,
   onProgress?: (event: ImportProgressEvent) => Promise<void> | void,
+  opts?: { append?: boolean },
 ): Promise<ServerImportResult> {
   await onProgress?.({
     stage: "received",
@@ -138,6 +139,7 @@ export async function importCsvSnapshot(
     session = await beginSnapshotWrite({
       sourceFileName: file.name,
       sheetName: "CSV",
+      append: opts?.append,
     });
 
     for (let batchStart = 0; batchStart < rawRows.length; batchStart += PROCESS_BATCH_SIZE) {

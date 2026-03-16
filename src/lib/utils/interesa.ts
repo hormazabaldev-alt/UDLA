@@ -21,3 +21,9 @@ export function isInteresaViene(value: string | null | undefined): boolean {
   return /\bviene\b/.test(s);
 }
 
+export function isInteresaNoGestionado(value: string | null | undefined): boolean {
+  const s = normalizeInteresa(value);
+  if (!s) return false;
+  return /\bno\s+gestionado\b/.test(s) || s === "no gestionado";
+}
+

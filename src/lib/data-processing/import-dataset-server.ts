@@ -18,15 +18,16 @@ export type { ImportProgressEvent, ServerImportResult } from "@/lib/data-process
 export async function importDatasetSnapshot(
   file: File,
   onProgress?: (event: ImportProgressEvent) => Promise<void> | void,
+  opts?: { append?: boolean },
 ): Promise<ServerImportResult> {
   const extension = getFileExtension(file.name);
 
   if (extension === ".csv") {
-    return importCsvSnapshot(file, onProgress);
+    return importCsvSnapshot(file, onProgress, opts);
   }
 
   if (extension === ".xlsx") {
-    return importXlsxSnapshot(file, onProgress);
+    return importXlsxSnapshot(file, onProgress, opts);
   }
 
   throw new Error("Formato no soportado. Sube un archivo .xlsx o .csv.");

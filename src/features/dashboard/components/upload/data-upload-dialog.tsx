@@ -101,7 +101,7 @@ export function DataUploadDialog({ triggerLabel, triggerIcon }: {
 
   const [open, setOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [adminKey, setAdminKey] = useState("");
   const [uploadState, setUploadState] = useState<UploadState>({ type: "idle" });
   const uploadLockRef = useRef(false);
@@ -112,9 +112,9 @@ export function DataUploadDialog({ triggerLabel, triggerIcon }: {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: (accepted) => {
-      const file = accepted[0] ?? null;
-      if (!file) return;
-      setSelectedFile(file);
+      const files = accepted.slice(0, 3);
+      if (files.length === 0) return;
+      setSelectedFiles(files);
       setUploadState({ type: "idle" });
     },
     accept: {
@@ -123,216 +123,177 @@ export function DataUploadDialog({ triggerLabel, triggerIcon }: {
       "application/csv": [".csv"],
       "application/vnd.ms-excel": [".csv"],
     },
-    multiple: false,
+    multiple: true,
+    maxFiles: 3,
   });
 
-  const canUpload = !!selectedFile && !uploading && adminKey.trim().length > 0;
+  const canUpload = selectedFiles.length > 0 && !uploading && adminKey.trim().length > 0;
 
   const handleUpload = async () => {
-    if (!selectedFile) return;
+    if (selectedFiles.length === 0) return;
     if (uploadLockRef.current) return;
 
     uploadLockRef.current = true;
     setUploading(true);
-    setUploadState({
-      type: "progress",
-      message: `Subiendo ${selectedFile.name}...`,
-    });
 
-    let uploadId: string | null = null;
+    let totalUploadedRows = 0;
+    let shouldRefresh = false;
 
-    try {
-      const initRes = await fetch("/api/snapshot/uploads", {
-        method: "POST",
-        headers: {
-          "x-admin-key": adminKey.trim(),
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({ fileName: selectedFile.name }),
-      });
-
-      if (!initRes.ok) {
-        const contentType = initRes.headers.get("content-type") ?? "";
-        if (contentType.includes("application/json")) {
-          const body = await initRes.json().catch(() => null);
-          setUploadState({
-            type: "fatal_error",
-            error: `(${initRes.status}) ${body?.error ?? JSON.stringify(body) ?? "Error desconocido"}`,
-          });
-        } else {
-          const text = await initRes.text().catch(() => "");
-          setUploadState({
-            type: "fatal_error",
-            error: `(${initRes.status}) ${text.trim().slice(0, 300) || "Error desconocido"}`,
-          });
-        }
-        return;
-      }
-
-      const initBody = (await initRes.json()) as { uploadId: string; chunkSize: number };
-      uploadId = initBody.uploadId;
-      const chunkSize = initBody.chunkSize;
-      const totalChunks = Math.max(1, Math.ceil(selectedFile.size / chunkSize));
-      let nextPartNumber = 0;
-      let uploadedChunks = 0;
-      const workerCount = Math.min(MAX_PARALLEL_UPLOADS, totalChunks);
-      const uploadWorker = async () => {
-        while (nextPartNumber < totalChunks) {
-          const partNumber = nextPartNumber;
-          nextPartNumber += 1;
-
-          const start = partNumber * chunkSize;
-          const end = Math.min(selectedFile.size, start + chunkSize);
-          const chunk = selectedFile.slice(start, end);
-
-          await uploadChunkWithRetry(
-            `/api/snapshot/uploads/${uploadId}?partNumber=${partNumber}`,
-            adminKey.trim(),
-            chunk,
-          );
-
-          uploadedChunks += 1;
-          setUploadState({
-            type: "progress",
-            message: `Subiendo bloques ${uploadedChunks} de ${totalChunks}...`,
-            uploadedChunks,
-            totalChunks,
-          });
-        }
-      };
+    for (let fileIndex = 0; fileIndex < selectedFiles.length; fileIndex++) {
+      const currentFile = selectedFiles[fileIndex];
+      const append = fileIndex > 0;
 
       setUploadState({
         type: "progress",
-        message: `Subiendo bloques 0 de ${totalChunks}...`,
-        uploadedChunks: 0,
-        totalChunks,
+        message: `Subiendo [${fileIndex + 1}/${selectedFiles.length}] ${currentFile.name}...`,
       });
 
-      await Promise.all(Array.from({ length: workerCount }, () => uploadWorker()));
-
-      setUploadState({
-        type: "progress",
-        message: "Archivo recibido. Iniciando procesamiento...",
-        uploadedChunks: totalChunks,
-        totalChunks,
-      });
-
-      const res = await fetch(`/api/snapshot/uploads/${uploadId}/complete`, {
-        method: "POST",
-        headers: {
-          "x-admin-key": adminKey.trim(),
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          fileName: selectedFile.name,
-          totalChunks,
-        }),
-      });
-
-      if (!res.ok) {
-        const contentType = res.headers.get("content-type") ?? "";
-        if (contentType.includes("application/json")) {
-          const body = await res.json().catch(() => null);
-          setUploadState({
-            type: "fatal_error",
-            error: `(${res.status}) ${body?.error ?? JSON.stringify(body) ?? "Error desconocido"}`,
-          });
-        } else {
-          const text = await res.text().catch(() => "");
-          setUploadState({
-            type: "fatal_error",
-            error: `(${res.status}) ${text.trim().slice(0, 300) || "Error desconocido"}`,
-          });
-        }
-        return;
-      }
-
-      const reader = res.body?.getReader();
-      if (!reader) {
-        setUploadState({
-          type: "fatal_error",
-          error: "La respuesta del servidor no soporta streaming.",
+      let uploadId: string | null = null;
+      try {
+        const initRes = await fetch("/api/snapshot/uploads", {
+          method: "POST",
+          headers: {
+            "x-admin-key": adminKey.trim(),
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ fileName: currentFile.name }),
         });
-        return;
-      }
 
-      const decoder = new TextDecoder();
-      let buffer = "";
-      let shouldRefresh = false;
+        if (!initRes.ok) {
+          throw new Error(`Error iniciando carga archivo ${currentFile.name}`);
+        }
 
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
+        const initBody = (await initRes.json()) as { uploadId: string; chunkSize: number };
+        uploadId = initBody.uploadId;
+        const chunkSize = initBody.chunkSize;
+        const totalChunks = Math.max(1, Math.ceil(currentFile.size / chunkSize));
+        let nextPartNumber = 0;
+        let uploadedChunks = 0;
+        const workerCount = Math.min(MAX_PARALLEL_UPLOADS, totalChunks);
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
+        const uploadWorker = async () => {
+          while (nextPartNumber < totalChunks) {
+            const partNumber = nextPartNumber;
+            nextPartNumber += 1;
+            const start = partNumber * chunkSize;
+            const end = Math.min(currentFile.size, start + chunkSize);
+            const chunk = currentFile.slice(start, end);
 
-        for (const line of lines) {
-          if (!line.trim()) continue;
+            await uploadChunkWithRetry(
+              `/api/snapshot/uploads/${uploadId}?partNumber=${partNumber}`,
+              adminKey.trim(),
+              chunk,
+            );
 
-          const event = JSON.parse(line) as
-            | {
-              type: "progress";
-              message: string;
-              processedRows?: number;
-              totalRows?: number;
-              uploadedChunks?: number;
-              totalChunks?: number;
-            }
-            | { type: "completed"; totalRows: number }
-            | { type: "validation_error"; issues: ParseIssue[] }
-            | { type: "fatal_error"; error: string };
-
-          if (event.type === "progress") {
+            uploadedChunks += 1;
             setUploadState({
               type: "progress",
-              message: event.message,
-              processedRows: event.processedRows,
-              totalRows: event.totalRows,
-              uploadedChunks: event.uploadedChunks ?? totalChunks,
-              totalChunks: event.totalChunks ?? totalChunks,
+              message: `[${fileIndex + 1}/${selectedFiles.length}] Subiendo bloques ${uploadedChunks} de ${totalChunks}...`,
+              uploadedChunks,
+              totalChunks,
             });
-            continue;
           }
+        };
 
-          if (event.type === "validation_error") {
-            setUploadState({ type: "validation_error", issues: event.issues });
-            continue;
-          }
+        setUploadState({
+          type: "progress",
+          message: `[${fileIndex + 1}/${selectedFiles.length}] Subiendo bloques 0 de ${totalChunks}...`,
+          uploadedChunks: 0,
+          totalChunks,
+        });
 
-          if (event.type === "fatal_error") {
-            setUploadState({ type: "fatal_error", error: event.error });
-            continue;
-          }
+        await Promise.all(Array.from({ length: workerCount }, () => uploadWorker()));
 
-          shouldRefresh = true;
-          setUploadState({ type: "completed", rowCount: event.totalRows });
+        setUploadState({
+          type: "progress",
+          message: `[${fileIndex + 1}/${selectedFiles.length}] Archivo recibido. Procesando...`,
+          uploadedChunks: totalChunks,
+          totalChunks,
+        });
+
+        const res = await fetch(`/api/snapshot/uploads/${uploadId}/complete`, {
+          method: "POST",
+          headers: {
+            "x-admin-key": adminKey.trim(),
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            fileName: currentFile.name,
+            totalChunks,
+            append,
+          }),
+        });
+
+        if (!res.ok) {
+          throw new Error(`Error completando archivo ${currentFile.name}`);
         }
+
+        const reader = res.body?.getReader();
+        if (!reader) throw new Error("La respuesta no soporta streaming.");
+
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let stopped = false;
+
+        while (!stopped) {
+          const { value, done } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            const event = JSON.parse(line);
+
+            if (event.type === "progress") {
+              setUploadState({
+                type: "progress",
+                message: `[${fileIndex + 1}/${selectedFiles.length}] ${event.message}`,
+                processedRows: event.processedRows,
+                totalRows: event.totalRows,
+                uploadedChunks: event.uploadedChunks ?? totalChunks,
+                totalChunks: event.totalChunks ?? totalChunks,
+              });
+            } else if (event.type === "validation_error") {
+              setUploadState({ type: "validation_error", issues: event.issues });
+              stopped = true;
+            } else if (event.type === "fatal_error") {
+              setUploadState({ type: "fatal_error", error: event.error });
+              stopped = true;
+            } else if (event.type === "completed") {
+              shouldRefresh = true;
+              totalUploadedRows = event.totalRows;
+            }
+          }
+        }
+        
+        if (stopped) break;
+      } catch (error) {
+        if (uploadId) {
+          await fetch(`/api/snapshot/uploads/${uploadId}`, {
+            method: "DELETE",
+            headers: { "x-admin-key": adminKey.trim() },
+          }).catch(() => undefined);
+        }
+        setUploadState({
+          type: "fatal_error",
+          error: error instanceof Error ? error.message : "Error desconocido.",
+        });
+        break; // Stop loop on error
       }
+    }
 
-      if (!shouldRefresh) return;
-
+    setUploading(false);
+    uploadLockRef.current = false;
+    
+    if (shouldRefresh) {
       await refreshDataset();
       broadcastDatasetUpdated();
-      setOpen(false);
-      setSelectedFile(null);
-      setUploadState({ type: "idle" });
-    } catch (error) {
-      if (uploadId) {
-        await fetch(`/api/snapshot/uploads/${uploadId}`, {
-          method: "DELETE",
-          headers: { "x-admin-key": adminKey.trim() },
-        }).catch(() => undefined);
-      }
-
-      setUploadState({
-        type: "fatal_error",
-        error: error instanceof Error ? error.message : "Error desconocido durante la carga.",
-      });
-    } finally {
-      setUploading(false);
-      uploadLockRef.current = false;
+      setUploadState({ type: "completed", rowCount: totalUploadedRows });
+      setTimeout(() => setOpen(false), 2000);
+      setSelectedFiles([]);
     }
   };
 
@@ -343,7 +304,7 @@ export function DataUploadDialog({ triggerLabel, triggerIcon }: {
         size="sm"
         onClick={() => {
           setOpen(true);
-          setSelectedFile(null);
+          setSelectedFiles([]);
           setUploadState({ type: "idle" });
         }}
         className="w-full justify-start gap-2"
@@ -388,25 +349,30 @@ export function DataUploadDialog({ triggerLabel, triggerIcon }: {
             <FileSpreadsheet className="mb-1 size-5 text-cyan-200/90" />
             <div className="text-sm font-medium">Arrastra tu XLSX o CSV aqui o haz click</div>
             <div className="mt-1 text-xs text-white/50">
-              Solo se permite <strong>1 archivo</strong> (`.xlsx` o `.csv`); se reemplazara el dataset completo.
+              Solo se permiten hasta <strong>3 archivos</strong> (`.xlsx` o `.csv`); se combinaran en un único dataset.
             </div>
           </div>
 
-          {selectedFile && (
+          {selectedFiles.length > 0 && (
             <div className="space-y-2 max-h-[200px] overflow-y-auto">
-              <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/3 p-2 text-xs">
-                <FileSpreadsheet className="size-4 flex-shrink-0 text-cyan-300/80" />
-                <span className="flex-1 truncate text-white/80">{selectedFile.name}</span>
-                {uploadState.type === "completed" ? (
-                  <Badge variant="success">{formatInt(uploadState.rowCount)} filas</Badge>
-                ) : uploadState.type === "validation_error" || uploadState.type === "fatal_error" ? (
-                  <Badge variant="danger">Error</Badge>
-                ) : uploading ? (
-                  <Badge variant="neutral">Procesando...</Badge>
-                ) : (
-                  <Badge variant="neutral">Listo para cargar</Badge>
-                )}
+              {selectedFiles.map((file, i) => (
+                <div key={i} className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/3 p-2 text-xs">
+                  <FileSpreadsheet className="size-4 flex-shrink-0 text-cyan-300/80" />
+                  <span className="flex-1 truncate text-white/80">{file.name}</span>
+                </div>
+              ))}
+              <div className="flex justify-end pr-1 text-xs text-white/40">
+                {selectedFiles.length} archivo{selectedFiles.length > 1 ? "s" : ""} seleccionado{selectedFiles.length > 1 ? "s" : ""}
               </div>
+              {uploadState.type === "completed" ? (
+                <Badge variant="success">{formatInt(uploadState.rowCount)} filas totales</Badge>
+              ) : uploadState.type === "validation_error" || uploadState.type === "fatal_error" ? (
+                <Badge variant="danger">Error</Badge>
+              ) : uploading ? (
+                <Badge variant="neutral">Procesando...</Badge>
+              ) : (
+                <Badge variant="neutral">Listo para cargar</Badge>
+              )}
             </div>
           )}
 

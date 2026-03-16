@@ -173,6 +173,7 @@ async function emitProcessingProgress(
 export async function importXlsxSnapshot(
   file: File,
   onProgress?: (event: ImportProgressEvent) => Promise<void> | void,
+  opts?: { append?: boolean },
 ): Promise<ServerImportResult> {
   await onProgress?.({
     stage: "received",
@@ -231,6 +232,7 @@ export async function importXlsxSnapshot(
     session = await beginSnapshotWrite({
       sourceFileName: file.name,
       sheetName: best.sheetName,
+      append: opts?.append,
     });
 
     for (let startRow = best.range.s.r + 1; startRow <= best.range.e.r; startRow += PROCESS_BATCH_SIZE) {

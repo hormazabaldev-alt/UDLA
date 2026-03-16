@@ -111,7 +111,7 @@ export function TopKpis() {
     if (!totals) return null;
     return [
       {
-        title: "Base Gestión",
+        title: "Base Cargados",
         value: totals.cargada,
         format: (n: number) => formatInt(Math.round(n)),
         icon: Users,

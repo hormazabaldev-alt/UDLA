@@ -2,7 +2,8 @@ import type { DataRow } from "@/lib/data-processing/types";
 import { isRecorridoConecta } from "@/lib/data-processing/predicates";
 import { getSemanaCorrelativaLabel } from "@/lib/utils/semana";
 import { toCampusCode } from "@/lib/utils/campus";
-import { isInteresaViene } from "@/lib/utils/interesa";
+import { isInteresaViene, isInteresaNoGestionado } from "@/lib/utils/interesa";
+import { isNoGestionadoConecta } from "@/lib/data-processing/predicates";
 
 export const NO_ASIGNADO = "No asignado";
 
@@ -25,7 +26,9 @@ export type AgentFilters = {
 export type RowProductivity = {
   totalGestiones: number;
   conectaTotal: number;
+  noGestionadoConectaTotal: number;
   interesaTotal: number;
+  noGestionadoInteresaTotal: number;
   pctConecta: number;
   pctInteresa: number;
   pctInteresaSobreConecta: number;
@@ -119,17 +122,23 @@ export function applyAgentFilters(
 export function computeRowProductivity(rows: DataRow[]): RowProductivity {
   const totalGestiones = rows.length;
   let conectaTotal = 0;
+  let noGestionadoConectaTotal = 0;
   let interesaTotal = 0;
+  let noGestionadoInteresaTotal = 0;
 
   for (const row of rows) {
     if (isRecorridoConecta(row.conecta)) conectaTotal++;
+    if (isNoGestionadoConecta(row.conecta)) noGestionadoConectaTotal++;
     if (isInteresaViene(row.interesa)) interesaTotal++;
+    if (isInteresaNoGestionado(row.interesa)) noGestionadoInteresaTotal++;
   }
 
   return {
     totalGestiones,
     conectaTotal,
+    noGestionadoConectaTotal,
     interesaTotal,
+    noGestionadoInteresaTotal,
     pctConecta: totalGestiones > 0 ? conectaTotal / totalGestiones : 0,
     pctInteresa: totalGestiones > 0 ? interesaTotal / totalGestiones : 0,
     pctInteresaSobreConecta: conectaTotal > 0 ? interesaTotal / conectaTotal : 0,
@@ -139,14 +148,18 @@ export function computeRowProductivity(rows: DataRow[]): RowProductivity {
 type Acc = {
   totalGestiones: number;
   conectaTotal: number;
+  noGestionadoConectaTotal: number;
   interesaTotal: number;
+  noGestionadoInteresaTotal: number;
 };
 
 function createAcc(): Acc {
   return {
     totalGestiones: 0,
     conectaTotal: 0,
+    noGestionadoConectaTotal: 0,
     interesaTotal: 0,
+    noGestionadoInteresaTotal: 0,
   };
 }
 
@@ -154,7 +167,9 @@ function toProductivity(acc: Acc): RowProductivity {
   return {
     totalGestiones: acc.totalGestiones,
     conectaTotal: acc.conectaTotal,
+    noGestionadoConectaTotal: acc.noGestionadoConectaTotal,
     interesaTotal: acc.interesaTotal,
+    noGestionadoInteresaTotal: acc.noGestionadoInteresaTotal,
     pctConecta: acc.totalGestiones > 0 ? acc.conectaTotal / acc.totalGestiones : 0,
     pctInteresa: acc.totalGestiones > 0 ? acc.interesaTotal / acc.totalGestiones : 0,
     pctInteresaSobreConecta: acc.conectaTotal > 0 ? acc.interesaTotal / acc.conectaTotal : 0,
@@ -177,7 +192,9 @@ export function aggByAgent(rows: DataRow[]): AgentAggregateRow[] {
     const g = groups.get(key)!;
     g.totalGestiones++;
     if (isRecorridoConecta(row.conecta)) g.conectaTotal++;
+    if (isNoGestionadoConecta(row.conecta)) g.noGestionadoConectaTotal++;
     if (isInteresaViene(row.interesa)) g.interesaTotal++;
+    if (isInteresaNoGestionado(row.interesa)) g.noGestionadoInteresaTotal++;
   }
 
   return Array.from(groups.entries())
@@ -193,7 +210,9 @@ export function aggByMarketing(rows: DataRow[]): MarketingAggregateRow[] {
     const g = groups.get(key)!;
     g.totalGestiones++;
     if (isRecorridoConecta(row.conecta)) g.conectaTotal++;
+    if (isNoGestionadoConecta(row.conecta)) g.noGestionadoConectaTotal++;
     if (isInteresaViene(row.interesa)) g.interesaTotal++;
+    if (isInteresaNoGestionado(row.interesa)) g.noGestionadoInteresaTotal++;
   }
 
   return Array.from(groups.entries())
@@ -209,7 +228,9 @@ export function aggByCarrera(rows: DataRow[]): CarreraAggregateRow[] {
     const g = groups.get(key)!;
     g.totalGestiones++;
     if (isRecorridoConecta(row.conecta)) g.conectaTotal++;
+    if (isNoGestionadoConecta(row.conecta)) g.noGestionadoConectaTotal++;
     if (isInteresaViene(row.interesa)) g.interesaTotal++;
+    if (isInteresaNoGestionado(row.interesa)) g.noGestionadoInteresaTotal++;
   }
 
   return Array.from(groups.entries())
@@ -239,7 +260,9 @@ export function aggByCombo(
     const g = groups.get(key)!.acc;
     g.totalGestiones++;
     if (isRecorridoConecta(row.conecta)) g.conectaTotal++;
+    if (isNoGestionadoConecta(row.conecta)) g.noGestionadoConectaTotal++;
     if (isInteresaViene(row.interesa)) g.interesaTotal++;
+    if (isInteresaNoGestionado(row.interesa)) g.noGestionadoInteresaTotal++;
   }
 
   return Array.from(groups.values())

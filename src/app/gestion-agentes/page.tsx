@@ -18,7 +18,7 @@ import {
 } from "@/lib/data-processing/temporal";
 import { isAfluenciaValue, isMatriculaValue } from "@/lib/data-processing/predicates";
 import { formatInt } from "@/lib/utils/format";
-import { isInteresaViene } from "@/lib/utils/interesa";
+import { isInteresaViene, isInteresaNoGestionado } from "@/lib/utils/interesa";
 import { toCampusCode } from "@/lib/utils/campus";
 import { normalizeRut } from "@/lib/utils/rut";
 import { Button } from "@/components/ui/button";
@@ -47,7 +47,9 @@ type SummaryCounts = {
   recorrido: number;
   conecta: number;
   noConecta: number;
+  noGestionadoConecta: number;
   citas: number;
+  noGestionadoInteresa: number;
   af: number;
   mc: number;
 };
@@ -95,6 +97,10 @@ function isConecta(value: string | null | undefined) {
 
 function isNoConecta(value: string | null | undefined) {
   return normalizeConecta(value) === "no conecta";
+}
+
+function isNoGestionadoConecta(value: string | null | undefined) {
+  return normalizeConecta(value) === "no gestionado";
 }
 
 function safeDiv(numerator: number, denominator: number) {
@@ -145,7 +151,9 @@ function emptyCounts(): SummaryCounts {
     recorrido: 0,
     conecta: 0,
     noConecta: 0,
+    noGestionadoConecta: 0,
     citas: 0,
+    noGestionadoInteresa: 0,
     af: 0,
     mc: 0,
   };
@@ -174,8 +182,19 @@ function addRowToCounts(
     contributed = true;
   }
 
+  if (isNoGestionadoConecta(row.conecta)) {
+    counts.noGestionadoConecta += 1;
+    // Don't mark contributed for total metrics if it's purely no gestionado (or maybe do, if we want them visible in the table anyway)
+    contributed = true;
+  }
+
   if (isInteresaViene(row.interesa) && matchesTemporalFiltersForMetric(row, temporalFilters, "citas")) {
     counts.citas += 1;
+    contributed = true;
+  }
+
+  if (isInteresaNoGestionado(row.interesa)) {
+    counts.noGestionadoInteresa += 1;
     contributed = true;
   }
 
@@ -447,7 +466,7 @@ function DataSection({
   const dataColSpan =
     1
     + (showSecondary ? 1 : 0)
-    + 4
+    + 6 // Recorrido, Conecta, No conecta, No Gest (C), Citas, No Gest (I)
     + (showAF ? 1 : 0)
     + (showMC ? 1 : 0);
   const quartileColSpan =
@@ -506,7 +525,9 @@ function DataSection({
               <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">Recorrido</th>
               <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">Conecta</th>
               <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">No conecta</th>
+              <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[rgba(255,255,255,0.6)]">No Gest. (C)</th>
               <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">Citas</th>
+              <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[rgba(255,255,255,0.6)]">No Gest. (I)</th>
               {showAF ? <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">AF</th> : null}
               {showMC ? <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">MC</th> : null}
               <th className="border border-[#1f1f1f] bg-[#0c1118] px-2 py-1 text-center text-[10px] uppercase tracking-wider text-[#00d4ff]">TC% Cont/Reco.</th>
@@ -527,7 +548,9 @@ function DataSection({
                   <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-right tabular-nums text-white/90 whitespace-nowrap">{formatInt(row.recorrido)}</td>
                   <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-right tabular-nums text-white/90 whitespace-nowrap">{formatInt(row.conecta)}</td>
                   <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-right tabular-nums text-white/90 whitespace-nowrap">{formatInt(row.noConecta)}</td>
+                  <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-right tabular-nums text-white/50 whitespace-nowrap">{formatInt(row.noGestionadoConecta)}</td>
                   <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-right tabular-nums text-white/90 whitespace-nowrap">{formatInt(row.citas)}</td>
+                  <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-right tabular-nums text-white/50 whitespace-nowrap">{formatInt(row.noGestionadoInteresa)}</td>
                   {showAF ? (
                     <td className="border border-[#1f1f1f] bg-[#080808] px-2 py-1 text-right tabular-nums text-white/90 whitespace-nowrap">{formatInt(row.af)}</td>
                   ) : null}

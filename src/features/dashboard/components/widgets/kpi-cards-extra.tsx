@@ -148,7 +148,7 @@ export function KpiCardsExtra() {
       value: formatPctFromCounts(totals.recorridoRutUnico, totals.cargadaRutUnico, 1),
       subValue: `RUT: ${formatInt(totals.recorridoRutUnico)} / ${formatInt(totals.cargadaRutUnico)}`,
       icon: Percent,
-      tooltip: "Recorrido / Base Gestión usando RUT únicos.",
+      tooltip: "Recorrido / Base Cargados usando RUT únicos.",
     },
     {
       label: "% Afluencia",
