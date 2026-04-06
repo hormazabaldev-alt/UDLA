@@ -1,14 +1,14 @@
-import { differenceInCalendarWeeks, endOfMonth, startOfWeek } from "date-fns";
+import { differenceInCalendarWeeks, startOfWeek } from "date-fns";
 
 const WEEK_STARTS_ON = 1 as const; // Monday
 
-// Ventana operativa solicitada por negocio:
-// periodo inicia en agosto 2025 y debe continuar hasta agosto 2026.
-export const FECHA_GESTION_PERIOD_START = new Date(2025, 7, 1); // 2025-08-01
-export const FECHA_GESTION_PERIOD_END = endOfMonth(new Date(2026, 7, 1)); // 2026-08-31
+// Ventana operativa solicitada por negocio para periodo 2026-2
+// según archivo de referencia: 2026-03-16 al 2026-08-30.
+export const FECHA_GESTION_PERIOD_START = new Date(2026, 2, 16); // 2026-03-16
+export const FECHA_GESTION_PERIOD_END = new Date(2026, 7, 30); // 2026-08-30
 
-// Correlativo semanal oficial (archivo referencia): Semana 1 comienza el 2025-08-11.
-export const SEMANA_CORRELATIVA_START = new Date(2025, 7, 11); // 2025-08-11
+// Correlativo semanal oficial (archivo referencia): Semana 1 comienza el 2026-03-16.
+export const SEMANA_CORRELATIVA_START = new Date(2026, 2, 16); // 2026-03-16
 
 export function parseSemanaNumber(value: string | null | undefined): number | null {
   const s = value?.trim() ?? "";
