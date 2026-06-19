@@ -22,6 +22,13 @@ export type DataRow = {
   marketing5?: string | null;
   codigoBanner?: string | null;
   carreraInteres?: string | null;
+  estado?: string | null;
+  intentos?: string | null;
+  noConecta?: string | null;
+  seguimiento?: string | null;
+  subOrigen?: string | null;
+  mesLabel?: string | null;
+  fechaMatricula?: Date | null;
 
   // Computed/Helper helpers for easy filtering
   mes: number | null; // Derived from Fecha Gestion

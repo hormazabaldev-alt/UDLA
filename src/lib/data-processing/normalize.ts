@@ -71,10 +71,14 @@ export function normalizeRow(raw: RawRow, rowIndex: number): {
   const mcCampusRaw = cleanString(getValueAny(raw, ["mccampus", "MC Campus", "MCCampus"]));
   const mcCampus = mcCampusRaw ? toCampusCode(mcCampusRaw) : null;
   const semana = resolveSemanaLabel(fechaGestion, cleanString(getValue(raw, "Semana")));
-  const af = cleanString(getValue(raw, "AF"));
-  const fechaAfRaw = parseLooseDate(getValue(raw, "Fecha af"));
-  const mc = cleanString(getValue(raw, "MC"));
-  const fechaMcRaw = parseLooseDate(getValue(raw, "Fecha MC"));
+  const matricula = cleanString(getValueAny(raw, ["Matricula", "Matrícula"]));
+  const fechaMatricula = parseLooseDate(
+    getValueAny(raw, ["Fecha Matricula", "Fecha Matrícula", "FechaMatricula"]),
+  );
+  const af = cleanString(getValue(raw, "AF")) ?? matricula;
+  const fechaAfRaw = parseLooseDate(getValue(raw, "Fecha af")) ?? fechaMatricula;
+  const mc = cleanString(getValue(raw, "MC")) ?? matricula;
+  const fechaMcRaw = parseLooseDate(getValue(raw, "Fecha MC")) ?? fechaMatricula;
   const agente = cleanString(
     getValueAny(raw, ["Agente", "Nombre Agente", "Ejecutivo", "Asesor", "Asesora"]),
   );
@@ -87,6 +91,14 @@ export function normalizeRow(raw: RawRow, rowIndex: number): {
   const carreraInteres = cleanString(
     getValueAny(raw, ["Carrera Interes", "CarreraInteres", "Carrera", "Carrera Interés"]),
   );
+  const estado = cleanString(getValue(raw, "Estado"));
+  const intentos = cleanString(getValue(raw, "Intentos"));
+  const noConecta = cleanString(getValueAny(raw, ["No Conecta", "NoConecta", "No conecta"]));
+  const seguimiento = cleanString(getValue(raw, "Seguimiento"));
+  const subOrigen = cleanString(
+    getValueAny(raw, ["SUB ORIGEN", "Sub Origen", "SubOrigen", "Origen"]),
+  );
+  const mesLabel = cleanString(getValue(raw, "Mes"));
 
   // Reglas: si AF/MC vienen vacíos, sus fechas asociadas deben quedar null.
   const fechaAf = af ? fechaAfRaw : null;
@@ -139,6 +151,13 @@ export function normalizeRow(raw: RawRow, rowIndex: number): {
     marketing5,
     codigoBanner,
     carreraInteres,
+    estado,
+    intentos,
+    noConecta,
+    seguimiento,
+    subOrigen,
+    mesLabel,
+    fechaMatricula,
 
     // Computed
     mes: fechaGestion ? getMonth(fechaGestion) + 1 : null, // 1-12

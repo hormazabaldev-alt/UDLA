@@ -9,6 +9,7 @@ import {
     BarChart3,
     Info,
     Users,
+    PhoneCall,
     ChevronDown,
     Search,
     X
@@ -444,6 +445,10 @@ export function PowerBILayout() {
                             <a href="/gestion-agentes" className="flex items-center gap-2 text-xs text-white/50 hover:text-white/80 transition py-1.5 px-3">
                                 <Users className="size-4" />
                                 Gestión de Agentes
+                            </a>
+                            <a href="/call-center" className="flex items-center gap-2 text-xs text-white/50 hover:text-white/80 transition py-1.5 px-3">
+                                <PhoneCall className="size-4" />
+                                Call Center Admisión
                             </a>
                             <a href="/logs" className="flex items-center gap-2 text-xs text-white/50 hover:text-white/80 transition py-1.5 px-3">
                                 <History className="size-4" />
