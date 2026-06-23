@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 
 import type { DataRow } from "@/lib/data-processing/types";
 import { formatInt } from "@/lib/utils/format";
+import { normalizeRut } from "@/lib/utils/rut";
 import { useData } from "@/features/dashboard/hooks/useData";
 
 type Counts = {
@@ -15,6 +16,8 @@ type Counts = {
   citas: number;
   afluencias: number;
   matriculas: number;
+  afluenciasSinCita: number;
+  matriculasSinCita: number;
 };
 
 type GroupRow = Counts & {
@@ -23,6 +26,21 @@ type GroupRow = Counts & {
   contactabilidad: number;
   citaContactado: number;
   matAfluencia: number;
+};
+
+type TabKey = "kpis" | "ejecutivos" | "carreras" | "regimen" | "tipoBase" | "temporal" | "causaRaiz" | "proyecciones" | "metas" | "conclusiones";
+
+type ProjectionComparisonRow = {
+  month: string;
+  citas2025: number;
+  afluencias2025: number;
+  matriculas2025: number;
+  citas2026: number;
+  afluencias2026: number;
+  matriculas2026: number;
+  varCitas: number;
+  varAfluencias: number;
+  varMatriculas: number;
 };
 
 const colors = {
@@ -42,6 +60,8 @@ function emptyCounts(): Counts {
     citas: 0,
     afluencias: 0,
     matriculas: 0,
+    afluenciasSinCita: 0,
+    matriculasSinCita: 0,
   };
 }
 
@@ -86,12 +106,39 @@ const EMPTY_FILTERS: CallCenterFilters = {
 
 const EMPTY_ROWS: DataRow[] = [];
 
+const TABS: Array<{ key: TabKey; label: string }> = [
+  { key: "kpis", label: "KPIs" },
+  { key: "ejecutivos", label: "Ejecutivos" },
+  { key: "carreras", label: "Carreras" },
+  { key: "regimen", label: "Régimen" },
+  { key: "tipoBase", label: "Tipo Base" },
+  { key: "temporal", label: "Temporal" },
+  { key: "causaRaiz", label: "Causa Raíz" },
+  { key: "proyecciones", label: "Proyecciones" },
+  { key: "metas", label: "Metas" },
+  { key: "conclusiones", label: "Conclusiones" },
+];
+
+const PROJECTION_COMPARISON: ProjectionComparisonRow[] = [
+  { month: "Total", citas2025: 8039, afluencias2025: 1239, matriculas2025: 607, citas2026: 5571, afluencias2026: 1024, matriculas2026: 461, varCitas: -30.7, varAfluencias: -17.4, varMatriculas: -24.1 },
+  { month: "Marzo", citas2025: 1585, afluencias2025: 355, matriculas2025: 125, citas2026: 1051, afluencias2026: 181, matriculas2026: 93, varCitas: -33.7, varAfluencias: -49.0, varMatriculas: -25.6 },
+  { month: "Abril", citas2025: 745, afluencias2025: 70, matriculas2025: 31, citas2026: 2463, afluencias2026: 440, matriculas2026: 214, varCitas: 230.6, varAfluencias: 528.6, varMatriculas: 590.3 },
+  { month: "Mayo", citas2025: 1608, afluencias2025: 214, matriculas2025: 119, citas2026: 2057, afluencias2026: 403, matriculas2026: 154, varCitas: 27.9, varAfluencias: 88.3, varMatriculas: 29.4 },
+  { month: "Junio", citas2025: 1698, afluencias2025: 288, matriculas2025: 129, citas2026: 1276, afluencias2026: 222, matriculas2026: 101, varCitas: -24.9, varAfluencias: -22.9, varMatriculas: -21.7 },
+  { month: "Julio", citas2025: 2130, afluencias2025: 285, matriculas2025: 187, citas2026: 0, afluencias2026: 0, matriculas2026: 0, varCitas: 0, varAfluencias: 0, varMatriculas: 0 },
+  { month: "Agosto", citas2025: 273, afluencias2025: 27, matriculas2025: 16, citas2026: 0, afluencias2026: 0, matriculas2026: 0, varCitas: 0, varAfluencias: 0, varMatriculas: 0 },
+];
+
 function pct(numerator: number, denominator: number) {
   return denominator > 0 ? Math.round((numerator / denominator) * 100) : 0;
 }
 
 function formatPct(value: number) {
   return `${value}%`;
+}
+
+function formatSignedPct(value: number) {
+  return `${value > 0 ? "+" : ""}${value.toFixed(1)}%`;
 }
 
 function normalizeLabel(value: string | null | undefined, fallback: string) {
@@ -171,8 +218,20 @@ function countRows(d: DataRow[], md: DataRow[]): Counts {
   counts.citas = d.filter(isCitaHtml).length;
   counts.afluencias = md.filter(isAfluenciaHtml).length;
   counts.matriculas = md.filter(isMatriculaHtml).length;
+  counts.afluenciasSinCita = md.filter((row) => isAfluenciaHtml(row) && !isCitaHtml(row)).length;
+  counts.matriculasSinCita = md.filter((row) => isMatriculaHtml(row) && !isCitaHtml(row)).length;
 
   return counts;
+}
+
+function countUniqueRuts(rows: DataRow[], predicate?: (row: DataRow) => boolean) {
+  const ruts = new Set<string>();
+  for (const row of rows) {
+    if (predicate && !predicate(row)) continue;
+    const rut = normalizeRut(row.rutBase);
+    if (rut) ruts.add(rut);
+  }
+  return ruts.size;
 }
 
 function buildGroupRows(
@@ -181,7 +240,7 @@ function buildGroupRows(
   getName: (row: DataRow) => string,
 ): GroupRow[] {
   const g = new Map<string, Pick<Counts, "recorrido" | "contactados" | "citas">>();
-  const m = new Map<string, Pick<Counts, "afluencias" | "matriculas">>();
+  const m = new Map<string, Pick<Counts, "afluencias" | "matriculas" | "afluenciasSinCita" | "matriculasSinCita">>();
 
   for (const row of d) {
     const name = getName(row);
@@ -194,16 +253,18 @@ function buildGroupRows(
 
   for (const row of md) {
     const name = getName(row);
-    const current = m.get(name) ?? { afluencias: 0, matriculas: 0 };
+    const current = m.get(name) ?? { afluencias: 0, matriculas: 0, afluenciasSinCita: 0, matriculasSinCita: 0 };
     if (isAfluenciaHtml(row)) current.afluencias += 1;
     if (isMatriculaHtml(row)) current.matriculas += 1;
+    if (isAfluenciaHtml(row) && !isCitaHtml(row)) current.afluenciasSinCita += 1;
+    if (isMatriculaHtml(row) && !isCitaHtml(row)) current.matriculasSinCita += 1;
     m.set(name, current);
   }
 
   return Array.from(new Set([...g.keys(), ...m.keys()]))
     .map((name) => {
       const gestion = g.get(name) ?? { recorrido: 0, contactados: 0, citas: 0 };
-      const matricula = m.get(name) ?? { afluencias: 0, matriculas: 0 };
+      const matricula = m.get(name) ?? { afluencias: 0, matriculas: 0, afluenciasSinCita: 0, matriculasSinCita: 0 };
       const counts = { ...gestion, ...matricula };
       return {
       name,
@@ -216,6 +277,25 @@ function buildGroupRows(
     })
     .filter((row) => row.recorrido > 0 || row.matriculas > 0)
     .sort((a, b) => b.recorrido - a.recorrido || b.matriculas - a.matriculas || a.name.localeCompare(b.name, "es"));
+}
+
+function buildValueRows(rows: DataRow[], getName: (row: DataRow) => string) {
+  const map = new Map<string, number>();
+  for (const row of rows) {
+    const name = getName(row);
+    map.set(name, (map.get(name) ?? 0) + 1);
+  }
+  return Array.from(map.entries())
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value || a.name.localeCompare(b.name, "es"));
+}
+
+function percentBar(value: number, tone: keyof typeof colors = "orange") {
+  return (
+    <div className="h-2 overflow-hidden rounded-full bg-[#2d2d44]">
+      <div className="h-full rounded-full" style={{ width: `${Math.min(Math.max(value, 0), 100)}%`, backgroundColor: colors[tone] }} />
+    </div>
+  );
 }
 
 function KpiCard({
@@ -296,6 +376,7 @@ function FilterSelect({
 export function CallCenterDashboard() {
   const { dataset, hydrating } = useData();
   const [filters, setFilters] = useState<CallCenterFilters>(EMPTY_FILTERS);
+  const [activeTab, setActiveTab] = useState<TabKey>("kpis");
   const rows = useMemo(() => dataset?.rows ?? EMPTY_ROWS, [dataset]);
 
   const options = useMemo(() => {
@@ -322,6 +403,7 @@ export function CallCenterDashboard() {
   const gestionRows = useMemo(() => buildGestionRows(rows, filters), [filters, rows]);
   const matriculaRows = useMemo(() => buildMatriculaRows(rows, filters), [filters, rows]);
   const summary = useMemo(() => countRows(gestionRows, matriculaRows), [gestionRows, matriculaRows]);
+  const uniqueLeads = useMemo(() => countUniqueRuts(gestionRows), [gestionRows]);
   const pendientes = useMemo(
     () => gestionRows.filter((row) => (row.estado || "").toLowerCase().includes("pendiente")).length,
     [gestionRows],
@@ -343,15 +425,62 @@ export function CallCenterDashboard() {
     () => buildGroupRows(gestionRows, matriculaRows, (row) => normalizeLabel(row.tipoBase, "Sin tipo")),
     [gestionRows, matriculaRows],
   );
-  const carreraRows = useMemo(
-    () => buildGroupRows(gestionRows, matriculaRows, (row) => normalizeLabel(row.carreraInteres, "Sin carrera")).sort((a, b) => b.matriculas - a.matriculas).slice(0, 12),
+  const allCarreraRows = useMemo(
+    () => buildGroupRows(gestionRows, matriculaRows, (row) => normalizeLabel(row.carreraInteres, "Sin carrera")).sort((a, b) => b.matriculas - a.matriculas || b.recorrido - a.recorrido),
     [gestionRows, matriculaRows],
+  );
+  const subOrigenRows = useMemo(
+    () => buildGroupRows(gestionRows, matriculaRows, (row) => normalizeLabel(row.subOrigen, "Sin sub origen")),
+    [gestionRows, matriculaRows],
+  );
+  const seguimientoRows = useMemo(
+    () => buildValueRows(gestionRows, (row) => normalizeLabel(row.seguimiento, "Sin seguimiento")),
+    [gestionRows],
+  );
+  const conectaRows = useMemo(
+    () => buildValueRows(gestionRows, (row) => normalizeLabel(row.conecta, "Sin conecta")),
+    [gestionRows],
+  );
+  const interesaRows = useMemo(
+    () => buildValueRows(gestionRows, (row) => normalizeLabel(row.interesa, "Sin interesa")),
+    [gestionRows],
   );
   const weekRows = useMemo(
     () => buildGroupRows(gestionRows, matriculaRows, (row) => normalizeLabel(row.semana, "Sin semana"))
       .sort((a, b) => (parseInt(a.name.replace(/\D/g, ""), 10) || 0) - (parseInt(b.name.replace(/\D/g, ""), 10) || 0)),
     [gestionRows, matriculaRows],
   );
+  const monthRows = useMemo(
+    () => buildGroupRows(gestionRows, matriculaRows, (row) => normalizeLabel(getGestionMes(row), "Sin mes"))
+      .sort((a, b) => MESES_ES.indexOf(a.name) - MESES_ES.indexOf(b.name)),
+    [gestionRows, matriculaRows],
+  );
+
+  const projectionRows = useMemo(() => {
+    const base = weekRows.filter((row) => row.name !== "Sin semana");
+    const recent = base.slice(-4);
+    const divisor = recent.length || 1;
+    const avg = {
+      recorrido: Math.round(recent.reduce((acc, row) => acc + row.recorrido, 0) / divisor),
+      contactados: Math.round(recent.reduce((acc, row) => acc + row.contactados, 0) / divisor),
+      citas: Math.round(recent.reduce((acc, row) => acc + row.citas, 0) / divisor),
+      afluencias: Math.round(recent.reduce((acc, row) => acc + row.afluencias, 0) / divisor),
+      matriculas: Math.round(recent.reduce((acc, row) => acc + row.matriculas, 0) / divisor),
+    };
+    const lastNumber = base.reduce((max, row) => Math.max(max, parseInt(row.name.replace(/\D/g, ""), 10) || 0), 0);
+    const projected = Array.from({ length: 4 }, (_, index) => ({
+      name: `Semana ${lastNumber + index + 1}`,
+      ...avg,
+      afluenciasSinCita: 0,
+      matriculasSinCita: 0,
+      contactabilidad: pct(avg.contactados, avg.recorrido),
+      citaContactado: pct(avg.citas, avg.contactados),
+      matAfluencia: pct(avg.matriculas, avg.citas),
+      convFinal: pct(avg.matriculas, avg.recorrido),
+      projected: true,
+    }));
+    return { historical: base, projected, monthly: avg };
+  }, [weekRows]);
 
   const funnelOption = useMemo(() => {
     const top = agentRows.slice(0, 10).reverse();
@@ -425,6 +554,123 @@ export function CallCenterDashboard() {
     ],
   }), [weekRows]);
 
+  const monthOption = useMemo(() => ({
+    backgroundColor: "transparent",
+    tooltip: { trigger: "axis", backgroundColor: "rgba(15,15,26,0.96)", borderColor: "#3d3d5c", textStyle: { color: "#e8e8f0" } },
+    legend: { top: 0, textStyle: { color: "#c0c0d8", fontSize: 11 } },
+    grid: { left: 42, right: 20, top: 42, bottom: 34 },
+    xAxis: { type: "category", data: monthRows.map((row) => row.name), axisLabel: { color: "#9090b0", fontSize: 10 }, axisLine: { lineStyle: { color: "#2d2d44" } }, axisTick: { show: false } },
+    yAxis: { type: "value", splitLine: { lineStyle: { color: "#2d2d44" } }, axisLabel: { color: "#9090b0" } },
+    series: [
+      { name: "Citas", type: "line", smooth: true, data: monthRows.map((row) => row.citas), itemStyle: { color: colors.amber } },
+      { name: "Afluencias", type: "line", smooth: true, data: monthRows.map((row) => row.afluencias), itemStyle: { color: colors.orange } },
+      { name: "Matrículas", type: "line", smooth: true, data: monthRows.map((row) => row.matriculas), itemStyle: { color: colors.green } },
+    ],
+  }), [monthRows]);
+
+  const carreraMatOption = useMemo(() => {
+    const top = allCarreraRows.slice(0, 15).reverse();
+    return {
+      backgroundColor: "transparent",
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, backgroundColor: "rgba(15,15,26,0.96)", borderColor: "#3d3d5c", textStyle: { color: "#e8e8f0" } },
+      grid: { left: 150, right: 20, top: 20, bottom: 20 },
+      xAxis: { type: "value", splitLine: { lineStyle: { color: "#2d2d44" } }, axisLabel: { color: "#9090b0" } },
+      yAxis: { type: "category", data: top.map((row) => row.name), axisLabel: { color: "#c0c0d8", fontSize: 10 }, axisLine: { lineStyle: { color: "#2d2d44" } }, axisTick: { show: false } },
+      series: [{ name: "Matrículas", type: "bar", data: top.map((row) => row.matriculas), itemStyle: { color: colors.green } }],
+    };
+  }, [allCarreraRows]);
+
+  const carreraConvOption = useMemo(() => {
+    const top = allCarreraRows.slice(0, 15).reverse();
+    return {
+      backgroundColor: "transparent",
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, backgroundColor: "rgba(15,15,26,0.96)", borderColor: "#3d3d5c", textStyle: { color: "#e8e8f0" } },
+      grid: { left: 150, right: 20, top: 20, bottom: 20 },
+      xAxis: { type: "value", max: 100, splitLine: { lineStyle: { color: "#2d2d44" } }, axisLabel: { color: "#9090b0", formatter: "{value}%" } },
+      yAxis: { type: "category", data: top.map((row) => row.name), axisLabel: { color: "#c0c0d8", fontSize: 10 }, axisLine: { lineStyle: { color: "#2d2d44" } }, axisTick: { show: false } },
+      series: [{ name: "Conv. Final", type: "bar", data: top.map((row) => row.convFinal), itemStyle: { color: colors.orange } }],
+    };
+  }, [allCarreraRows]);
+
+  const regimenOption = useMemo(() => ({
+    backgroundColor: "transparent",
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, backgroundColor: "rgba(15,15,26,0.96)", borderColor: "#3d3d5c", textStyle: { color: "#e8e8f0" } },
+    legend: { top: 0, textStyle: { color: "#c0c0d8", fontSize: 11 } },
+    grid: { left: 90, right: 20, top: 42, bottom: 28 },
+    xAxis: { type: "category", data: regimenRows.map((row) => row.name), axisLabel: { color: "#9090b0", fontSize: 10 }, axisLine: { lineStyle: { color: "#2d2d44" } }, axisTick: { show: false } },
+    yAxis: { type: "value", splitLine: { lineStyle: { color: "#2d2d44" } }, axisLabel: { color: "#9090b0" } },
+    series: [
+      { name: "Recorridos", type: "bar", data: regimenRows.map((row) => row.recorrido), itemStyle: { color: colors.blue } },
+      { name: "Citas", type: "bar", data: regimenRows.map((row) => row.citas), itemStyle: { color: colors.amber } },
+      { name: "Matrículas", type: "bar", data: regimenRows.map((row) => row.matriculas), itemStyle: { color: colors.green } },
+    ],
+  }), [regimenRows]);
+
+  const tipoBaseOption = useMemo(() => ({
+    backgroundColor: "transparent",
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, backgroundColor: "rgba(15,15,26,0.96)", borderColor: "#3d3d5c", textStyle: { color: "#e8e8f0" } },
+    legend: { top: 0, textStyle: { color: "#c0c0d8", fontSize: 11 } },
+    grid: { left: 90, right: 20, top: 42, bottom: 42 },
+    xAxis: { type: "category", data: tipoRows.map((row) => row.name), axisLabel: { color: "#9090b0", fontSize: 10, rotate: 25 }, axisLine: { lineStyle: { color: "#2d2d44" } }, axisTick: { show: false } },
+    yAxis: { type: "value", splitLine: { lineStyle: { color: "#2d2d44" } }, axisLabel: { color: "#9090b0" } },
+    series: [
+      { name: "Recorridos", type: "bar", data: tipoRows.map((row) => row.recorrido), itemStyle: { color: colors.blue } },
+      { name: "Citas", type: "bar", data: tipoRows.map((row) => row.citas), itemStyle: { color: colors.amber } },
+      { name: "Matrículas", type: "bar", data: tipoRows.map((row) => row.matriculas), itemStyle: { color: colors.green } },
+    ],
+  }), [tipoRows]);
+
+  const subOrigenOption = useMemo(() => ({
+    backgroundColor: "transparent",
+    tooltip: { trigger: "item", backgroundColor: "rgba(15,15,26,0.96)", borderColor: "#3d3d5c", textStyle: { color: "#e8e8f0" } },
+    legend: { bottom: 0, textStyle: { color: "#c0c0d8", fontSize: 10 } },
+    series: [{ name: "Sub Origen", type: "pie", radius: ["45%", "70%"], center: ["50%", "43%"], data: subOrigenRows.slice(0, 8).map((row) => ({ name: row.name, value: row.recorrido })), label: { color: "#c0c0d8", fontSize: 10 } }],
+  }), [subOrigenRows]);
+
+  const distributionOption = useMemo(() => ({
+    backgroundColor: "transparent",
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, backgroundColor: "rgba(15,15,26,0.96)", borderColor: "#3d3d5c", textStyle: { color: "#e8e8f0" } },
+    grid: { left: 140, right: 20, top: 20, bottom: 20 },
+    xAxis: { type: "value", splitLine: { lineStyle: { color: "#2d2d44" } }, axisLabel: { color: "#9090b0" } },
+    yAxis: { type: "category", data: seguimientoRows.slice(0, 10).reverse().map((row) => row.name), axisLabel: { color: "#c0c0d8", fontSize: 10 }, axisLine: { lineStyle: { color: "#2d2d44" } }, axisTick: { show: false } },
+    series: [{ name: "Registros", type: "bar", data: seguimientoRows.slice(0, 10).reverse().map((row) => row.value), itemStyle: { color: colors.orange } }],
+  }), [seguimientoRows]);
+
+  const projectionOption = useMemo(() => {
+    const rowsProjected = [...projectionRows.historical, ...projectionRows.projected];
+    return {
+      backgroundColor: "transparent",
+      tooltip: { trigger: "axis", backgroundColor: "rgba(15,15,26,0.96)", borderColor: "#3d3d5c", textStyle: { color: "#e8e8f0" } },
+      legend: { top: 0, textStyle: { color: "#c0c0d8", fontSize: 11 } },
+      grid: { left: 42, right: 20, top: 42, bottom: 48 },
+      xAxis: { type: "category", data: rowsProjected.map((row) => row.name), axisLabel: { color: "#9090b0", rotate: 35, fontSize: 10 }, axisLine: { lineStyle: { color: "#2d2d44" } }, axisTick: { show: false } },
+      yAxis: { type: "value", splitLine: { lineStyle: { color: "#2d2d44" } }, axisLabel: { color: "#9090b0" } },
+      series: [
+        { name: "Citas", type: "line", smooth: true, data: rowsProjected.map((row) => row.citas), itemStyle: { color: colors.amber } },
+        { name: "Afluencias", type: "line", smooth: true, data: rowsProjected.map((row) => row.afluencias), itemStyle: { color: colors.orange }, lineStyle: { type: "dashed" } },
+        { name: "Matrículas", type: "line", smooth: true, data: rowsProjected.map((row) => row.matriculas), itemStyle: { color: colors.green } },
+      ],
+    };
+  }, [projectionRows]);
+
+  const comparisonOption = useMemo(() => {
+    const rowsComparison = PROJECTION_COMPARISON.filter((row) => row.month !== "Total");
+    return {
+      backgroundColor: "transparent",
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, backgroundColor: "rgba(15,15,26,0.96)", borderColor: "#3d3d5c", textStyle: { color: "#e8e8f0" } },
+      legend: { top: 0, textStyle: { color: "#c0c0d8", fontSize: 11 } },
+      grid: { left: 42, right: 20, top: 42, bottom: 36 },
+      xAxis: { type: "category", data: rowsComparison.map((row) => row.month), axisLabel: { color: "#9090b0", fontSize: 10 }, axisLine: { lineStyle: { color: "#2d2d44" } }, axisTick: { show: false } },
+      yAxis: { type: "value", splitLine: { lineStyle: { color: "#2d2d44" } }, axisLabel: { color: "#9090b0" } },
+      series: [
+        { name: "Citas 202520", type: "bar", data: rowsComparison.map((row) => row.citas2025), itemStyle: { color: "#b45309" } },
+        { name: "Citas 202620", type: "bar", data: rowsComparison.map((row) => row.citas2026), itemStyle: { color: colors.amber } },
+        { name: "MC 202520", type: "line", data: rowsComparison.map((row) => row.matriculas2025), itemStyle: { color: "#166534" } },
+        { name: "MC 202620", type: "line", data: rowsComparison.map((row) => row.matriculas2026), itemStyle: { color: colors.green } },
+      ],
+    };
+  }, []);
+
   if (hydrating) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#0f0f1a] text-[#e8e8f0]">
@@ -493,7 +739,7 @@ export function CallCenterDashboard() {
         </div>
 
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-6">
-          <KpiCard label="Leads / Registros" value={formatInt(summary.recorrido)} detail="Total" icon={Database} />
+          <KpiCard label="Leads / Registros" value={formatInt(uniqueLeads)} detail={`Gestión: ${formatInt(summary.recorrido)}`} icon={Database} />
           <KpiCard label="Contactados" value={formatInt(summary.contactados)} detail={`${formatPct(pct(summary.contactados, summary.recorrido))} contactabilidad`} icon={PhoneCall} />
           <KpiCard label="No Contactados" value={formatInt(Math.max(summary.recorrido - summary.contactados, 0))} detail="Sin interacción" tone="red" icon={Route} />
           <KpiCard label="Citas (Viene)" value={formatInt(summary.citas)} detail={`${formatPct(pct(summary.citas, summary.contactados))} Cont→Cita`} tone="amber" icon={CalendarDays} />
@@ -505,90 +751,237 @@ export function CallCenterDashboard() {
           <KpiCard label="Ejecutivos" value={formatInt(agentRows.filter((row) => row.name !== "Sin ejecutivo").length)} detail="Activos en dataset" icon={Users} />
           <KpiCard label="Carreras" value={formatInt(new Set(gestionRows.map((row) => row.carreraInteres).filter(Boolean)).size)} detail="Gestionadas" icon={BarChart3} />
           <KpiCard label="Pendientes" value={formatInt(pendientes)} detail="Estado pendiente" tone="amber" icon={Database} />
+          <KpiCard label="Afluencias sin cita" value={formatInt(summary.afluenciasSinCita)} detail={`${formatPct(pct(summary.afluenciasSinCita, summary.afluencias))} del total AF`} tone="blue" icon={CalendarDays} />
+          <KpiCard label="Matrículas sin cita" value={formatInt(summary.matriculasSinCita)} detail={`${formatPct(pct(summary.matriculasSinCita, summary.matriculas))} del total MC`} tone="green" icon={Target} />
         </div>
 
-        <SectionCard title="Recorridos - Contactados - Citas - Matrículas / Top 10 Ejecutivos">
-          <div className="h-[340px]">
-            <ReactECharts option={funnelOption} style={{ height: "100%", width: "100%" }} />
+        <div className="rounded-lg border border-[#2d2d44] bg-[#1a1a2e] p-2">
+          <div className="flex flex-wrap gap-2">
+            {TABS.map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setActiveTab(tab.key)}
+                className={`rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${
+                  activeTab === tab.key
+                    ? "border-[#e8620a] bg-[#e8620a] text-white"
+                    : "border-transparent text-[#9090b0] hover:bg-[#2d2d44] hover:text-white"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
-        </SectionCard>
-
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-          <SectionCard title="Conversión por Régimen">
-            <div className="max-h-[230px] overflow-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="sticky top-0 bg-[#2d2d44] text-[#e8620a]">
-                  <tr>
-                    <th className="px-3 py-2">Régimen</th>
-                    <th className="px-3 py-2">Contactab.</th>
-                    <th className="px-3 py-2">Cont. a Cita</th>
-                    <th className="px-3 py-2">Cita a Mat.</th>
-                    <th className="px-3 py-2">Final</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {regimenRows.map((row) => (
-                    <tr key={row.name} className="border-b border-[#2d2d44] hover:bg-[#2d2d44]/60">
-                      <td className="px-3 py-2 font-semibold text-[#e8e8f0]">{row.name}</td>
-                      <td className="px-3 py-2"><span className={`rounded-md px-2 py-1 ${tableTone(row.contactabilidad)}`}>{formatPct(row.contactabilidad)}</span></td>
-                      <td className="px-3 py-2">{formatPct(row.citaContactado)}</td>
-                      <td className="px-3 py-2">{formatPct(row.matAfluencia)}</td>
-                      <td className="px-3 py-2 text-[#4ade80]">{formatPct(row.convFinal)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="mt-4 h-[230px]">
-              <ReactECharts option={regimenDonut} style={{ height: "100%", width: "100%" }} />
-            </div>
-          </SectionCard>
-
-          <SectionCard title="Contactabilidad y Conversión por Tipo Base">
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {tipoRows.slice(0, 6).map((row) => (
-                <div key={row.name} className="rounded-lg border border-[#3d3d5c] bg-[#111120] p-3">
-                  <div className="truncate text-xs font-bold text-[#e8e8f0]">{row.name}</div>
-                  <div className="mt-2 grid grid-cols-3 gap-2 text-[11px] text-[#9090b0]">
-                    <div><span className="block text-[#e8620a]">{formatInt(row.recorrido)}</span>Rec.</div>
-                    <div><span className="block text-[#22d3ee]">{formatPct(row.contactabilidad)}</span>Cont.</div>
-                    <div><span className="block text-[#4ade80]">{formatPct(row.convFinal)}</span>Final</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="mt-4 h-[260px]">
-              <ReactECharts option={tipoDonut} style={{ height: "100%", width: "100%" }} />
-            </div>
-          </SectionCard>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-          <SectionCard title="Top Carreras por Matrícula">
-            <div className="space-y-2">
-              {carreraRows.map((row) => (
-                <div key={row.name} className="grid grid-cols-[1fr_auto] items-center gap-3 rounded-lg border border-[#2d2d44] bg-[#111120] px-3 py-2">
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold">{row.name}</div>
-                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[#2d2d44]">
-                      <div className="h-full rounded-full bg-[#e8620a]" style={{ width: `${Math.min(row.convFinal, 100)}%` }} />
+        {activeTab === "kpis" ? (
+          <>
+            <SectionCard title="Recorridos - Contactados - Citas - Matrículas / Top 10 Ejecutivos">
+              <div className="h-[340px]">
+                <ReactECharts option={funnelOption} style={{ height: "100%", width: "100%" }} />
+              </div>
+            </SectionCard>
+
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+              <SectionCard title="Conversión por Régimen">
+                <div className="max-h-[230px] overflow-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="sticky top-0 bg-[#2d2d44] text-[#e8620a]">
+                      <tr>
+                        <th className="px-3 py-2">Régimen</th>
+                        <th className="px-3 py-2">Contactab.</th>
+                        <th className="px-3 py-2">Cont. a Cita</th>
+                        <th className="px-3 py-2">Cita a Mat.</th>
+                        <th className="px-3 py-2">Final</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {regimenRows.map((row) => (
+                        <tr key={row.name} className="border-b border-[#2d2d44] hover:bg-[#2d2d44]/60">
+                          <td className="px-3 py-2 font-semibold text-[#e8e8f0]">{row.name}</td>
+                          <td className="px-3 py-2"><span className={`rounded-md px-2 py-1 ${tableTone(row.contactabilidad)}`}>{formatPct(row.contactabilidad)}</span></td>
+                          <td className="px-3 py-2">{formatPct(row.citaContactado)}</td>
+                          <td className="px-3 py-2">{formatPct(row.matAfluencia)}</td>
+                          <td className="px-3 py-2 text-[#4ade80]">{formatPct(row.convFinal)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="mt-4 h-[230px]">
+                  <ReactECharts option={regimenDonut} style={{ height: "100%", width: "100%" }} />
+                </div>
+              </SectionCard>
+
+              <SectionCard title="Contactabilidad y Conversión por Tipo Base">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {tipoRows.slice(0, 6).map((row) => (
+                    <div key={row.name} className="rounded-lg border border-[#3d3d5c] bg-[#111120] p-3">
+                      <div className="truncate text-xs font-bold text-[#e8e8f0]">{row.name}</div>
+                      <div className="mt-2 grid grid-cols-3 gap-2 text-[11px] text-[#9090b0]">
+                        <div><span className="block text-[#e8620a]">{formatInt(row.recorrido)}</span>Rec.</div>
+                        <div><span className="block text-[#22d3ee]">{formatPct(row.contactabilidad)}</span>Cont.</div>
+                        <div><span className="block text-[#4ade80]">{formatPct(row.convFinal)}</span>Final</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 h-[260px]">
+                  <ReactECharts option={tipoDonut} style={{ height: "100%", width: "100%" }} />
+                </div>
+              </SectionCard>
+            </div>
+          </>
+        ) : null}
+
+        {activeTab === "ejecutivos" ? (
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            <SectionCard title="Recorridos vs Contactados vs Citas vs Matrículas">
+              <div className="h-[390px]"><ReactECharts option={funnelOption} style={{ height: "100%", width: "100%" }} /></div>
+            </SectionCard>
+            <SectionCard title="Ranking Ejecutivos">
+              <div className="max-h-[390px] overflow-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="sticky top-0 bg-[#2d2d44] text-[#e8620a]"><tr><th className="px-3 py-2">Ejecutivo</th><th className="px-3 py-2">Rec.</th><th className="px-3 py-2">Citas</th><th className="px-3 py-2">AF</th><th className="px-3 py-2">MC</th><th className="px-3 py-2">Cont.</th><th className="px-3 py-2">Final</th></tr></thead>
+                  <tbody>
+                    {agentRows.map((row) => (
+                      <tr key={row.name} className="border-b border-[#2d2d44] hover:bg-[#2d2d44]/60">
+                        <td className="px-3 py-2 font-semibold">{row.name}</td><td className="px-3 py-2">{formatInt(row.recorrido)}</td><td className="px-3 py-2">{formatInt(row.citas)}</td><td className="px-3 py-2">{formatInt(row.afluencias)}</td><td className="px-3 py-2 text-[#4ade80]">{formatInt(row.matriculas)}</td><td className="px-3 py-2">{formatPct(row.contactabilidad)}</td><td className="px-3 py-2">{formatPct(row.convFinal)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </SectionCard>
+          </div>
+        ) : null}
+
+        {activeTab === "carreras" ? (
+          <>
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+              <SectionCard title="Matrículas por Carrera / Top 15"><div className="h-[390px]"><ReactECharts option={carreraMatOption} style={{ height: "100%", width: "100%" }} /></div></SectionCard>
+              <SectionCard title="Conversión por Carrera / Top 15"><div className="h-[390px]"><ReactECharts option={carreraConvOption} style={{ height: "100%", width: "100%" }} /></div></SectionCard>
+            </div>
+            <SectionCard title="Tabla por Carrera">
+              <div className="max-h-[420px] overflow-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="sticky top-0 bg-[#2d2d44] text-[#e8620a]"><tr><th className="px-3 py-2">Carrera</th><th className="px-3 py-2">Rec.</th><th className="px-3 py-2">Citas</th><th className="px-3 py-2">AF</th><th className="px-3 py-2">MC</th><th className="px-3 py-2">AF sin cita</th><th className="px-3 py-2">MC sin cita</th><th className="px-3 py-2">Final</th></tr></thead>
+                  <tbody>{allCarreraRows.map((row) => (<tr key={row.name} className="border-b border-[#2d2d44] hover:bg-[#2d2d44]/60"><td className="px-3 py-2 font-semibold">{row.name}</td><td className="px-3 py-2">{formatInt(row.recorrido)}</td><td className="px-3 py-2">{formatInt(row.citas)}</td><td className="px-3 py-2">{formatInt(row.afluencias)}</td><td className="px-3 py-2 text-[#4ade80]">{formatInt(row.matriculas)}</td><td className="px-3 py-2">{formatInt(row.afluenciasSinCita)}</td><td className="px-3 py-2">{formatInt(row.matriculasSinCita)}</td><td className="px-3 py-2">{formatPct(row.convFinal)}</td></tr>))}</tbody>
+                </table>
+              </div>
+            </SectionCard>
+          </>
+        ) : null}
+
+        {activeTab === "regimen" ? (
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            <SectionCard title="Volumen y Conversión por Régimen"><div className="h-[390px]"><ReactECharts option={regimenOption} style={{ height: "100%", width: "100%" }} /></div></SectionCard>
+            <SectionCard title="Tabla por Régimen">
+              <div className="space-y-3">
+                {regimenRows.map((row) => (
+                  <div key={row.name} className="rounded-lg border border-[#2d2d44] bg-[#111120] p-3">
+                    <div className="mb-2 flex items-center justify-between text-sm"><span className="font-semibold">{row.name}</span><span className="text-[#4ade80]">{formatInt(row.matriculas)} MC</span></div>
+                    {percentBar(row.convFinal, "green")}
+                    <div className="mt-2 grid grid-cols-4 gap-2 text-[11px] text-[#9090b0]"><span>Rec. {formatInt(row.recorrido)}</span><span>Cont. {formatPct(row.contactabilidad)}</span><span>Cita-AF {formatPct(pct(row.afluencias, row.citas))}</span><span>Final {formatPct(row.convFinal)}</span></div>
+                  </div>
+                ))}
+              </div>
+            </SectionCard>
+          </div>
+        ) : null}
+
+        {activeTab === "tipoBase" ? (
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            <SectionCard title="Volumen por Tipo de Base"><div className="h-[360px]"><ReactECharts option={tipoBaseOption} style={{ height: "100%", width: "100%" }} /></div></SectionCard>
+            <SectionCard title="Distribución por Sub Origen"><div className="h-[360px]"><ReactECharts option={subOrigenOption} style={{ height: "100%", width: "100%" }} /></div></SectionCard>
+          </div>
+        ) : null}
+
+        {activeTab === "temporal" ? (
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            <SectionCard title="Evolución por Mes"><div className="h-[390px]"><ReactECharts option={monthOption} style={{ height: "100%", width: "100%" }} /></div></SectionCard>
+            <SectionCard title="Evolución por Semana"><div className="h-[390px]"><ReactECharts option={weeklyOption} style={{ height: "100%", width: "100%" }} /></div></SectionCard>
+          </div>
+        ) : null}
+
+        {activeTab === "causaRaiz" ? (
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            <SectionCard title="Motivos de No Cita / Seguimiento"><div className="h-[360px]"><ReactECharts option={distributionOption} style={{ height: "100%", width: "100%" }} /></div></SectionCard>
+            <SectionCard title="Distribuciones de Gestión">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                {[["Conecta / No Conecta", conectaRows], ["Interesa", interesaRows]].map(([title, data]) => (
+                  <div key={title as string} className="rounded-lg border border-[#2d2d44] bg-[#111120] p-3">
+                    <div className="mb-3 text-xs font-bold uppercase text-[#e8620a]">{title as string}</div>
+                    <div className="space-y-2">{(data as Array<{ name: string; value: number }>).slice(0, 8).map((row) => (<div key={row.name} className="flex items-center justify-between gap-3 text-xs"><span className="truncate text-[#c0c0d8]">{row.name}</span><span className="font-bold text-white">{formatInt(row.value)}</span></div>))}</div>
+                  </div>
+                ))}
+              </div>
+            </SectionCard>
+          </div>
+        ) : null}
+
+        {activeTab === "proyecciones" ? (
+          <>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <KpiCard label="Proyección mensual citas" value={formatInt(projectionRows.monthly.citas * 4)} detail="Promedio últimas 4 semanas x 4" tone="amber" icon={CalendarDays} />
+              <KpiCard label="Proyección mensual afluencias" value={formatInt(projectionRows.monthly.afluencias * 4)} detail="Promedio últimas 4 semanas x 4" tone="blue" icon={BarChart3} />
+              <KpiCard label="Proyección mensual matrículas" value={formatInt(projectionRows.monthly.matriculas * 4)} detail="Promedio últimas 4 semanas x 4" tone="green" icon={Target} />
+            </div>
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+              <SectionCard title="Proyección Semanal Detallada"><div className="h-[390px]"><ReactECharts option={projectionOption} style={{ height: "100%", width: "100%" }} /></div></SectionCard>
+              <SectionCard title="Comparativo 202520 vs 202620"><div className="h-[390px]"><ReactECharts option={comparisonOption} style={{ height: "100%", width: "100%" }} /></div></SectionCard>
+            </div>
+            <SectionCard title="Tabla Comparativa desde Excel">
+              <div className="overflow-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-[#2d2d44] text-[#e8620a]"><tr><th className="px-3 py-2">Mes</th><th className="px-3 py-2">Citas 25</th><th className="px-3 py-2">Citas 26</th><th className="px-3 py-2">Var Citas</th><th className="px-3 py-2">AF 25</th><th className="px-3 py-2">AF 26</th><th className="px-3 py-2">Var AF</th><th className="px-3 py-2">MC 25</th><th className="px-3 py-2">MC 26</th><th className="px-3 py-2">Var MC</th></tr></thead>
+                  <tbody>{PROJECTION_COMPARISON.map((row) => (<tr key={row.month} className="border-b border-[#2d2d44] hover:bg-[#2d2d44]/60"><td className="px-3 py-2 font-semibold">{row.month}</td><td className="px-3 py-2">{formatInt(row.citas2025)}</td><td className="px-3 py-2">{formatInt(row.citas2026)}</td><td className={`px-3 py-2 ${row.varCitas >= 0 ? "text-[#4ade80]" : "text-[#f87171]"}`}>{formatSignedPct(row.varCitas)}</td><td className="px-3 py-2">{formatInt(row.afluencias2025)}</td><td className="px-3 py-2">{formatInt(row.afluencias2026)}</td><td className={`px-3 py-2 ${row.varAfluencias >= 0 ? "text-[#4ade80]" : "text-[#f87171]"}`}>{formatSignedPct(row.varAfluencias)}</td><td className="px-3 py-2">{formatInt(row.matriculas2025)}</td><td className="px-3 py-2">{formatInt(row.matriculas2026)}</td><td className={`px-3 py-2 ${row.varMatriculas >= 0 ? "text-[#4ade80]" : "text-[#f87171]"}`}>{formatSignedPct(row.varMatriculas)}</td></tr>))}</tbody>
+                </table>
+              </div>
+            </SectionCard>
+          </>
+        ) : null}
+
+        {activeTab === "metas" ? (
+          <SectionCard title="Semáforo Ejecutivos vs Metas">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {agentRows.slice(0, 12).map((row) => {
+                const okContact = row.contactabilidad >= 60;
+                const okMat = pct(row.matriculas, row.afluencias) >= 50;
+                return (
+                  <div key={row.name} className="rounded-lg border border-[#2d2d44] bg-[#111120] p-3">
+                    <div className="mb-2 truncate text-sm font-semibold">{row.name}</div>
+                    <div className="space-y-2 text-xs text-[#9090b0]">
+                      <div className="flex justify-between"><span>Contactabilidad meta 60%</span><span className={okContact ? "text-[#4ade80]" : "text-[#f87171]"}>{formatPct(row.contactabilidad)}</span></div>
+                      {percentBar(row.contactabilidad, okContact ? "green" : "red")}
+                      <div className="flex justify-between"><span>Afluencia a matrícula meta 50%</span><span className={okMat ? "text-[#4ade80]" : "text-[#f87171]"}>{formatPct(pct(row.matriculas, row.afluencias))}</span></div>
+                      {percentBar(pct(row.matriculas, row.afluencias), okMat ? "green" : "red")}
                     </div>
                   </div>
-                  <div className="text-right text-xs text-[#9090b0]">
-                    <div className="font-bold text-[#4ade80]">{formatInt(row.matriculas)} MC</div>
-                    <div>{formatPct(row.convFinal)}</div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </SectionCard>
+        ) : null}
 
-          <SectionCard title="Evolución Semanal">
-            <div className="h-[390px]">
-              <ReactECharts option={weeklyOption} style={{ height: "100%", width: "100%" }} />
-            </div>
-          </SectionCard>
-        </div>
+        {activeTab === "conclusiones" ? (
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            <SectionCard title="Hallazgos Principales">
+              <div className="space-y-3 text-sm text-[#c0c0d8]">
+                <p>De {formatInt(summary.recorrido)} registros gestionados, {formatInt(summary.contactados)} fueron contactados ({formatPct(pct(summary.contactados, summary.recorrido))}).</p>
+                <p>Se generaron {formatInt(summary.citas)} citas y {formatInt(summary.afluencias)} afluencias, con conversión cita a afluencia de {formatPct(pct(summary.afluencias, summary.citas))}.</p>
+                <p>{formatInt(summary.afluenciasSinCita)} afluencias y {formatInt(summary.matriculasSinCita)} matrículas no tienen cita previa registrada en el mismo registro.</p>
+              </div>
+            </SectionCard>
+            <SectionCard title="Riesgos y Oportunidades">
+              <div className="space-y-3 text-sm text-[#c0c0d8]">
+                <p>Si la contactabilidad sube a 70%, el modelo actual proyecta cerca de {formatInt(Math.round(summary.recorrido * 0.7 * (pct(summary.citas, summary.contactados) / 100) * (pct(summary.matriculas, summary.afluencias || 1) / 100)))} matrículas.</p>
+                <p>El comparativo 202620 vs 202520 muestra {formatSignedPct(PROJECTION_COMPARISON[0].varCitas)} en citas, {formatSignedPct(PROJECTION_COMPARISON[0].varAfluencias)} en afluencias y {formatSignedPct(PROJECTION_COMPARISON[0].varMatriculas)} en matrículas acumuladas.</p>
+                <p>Prioridad operativa: revisar ejecutivos bajo meta, confirmar citas y separar resultados con cita versus llegadas directas.</p>
+              </div>
+            </SectionCard>
+          </div>
+        ) : null}
       </main>
     </div>
   );
