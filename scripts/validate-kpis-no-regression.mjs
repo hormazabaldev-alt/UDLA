@@ -86,4 +86,66 @@ assert(
   `KPI no-regression failed.\nA=${JSON.stringify(totalsA)}\nB=${JSON.stringify(totalsB)}`,
 );
 
+const sinCitaRows = normalizeRows([
+  {
+    "Tipo Llamada": "Outbound",
+    "Fecha Carga": "2026-03-16",
+    "Rut Base": "44.444.444-4",
+    "Tipo Base": "Lead",
+    "Fecha Gestion": "2026-03-16",
+    Conecta: "Conecta",
+    Interesa: "No viene",
+    Regimen: "Diurno",
+    "Sede Interes": "LF",
+    Semana: "Semana 1",
+    AF: "A",
+    "Fecha af": "2026-03-18",
+    MC: "",
+    "Fecha MC": "",
+  },
+  {
+    "Tipo Llamada": "Outbound",
+    "Fecha Carga": "2026-03-17",
+    "Rut Base": "55.555.555-5",
+    "Tipo Base": "Lead",
+    "Fecha Gestion": "2026-03-17",
+    Conecta: "Conecta",
+    Interesa: "",
+    Regimen: "Diurno",
+    "Sede Interes": "LF",
+    Semana: "Semana 1",
+    AF: "M",
+    "Fecha af": "2026-03-18",
+    MC: "M",
+    "Fecha MC": "2026-03-19",
+  },
+  {
+    "Tipo Llamada": "Outbound",
+    "Fecha Carga": "2026-03-18",
+    "Rut Base": "66.666.666-6",
+    "Tipo Base": "Lead",
+    "Fecha Gestion": "2026-03-18",
+    Conecta: "Conecta",
+    Interesa: "Viene",
+    Regimen: "Diurno",
+    "Sede Interes": "LF",
+    Semana: "Semana 1",
+    AF: "MC",
+    "Fecha af": "2026-03-20",
+    MC: "MC",
+    "Fecha MC": "2026-03-21",
+  },
+]);
+
+const sinCitaTotals = computeTotals(sinCitaRows);
+
+assert(sinCitaTotals.af === 3, `Expected 3 afluencias, got ${sinCitaTotals.af}`);
+assert(sinCitaTotals.afConCita === 1, `Expected 1 afluencia con cita, got ${sinCitaTotals.afConCita}`);
+assert(sinCitaTotals.afSinCita === 2, `Expected 2 afluencias sin cita, got ${sinCitaTotals.afSinCita}`);
+assert(sinCitaTotals.mc === 2, `Expected 2 matriculas, got ${sinCitaTotals.mc}`);
+assert(sinCitaTotals.mcConCita === 1, `Expected 1 matricula con cita, got ${sinCitaTotals.mcConCita}`);
+assert(sinCitaTotals.mcSinCita === 1, `Expected 1 matricula sin cita, got ${sinCitaTotals.mcSinCita}`);
+assert(sinCitaTotals.pctAfSinCita === 2 / 3, `Expected pctAfSinCita 2/3, got ${sinCitaTotals.pctAfSinCita}`);
+assert(sinCitaTotals.pctMcSinCita === 1 / 2, `Expected pctMcSinCita 1/2, got ${sinCitaTotals.pctMcSinCita}`);
+
 console.log("KPI no-regression OK: métricas idénticas con y sin columnas nuevas.");

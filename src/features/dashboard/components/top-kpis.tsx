@@ -5,6 +5,7 @@ import { animate } from "framer-motion";
 import {
   Activity,
   CalendarRange,
+  CalendarX2,
   CheckCircle2,
   Gauge,
   Fingerprint,
@@ -152,6 +153,34 @@ export function TopKpis() {
         value: totals.mc,
         format: (n: number) => formatInt(Math.round(n)),
         icon: Target,
+      },
+      {
+        title: "AF sin cita",
+        value: totals.afSinCita,
+        format: (n: number) => formatInt(Math.round(n)),
+        icon: CalendarX2,
+        badge: { label: "Sin Viene", variant: "info" },
+      },
+      {
+        title: "% AF sin cita",
+        value: Math.round((totals.pctAfSinCita ?? 0) * 1000) / 10,
+        format: (n: number) => `${n.toFixed(1)}%`,
+        icon: Gauge,
+        tone: pctTone(totals.pctAfSinCita),
+      },
+      {
+        title: "MC sin cita",
+        value: totals.mcSinCita,
+        format: (n: number) => formatInt(Math.round(n)),
+        icon: CalendarX2,
+        badge: { label: "Sin Viene", variant: "info" },
+      },
+      {
+        title: "% MC sin cita",
+        value: Math.round((totals.pctMcSinCita ?? 0) * 1000) / 10,
+        format: (n: number) => `${n.toFixed(1)}%`,
+        icon: Gauge,
+        tone: pctTone(totals.pctMcSinCita),
       },
       {
         title: "% Efectividad",

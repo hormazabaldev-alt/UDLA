@@ -1,5 +1,5 @@
 import type { DataRow } from "@/lib/data-processing/types";
-import { isAfluenciaValue } from "@/lib/data-processing/predicates";
+import { isAfluenciaValue, isMatriculaValue } from "@/lib/data-processing/predicates";
 import { matchesTemporalFiltersForMetric, type TemporalFilters } from "@/lib/data-processing/temporal";
 import { normalizeRut } from "@/lib/utils/rut";
 import { isInteresaViene } from "@/lib/utils/interesa";
@@ -11,6 +11,12 @@ export type Totals = {
   citas: number; // Filas con Interesa = "Viene"
   af: number;
   mc: number;
+  afConCita: number;
+  mcConCita: number;
+  afSinCita: number;
+  mcSinCita: number;
+  pctAfSinCita: number | null;
+  pctMcSinCita: number | null;
   // Unique RUT volumes (dedup by Rut Base)
   cargadaRutUnico: number;
   recorridoRutUnico: number;
@@ -18,6 +24,12 @@ export type Totals = {
   citasRutUnico: number;
   afRutUnico: number;
   mcRutUnico: number;
+  afConCitaRutUnico: number;
+  mcConCitaRutUnico: number;
+  afSinCitaRutUnico: number;
+  mcSinCitaRutUnico: number;
+  pctAfSinCitaRutUnico: number | null;
+  pctMcSinCitaRutUnico: number | null;
   // Core rates (based on filas/volumen)
   tcLlaLeads: number | null;        // Recorrido / Base
   tcAfLeads: number | null;         // AF / Base
@@ -41,6 +53,8 @@ export function computeTotals(rows: DataRow[], temporalFilters?: TemporalFilters
   let citas = 0;
   let af = 0;
   let mc = 0;
+  let afConCita = 0;
+  let mcConCita = 0;
 
   const cargadaRuts = new Set<string>();
   const recorridoRuts = new Set<string>();
@@ -48,6 +62,8 @@ export function computeTotals(rows: DataRow[], temporalFilters?: TemporalFilters
   const citasRuts = new Set<string>();
   const afRuts = new Set<string>();
   const mcRuts = new Set<string>();
+  const afConCitaRuts = new Set<string>();
+  const mcConCitaRuts = new Set<string>();
 
   for (const row of rows) {
     // BASE (Cargada) = total de filas
@@ -74,7 +90,9 @@ export function computeTotals(rows: DataRow[], temporalFilters?: TemporalFilters
     }
 
     // CITAS = contar filas donde "Interesa" = "Viene"
-    if (isInteresaViene(row.interesa) && matchesTemporalFiltersForMetric(row, temporalFilters, "citas")) {
+    const tieneCita = isInteresaViene(row.interesa);
+
+    if (tieneCita && matchesTemporalFiltersForMetric(row, temporalFilters, "citas")) {
       citas++;
       if (rut) citasRuts.add(rut);
     }
@@ -83,15 +101,27 @@ export function computeTotals(rows: DataRow[], temporalFilters?: TemporalFilters
     if (isAfluenciaValue(row.af) && matchesTemporalFiltersForMetric(row, temporalFilters, "af")) {
       af++;
       if (rut) afRuts.add(rut);
+      if (tieneCita) {
+        afConCita++;
+        if (rut) afConCitaRuts.add(rut);
+      }
     }
 
     // MATRÍCULAS (MC) = contar filas donde columna MC contiene "M" o "MC"
-    const mcVal = row.mc?.trim().toUpperCase() ?? "";
-    if ((mcVal === "M" || mcVal === "MC") && matchesTemporalFiltersForMetric(row, temporalFilters, "mc")) {
+    if (isMatriculaValue(row.mc) && matchesTemporalFiltersForMetric(row, temporalFilters, "mc")) {
       mc++;
       if (rut) mcRuts.add(rut);
+      if (tieneCita) {
+        mcConCita++;
+        if (rut) mcConCitaRuts.add(rut);
+      }
     }
   }
+
+  const afSinCita = af - afConCita;
+  const mcSinCita = mc - mcConCita;
+  const pctAfSinCita = af > 0 ? afSinCita / af : null;
+  const pctMcSinCita = mc > 0 ? mcSinCita / mc : null;
 
   const cargadaRutUnico = cargadaRuts.size;
   const recorridoRutUnico = recorridoRuts.size;
@@ -99,6 +129,12 @@ export function computeTotals(rows: DataRow[], temporalFilters?: TemporalFilters
   const citasRutUnico = citasRuts.size;
   const afRutUnico = afRuts.size;
   const mcRutUnico = mcRuts.size;
+  const afConCitaRutUnico = afConCitaRuts.size;
+  const mcConCitaRutUnico = mcConCitaRuts.size;
+  const afSinCitaRutUnico = Math.max(0, afRutUnico - afConCitaRutUnico);
+  const mcSinCitaRutUnico = Math.max(0, mcRutUnico - mcConCitaRutUnico);
+  const pctAfSinCitaRutUnico = afRutUnico > 0 ? afSinCitaRutUnico / afRutUnico : null;
+  const pctMcSinCitaRutUnico = mcRutUnico > 0 ? mcSinCitaRutUnico / mcRutUnico : null;
 
   // Rates are computed on filas/volumen (same basis as the funnel values).
   // TC% Lla/Leads = Recorrido / Base Cargada
@@ -131,12 +167,24 @@ export function computeTotals(rows: DataRow[], temporalFilters?: TemporalFilters
     citas,
     af,
     mc,
+    afConCita,
+    mcConCita,
+    afSinCita,
+    mcSinCita,
+    pctAfSinCita,
+    pctMcSinCita,
     cargadaRutUnico,
     recorridoRutUnico,
     contactadoRutUnico,
     citasRutUnico,
     afRutUnico,
     mcRutUnico,
+    afConCitaRutUnico,
+    mcConCitaRutUnico,
+    afSinCitaRutUnico,
+    mcSinCitaRutUnico,
+    pctAfSinCitaRutUnico,
+    pctMcSinCitaRutUnico,
     // Core rates
     tcLlaLeads,
     tcAfLeads,

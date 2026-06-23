@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import {
   CalendarCheck2,
+  CalendarX2,
   Route,
   PhoneCall,
   GraduationCap,
@@ -142,6 +143,36 @@ export function KpiCardsExtra() {
       accentLabel: "RUT unico",
       icon: GraduationCap,
       tooltip: "Matrículas (MC = M o MC). Se muestra primero RUT único y abajo el total de gestión.",
+    },
+    {
+      label: "Afluencias sin cita",
+      value: formatInt(totals.afSinCitaRutUnico),
+      subValue: `Gestion: ${formatInt(totals.afSinCita)}`,
+      accentLabel: "RUT unico",
+      icon: CalendarX2,
+      tooltip: "Afluencias (AF = A, M o MC) sin Interesa = Viene en el mismo registro.",
+    },
+    {
+      label: "% Afl. sin cita",
+      value: formatPct(totals.pctAfSinCitaRutUnico, 0),
+      subValue: `RUT: ${formatInt(totals.afSinCitaRutUnico)} / ${formatInt(totals.afRutUnico)}`,
+      icon: Percent,
+      tooltip: "Afluencias sin cita / Total Afluencias usando RUT únicos.",
+    },
+    {
+      label: "Matrículas sin cita",
+      value: formatInt(totals.mcSinCitaRutUnico),
+      subValue: `Gestion: ${formatInt(totals.mcSinCita)}`,
+      accentLabel: "RUT unico",
+      icon: CalendarX2,
+      tooltip: "Matrículas (MC = M o MC) sin Interesa = Viene en el mismo registro.",
+    },
+    {
+      label: "% Mat. sin cita",
+      value: formatPct(totals.pctMcSinCitaRutUnico, 0),
+      subValue: `RUT: ${formatInt(totals.mcSinCitaRutUnico)} / ${formatInt(totals.mcRutUnico)}`,
+      icon: Percent,
+      tooltip: "Matrículas sin cita / Total Matrículas usando RUT únicos.",
     },
     {
       label: "% Recorrido",
