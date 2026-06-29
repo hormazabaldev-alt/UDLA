@@ -709,8 +709,13 @@ export function CallCenterDashboard() {
               <p className="text-xs text-[#9090b0]">Dashboard ejecutivo conectado al snapshot cargado</p>
             </div>
           </div>
-          <div className="rounded-lg border border-[#2d2d44] px-3 py-2 text-xs text-[#9090b0]">
-            {formatInt(summary.recorrido)} registros bajo filtros actuales
+          <div className="flex items-center gap-3">
+            <Link href="/diplomado" className="inline-flex items-center gap-2 rounded-lg border border-[#3d3d5c] px-3 py-2 text-xs text-[#9090b0] hover:border-[#e8620a] hover:text-[#e8620a]">
+              <BarChart3 className="size-3.5" /> Diplomados
+            </Link>
+            <div className="rounded-lg border border-[#2d2d44] px-3 py-2 text-xs text-[#9090b0]">
+              {formatInt(summary.recorrido)} registros bajo filtros actuales
+            </div>
           </div>
         </div>
       </header>

@@ -1,0 +1,67 @@
+import { NextResponse } from "next/server";
+
+import { importDatasetSnapshot, type ImportProgressEvent } from "@/lib/data-processing/import-dataset-server";
+import { getActiveDiplomadoSnapshot } from "@/lib/supabase/snapshot-diplomado";
+import { assertDashboardAdmin } from "@/lib/server/dashboard-admin";
+
+export const runtime = "nodejs";
+export const maxDuration = 300;
+
+export async function GET() {
+  try {
+    const dataset = await getActiveDiplomadoSnapshot();
+    if (!dataset) return new NextResponse(null, { status: 204 });
+    return NextResponse.json(dataset, { headers: { "Cache-Control": "no-store" } });
+  } catch (error) {
+    return NextResponse.json(
+      { ok: false, error: error instanceof Error ? error.message : "Unknown error" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function POST(req: Request) {
+  const auth = assertDashboardAdmin(req);
+  if (!auth.ok) return NextResponse.json({ ok: false, error: auth.message }, { status: auth.status });
+
+  const contentType = req.headers.get("content-type") ?? "";
+  if (!contentType.includes("multipart/form-data")) {
+    return NextResponse.json({ ok: false, error: "Expected multipart/form-data with a file field." }, { status: 400 });
+  }
+
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      const send = (payload: Record<string, unknown>) => {
+        controller.enqueue(encoder.encode(`${JSON.stringify(payload)}\n`));
+      };
+      try {
+        const form = await req.formData();
+        const files = form.getAll("file").filter((file): file is File => file instanceof File);
+        if (files.length !== 1) {
+          send({ type: "fatal_error", error: "Debes subir exactamente 1 archivo .xlsx o .csv." });
+          return;
+        }
+        const file = files[0]!;
+        const result = await importDatasetSnapshot(file, async (event: ImportProgressEvent) => {
+          send({ type: "progress", ...event });
+        });
+        if (!result.ok) {
+          send({ type: "validation_error", issues: result.issues, preview: result.preview });
+          return;
+        }
+        send({ type: "completed", ok: true, mode: "replace", meta: result.meta, totalRows: result.meta.rowCount });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : typeof error === "object" ? JSON.stringify(error) : "Unknown error";
+        send({ type: "fatal_error", error: message });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    status: 200,
+    headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store" },
+  });
+}

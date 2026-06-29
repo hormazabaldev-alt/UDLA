@@ -450,6 +450,10 @@ export function PowerBILayout() {
                                 <PhoneCall className="size-4" />
                                 Call Center Admisión
                             </a>
+                            <a href="/diplomado" className="flex items-center gap-2 text-xs text-white/50 hover:text-white/80 transition py-1.5 px-3">
+                                <BarChart3 className="size-4" />
+                                Dashboard Diplomados
+                            </a>
                             <a href="/logs" className="flex items-center gap-2 text-xs text-white/50 hover:text-white/80 transition py-1.5 px-3">
                                 <History className="size-4" />
                                 Ver Historial de Cargas
