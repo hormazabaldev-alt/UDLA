@@ -721,12 +721,9 @@ export function CallCenterDashboard() {
             <FilterSelect label="Mes Gestión" value={filters.mes} options={options.mesGestion} onChange={(value) => setFilters((current) => ({ ...current, mes: value }))} />
             <FilterSelect label="Mes Matrícula" value={filters.mesMatricula} options={options.mesMatricula} onChange={(value) => setFilters((current) => ({ ...current, mesMatricula: value }))} />
             <FilterSelect label="Semana" value={filters.semana} options={options.semana} onChange={(value) => setFilters((current) => ({ ...current, semana: value }))} />
-            <FilterSelect label="Ejecutivo" value={filters.agente} options={options.agente} onChange={(value) => setFilters((current) => ({ ...current, agente: value }))} />
             <FilterSelect label="Carrera" value={filters.carrera} options={options.carrera} onChange={(value) => setFilters((current) => ({ ...current, carrera: value }))} />
             <FilterSelect label="Régimen" value={filters.regimen} options={options.regimen} onChange={(value) => setFilters((current) => ({ ...current, regimen: value }))} />
             <FilterSelect label="Tipo Base" value={filters.tipoBase} options={options.tipoBase} onChange={(value) => setFilters((current) => ({ ...current, tipoBase: value }))} />
-            <FilterSelect label="Sub Origen" value={filters.subOrigen} options={options.subOrigen} onChange={(value) => setFilters((current) => ({ ...current, subOrigen: value }))} />
-            <FilterSelect label="Seguimiento" value={filters.seguimiento} options={options.seguimiento} onChange={(value) => setFilters((current) => ({ ...current, seguimiento: value }))} />
             <button
               type="button"
               onClick={() => setFilters(EMPTY_FILTERS)}
