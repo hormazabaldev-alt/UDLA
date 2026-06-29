@@ -775,10 +775,72 @@ export function CallCenterDashboard() {
 
         {activeTab === "kpis" ? (
           <>
-            <SectionCard title="Recorridos - Contactados - Citas - Matrículas / Top 10 Ejecutivos">
-              <div className="h-[340px]">
-                <ReactECharts option={funnelOption} style={{ height: "100%", width: "100%" }} />
-              </div>
+            <SectionCard title="Citas vs Matrícula">
+              {(() => {
+                const top15 = allCarreraRows.slice(0, 15);
+                const globalAvg = top15.length > 0 ? top15.reduce((s, r) => s + r.convFinal, 0) / top15.length : 0;
+                const threshold = 0.02;
+                const maxCitas = Math.max(...top15.map((r) => r.citas), 1);
+                function semaforoColor(conv: number) {
+                  if (conv >= globalAvg + threshold) return "#4ade80";
+                  if (conv >= globalAvg - threshold) return "#facc15";
+                  return "#f87171";
+                }
+                function semaforoLabel(conv: number) {
+                  if (conv >= globalAvg + threshold) return "Sobre promedio";
+                  if (conv >= globalAvg - threshold) return "Cerca";
+                  return "Bajo promedio";
+                }
+                return (
+                  <div>
+                    <div className="mb-3 flex flex-wrap items-center gap-4 text-xs">
+                      <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-full bg-[#4ade80]" />Sobre promedio</span>
+                      <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-full bg-[#facc15]" />Cerca</span>
+                      <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-full bg-[#f87171]" />Bajo promedio</span>
+                      <span className="text-[#e8620a]">Umbral: {(globalAvg * 100).toFixed(1)}% (promedio global)</span>
+                    </div>
+                    <div className="max-h-[320px] overflow-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead className="sticky top-0 bg-[#2d2d44] text-[#e8620a]">
+                          <tr>
+                            <th className="px-3 py-2">CARRERA</th>
+                            <th className="px-3 py-2 text-right">CITAS</th>
+                            <th className="px-3 py-2 text-right">MC</th>
+                            <th className="px-3 py-2 text-right">CONV.%</th>
+                            <th className="px-3 py-2">VOL.</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {top15.map((row) => {
+                            const color = semaforoColor(row.convFinal);
+                            const pct = Math.round((row.citas / maxCitas) * 100);
+                            return (
+                              <tr key={row.name} className="border-b border-[#2d2d44] hover:bg-[#2d2d44]/60">
+                                <td className="max-w-[200px] truncate px-3 py-2 font-semibold text-[#e8e8f0]" title={row.name}>{row.name}</td>
+                                <td className="px-3 py-2 text-right">{row.citas.toLocaleString()}</td>
+                                <td className="px-3 py-2 text-right">
+                                  <span className="rounded-full border border-[#4ade80] px-2 py-0.5 text-[#4ade80]">{row.matriculas}</span>
+                                </td>
+                                <td className="px-3 py-2 text-right">
+                                  <span className="flex items-center justify-end gap-1.5">
+                                    <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: color }} title={semaforoLabel(row.convFinal)} />
+                                    <span style={{ color }}>{(row.convFinal * 100).toFixed(1)}%</span>
+                                  </span>
+                                </td>
+                                <td className="px-3 py-2">
+                                  <div className="h-2 w-24 overflow-hidden rounded-full bg-[#2d2d44]">
+                                    <div className="h-2 rounded-full bg-[#e8620a]" style={{ width: `${pct}%` }} />
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
             </SectionCard>
 
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
