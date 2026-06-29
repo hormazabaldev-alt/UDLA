@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { importDatasetSnapshot, type ImportProgressEvent } from "@/lib/data-processing/import-dataset-server";
+import { importDiplomadoDatasetSnapshot as importDatasetSnapshot, type ImportProgressEvent } from "@/lib/data-processing/import-dataset-diplomado-server";
 import { getActiveDiplomadoSnapshot } from "@/lib/supabase/snapshot-diplomado";
 import { assertDashboardAdmin } from "@/lib/server/dashboard-admin";
 
