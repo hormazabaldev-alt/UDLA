@@ -749,6 +749,8 @@ export function CallCenterDashboard() {
           <KpiCard label="Pendientes" value={formatInt(pendientes)} detail="Estado pendiente" tone="amber" icon={Database} />
           <KpiCard label="Afluencias sin cita" value={formatInt(summary.afluenciasSinCita)} detail={`${formatPct(pct(summary.afluenciasSinCita, summary.afluencias))} del total AF`} tone="blue" icon={CalendarDays} />
           <KpiCard label="Matrículas sin cita" value={formatInt(summary.matriculasSinCita)} detail={`${formatPct(pct(summary.matriculasSinCita, summary.matriculas))} del total MC`} tone="green" icon={Target} />
+          <KpiCard label="Afluencia Cita" value={formatInt(summary.afluencias - summary.afluenciasSinCita)} detail={`${formatPct(pct(summary.afluencias - summary.afluenciasSinCita, summary.afluencias))} del total AF`} tone="blue" icon={CalendarDays} />
+          <KpiCard label="Conv. Mat / Contactados" value={formatPct(pct(summary.matriculas, summary.contactados))} detail="Matrícula sobre contactados" tone="green" icon={Target} />
         </div>
 
         <div className="rounded-lg border border-[#2d2d44] bg-[#1a1a2e] p-2">
