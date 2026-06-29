@@ -375,7 +375,7 @@ export function DiplomadoDashboard() {
         <div className="space-y-4">
           <h1 className="text-2xl font-bold">Sin datos para Diplomados</h1>
           <p className="text-sm text-[#9090b0]">Carga el Excel de gestión para visualizar el reporte.</p>
-          <DiplomadoUploadPanel onDone={() => refreshDataset({ force: true })} />
+          <DiplomadoUploadPanel onDone={() => { void refreshDataset({ force: true }); }} />
           <div className="pt-2">
             <Link href="/" className="inline-flex items-center gap-2 rounded-lg border border-[#3d3d5c] px-4 py-2 text-sm text-[#9090b0] hover:bg-[#1a1a2e]">
               <ArrowLeft className="size-4" /> Volver al inicio
@@ -403,7 +403,7 @@ export function DiplomadoDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <DiplomadoUploadPanel onDone={() => refreshDataset({ force: true })} />
+            <DiplomadoUploadPanel onDone={() => { void refreshDataset({ force: true }); }} />
             <div className="rounded-lg border border-[#2d2d44] px-3 py-2 text-xs text-[#9090b0]">
               {formatInt(summary.recorrido)} registros bajo filtros actuales
             </div>
