@@ -748,6 +748,8 @@ export function CallCenterDashboard() {
           <KpiCard label="Matrículas sin cita" value={formatInt(summary.matriculasSinCita)} detail={`${formatPct(pct(summary.matriculasSinCita, summary.matriculas))} del total MC`} tone="green" icon={Target} />
           <KpiCard label="Afluencia Cita" value={formatInt(summary.afluencias - summary.afluenciasSinCita)} detail={`${formatPct(pct(summary.afluencias - summary.afluenciasSinCita, summary.afluencias))} del total AF`} tone="blue" icon={CalendarDays} />
           <KpiCard label="Conv. Mat / Contactados" value={formatPct(pct(summary.matriculas, summary.contactados))} detail="Matrícula sobre contactados" tone="green" icon={Target} />
+          <KpiCard label="Matrícula Cita" value={formatInt(summary.matriculas - summary.matriculasSinCita)} detail={`${formatPct(pct(summary.matriculas - summary.matriculasSinCita, summary.matriculas))} del total MC`} tone="green" icon={Target} />
+          <KpiCard label="Conv. MC Cita / Contactados" value={formatPct(pct(summary.matriculas - summary.matriculasSinCita, summary.contactados))} detail="MC con cita sobre contactados" tone="amber" icon={Target} />
         </div>
 
         <div className="rounded-lg border border-[#2d2d44] bg-[#1a1a2e] p-2">
