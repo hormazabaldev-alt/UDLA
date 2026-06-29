@@ -116,7 +116,6 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "causaRaiz", label: "Causa Raíz" },
   { key: "proyecciones", label: "Proyecciones" },
   { key: "metas", label: "Metas" },
-  { key: "conclusiones", label: "Conclusiones" },
 ];
 
 const PROJECTION_COMPARISON: ProjectionComparisonRow[] = [
