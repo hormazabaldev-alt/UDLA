@@ -744,9 +744,6 @@ export function CallCenterDashboard() {
           <KpiCard label="Conv. Mat / Leads" value={formatPct(pct(summary.matriculas, summary.recorrido))} detail="Conversión total" tone="amber" icon={Target} />
           <KpiCard label="Prom. Intentos" value={promedioIntentos} detail="Por registro" icon={PhoneCall} />
           <KpiCard label="Conv. Cita→Aflu." value={formatPct(pct(summary.afluencias, summary.citas))} detail="Efectividad cita" tone="blue" icon={CalendarDays} />
-          <KpiCard label="Ejecutivos" value={formatInt(agentRows.filter((row) => row.name !== "Sin ejecutivo").length)} detail="Activos en dataset" icon={Users} />
-          <KpiCard label="Carreras" value={formatInt(new Set(gestionRows.map((row) => row.carreraInteres).filter(Boolean)).size)} detail="Gestionadas" icon={BarChart3} />
-          <KpiCard label="Pendientes" value={formatInt(pendientes)} detail="Estado pendiente" tone="amber" icon={Database} />
           <KpiCard label="Afluencias sin cita" value={formatInt(summary.afluenciasSinCita)} detail={`${formatPct(pct(summary.afluenciasSinCita, summary.afluencias))} del total AF`} tone="blue" icon={CalendarDays} />
           <KpiCard label="Matrículas sin cita" value={formatInt(summary.matriculasSinCita)} detail={`${formatPct(pct(summary.matriculasSinCita, summary.matriculas))} del total MC`} tone="green" icon={Target} />
           <KpiCard label="Afluencia Cita" value={formatInt(summary.afluencias - summary.afluenciasSinCita)} detail={`${formatPct(pct(summary.afluencias - summary.afluenciasSinCita, summary.afluencias))} del total AF`} tone="blue" icon={CalendarDays} />
