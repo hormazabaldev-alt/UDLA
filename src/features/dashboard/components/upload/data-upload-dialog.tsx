@@ -93,11 +93,15 @@ function IssueList({ issues }: { issues: ParseIssue[] }) {
   );
 }
 
-export function DataUploadDialog({ triggerLabel, triggerIcon }: {
+export function DataUploadDialog({ triggerLabel, triggerIcon, apiBase = "/api/snapshot", onUploadComplete }: {
   triggerLabel?: string;
   triggerIcon?: React.ReactNode;
+  apiBase?: string;
+  onUploadComplete?: () => void | Promise<void>;
 }) {
-  const { meta, refreshDataset } = useData();
+  const mainData = useData();
+  const meta = apiBase === "/api/snapshot" ? mainData.meta : null;
+  const refreshDataset = apiBase === "/api/snapshot" ? mainData.refreshDataset : async () => { /* no-op */ };
 
   const [open, setOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -150,7 +154,7 @@ export function DataUploadDialog({ triggerLabel, triggerIcon }: {
 
       let uploadId: string | null = null;
       try {
-        const initRes = await fetch("/api/snapshot/uploads", {
+        const initRes = await fetch(`${apiBase}/uploads`, {
           method: "POST",
           headers: {
             "x-admin-key": adminKey.trim(),
@@ -180,7 +184,7 @@ export function DataUploadDialog({ triggerLabel, triggerIcon }: {
             const chunk = currentFile.slice(start, end);
 
             await uploadChunkWithRetry(
-              `/api/snapshot/uploads/${uploadId}?partNumber=${partNumber}`,
+              `${apiBase}/uploads/${uploadId}?partNumber=${partNumber}`,
               adminKey.trim(),
               chunk,
             );
@@ -211,7 +215,7 @@ export function DataUploadDialog({ triggerLabel, triggerIcon }: {
           totalChunks,
         });
 
-        const res = await fetch(`/api/snapshot/uploads/${uploadId}/complete`, {
+        const res = await fetch(`${apiBase}/uploads/${uploadId}/complete`, {
           method: "POST",
           headers: {
             "x-admin-key": adminKey.trim(),
@@ -272,7 +276,7 @@ export function DataUploadDialog({ triggerLabel, triggerIcon }: {
         if (stopped) break;
       } catch (error) {
         if (uploadId) {
-          await fetch(`/api/snapshot/uploads/${uploadId}`, {
+          await fetch(`${apiBase}/uploads/${uploadId}`, {
             method: "DELETE",
             headers: { "x-admin-key": adminKey.trim() },
           }).catch(() => undefined);
@@ -289,8 +293,12 @@ export function DataUploadDialog({ triggerLabel, triggerIcon }: {
     uploadLockRef.current = false;
     
     if (shouldRefresh) {
-      await refreshDataset();
-      broadcastDatasetUpdated();
+      if (onUploadComplete) {
+        await onUploadComplete();
+      } else {
+        await refreshDataset();
+        broadcastDatasetUpdated();
+      }
       setUploadState({ type: "completed", rowCount: totalUploadedRows });
       setTimeout(() => setOpen(false), 2000);
       setSelectedFiles([]);

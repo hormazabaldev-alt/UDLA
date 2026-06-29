@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import ReactECharts from "echarts-for-react";
-import { ArrowLeft, BarChart3, CalendarDays, Database, PhoneCall, Route, Target, Upload } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { ArrowLeft, BarChart3, CalendarDays, Database, PhoneCall, Route, Target } from "lucide-react";
+import { useMemo, useState } from "react";
 
 import type { DataRow } from "@/lib/data-processing/types";
 import { formatInt } from "@/lib/utils/format";
 import { normalizeRut } from "@/lib/utils/rut";
 import { useDataDiplomado } from "@/features/dashboard/hooks/useDataDiplomado";
-import { broadcastDatasetUpdated } from "@/lib/persistence/dataset-sync";
+import { DataUploadDialog } from "@/features/dashboard/components/upload/data-upload-dialog";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -236,64 +236,6 @@ function FilterSelect({ label, value, options, onChange }: { label: string; valu
   );
 }
 
-// ─── Simple upload for diplomados ────────────────────────────────────────────
-
-function DiplomadoUploadButton({ onDone }: { onDone: () => void }) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [status, setStatus] = useState<string>("");
-  const [loading, setLoading] = useState(false);
-
-  async function handleFile(file: File) {
-    setLoading(true);
-    setStatus("Subiendo...");
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const adminKey = typeof window !== "undefined" ? (localStorage.getItem("diplomado_admin_key") || prompt("Clave de administrador:") || "") : "";
-      if (adminKey) localStorage.setItem("diplomado_admin_key", adminKey);
-      const res = await fetch("/api/snapshot-diplomado", { method: "POST", headers: { "x-admin-key": adminKey }, body: fd });
-      const reader = res.body!.getReader();
-      const dec = new TextDecoder();
-      let buf = "";
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buf += dec.decode(value);
-        for (const line of buf.split("\n")) {
-          if (!line.trim()) continue;
-          try {
-            const msg = JSON.parse(line) as { type: string; totalRows?: number; error?: string };
-            if (msg.type === "completed") { setStatus(`✓ ${formatInt(msg.totalRows ?? 0)} registros cargados`); onDone(); }
-            else if (msg.type === "fatal_error" || msg.type === "validation_error") { setStatus(`Error: ${msg.error ?? "inválido"}`); }
-            else if (msg.type === "progress") { setStatus("Procesando..."); }
-          } catch { /* continue */ }
-        }
-        buf = buf.split("\n").slice(-1)[0] ?? "";
-      }
-    } catch (e) {
-      setStatus(`Error: ${e instanceof Error ? e.message : "desconocido"}`);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <div className="flex flex-col items-center gap-3">
-      <input ref={inputRef} type="file" accept=".xlsx,.csv" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
-      <button
-        type="button"
-        disabled={loading}
-        onClick={() => inputRef.current?.click()}
-        className="inline-flex items-center gap-2 rounded-lg border border-[#e8620a] bg-[#e8620a]/10 px-5 py-3 text-sm font-semibold text-[#e8620a] hover:bg-[#e8620a]/20 disabled:opacity-50"
-      >
-        <Upload className="size-4" />
-        {loading ? "Cargando..." : "Cargar Excel Diplomados"}
-      </button>
-      {status && <p className="text-xs text-[#9090b0]">{status}</p>}
-    </div>
-  );
-}
-
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 
 export function DiplomadoDashboard() {
@@ -433,7 +375,11 @@ export function DiplomadoDashboard() {
         <div className="space-y-4">
           <h1 className="text-2xl font-bold">Sin datos para Diplomados</h1>
           <p className="text-sm text-[#9090b0]">Carga el Excel de gestión para visualizar el reporte.</p>
-          <DiplomadoUploadButton onDone={() => refreshDataset()} />
+          <DataUploadDialog
+            triggerLabel="Cargar Excel Diplomados"
+            apiBase="/api/snapshot-diplomado"
+            onUploadComplete={() => refreshDataset()}
+          />
           <div className="pt-2">
             <Link href="/" className="inline-flex items-center gap-2 rounded-lg border border-[#3d3d5c] px-4 py-2 text-sm text-[#9090b0] hover:bg-[#1a1a2e]">
               <ArrowLeft className="size-4" /> Volver al inicio
@@ -461,7 +407,11 @@ export function DiplomadoDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <DiplomadoUploadButton onDone={() => refreshDataset()} />
+            <DataUploadDialog
+              triggerLabel="Cargar Excel Diplomados"
+              apiBase="/api/snapshot-diplomado"
+              onUploadComplete={() => refreshDataset()}
+            />
             <div className="rounded-lg border border-[#2d2d44] px-3 py-2 text-xs text-[#9090b0]">
               {formatInt(summary.recorrido)} registros bajo filtros actuales
             </div>
