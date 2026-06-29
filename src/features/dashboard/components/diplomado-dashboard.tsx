@@ -9,7 +9,7 @@ import type { DataRow } from "@/lib/data-processing/types";
 import { formatInt } from "@/lib/utils/format";
 import { normalizeRut } from "@/lib/utils/rut";
 import { useDataDiplomado } from "@/features/dashboard/hooks/useDataDiplomado";
-import { DataUploadDialog } from "@/features/dashboard/components/upload/data-upload-dialog";
+import { DiplomadoUploadPanel } from "@/features/dashboard/components/upload/diplomado-upload-panel";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -375,11 +375,7 @@ export function DiplomadoDashboard() {
         <div className="space-y-4">
           <h1 className="text-2xl font-bold">Sin datos para Diplomados</h1>
           <p className="text-sm text-[#9090b0]">Carga el Excel de gestión para visualizar el reporte.</p>
-          <DataUploadDialog
-            triggerLabel="Cargar Excel Diplomados"
-            apiBase="/api/snapshot-diplomado"
-            onUploadComplete={() => refreshDataset()}
-          />
+          <DiplomadoUploadPanel onDone={() => refreshDataset()} />
           <div className="pt-2">
             <Link href="/" className="inline-flex items-center gap-2 rounded-lg border border-[#3d3d5c] px-4 py-2 text-sm text-[#9090b0] hover:bg-[#1a1a2e]">
               <ArrowLeft className="size-4" /> Volver al inicio
@@ -407,11 +403,7 @@ export function DiplomadoDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <DataUploadDialog
-              triggerLabel="Cargar Excel Diplomados"
-              apiBase="/api/snapshot-diplomado"
-              onUploadComplete={() => refreshDataset()}
-            />
+            <DiplomadoUploadPanel onDone={() => refreshDataset()} />
             <div className="rounded-lg border border-[#2d2d44] px-3 py-2 text-xs text-[#9090b0]">
               {formatInt(summary.recorrido)} registros bajo filtros actuales
             </div>
