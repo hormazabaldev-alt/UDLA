@@ -47,7 +47,8 @@ async function importCsvDiplomadoSnapshot(file: File, onProgress?: (e: ImportPro
 
   const fields = (parsed.meta.fields ?? []).map(cleanKey);
   const present = new Set(fields);
-  const missing = REQUIRED_COLUMNS.filter((col) => !present.has(cleanKey(col)));
+  const normalizeForMatch = (s: string) => s.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "").replace(/\s+/g, " ").trim();
+  const missing = REQUIRED_COLUMNS.filter((col) => !present.has(normalizeForMatch(col)));
   if (missing.length > 0) return { ok: false, issues: missing.map((col) => ({ column: col, message: `Falta la columna requerida: ${col}` })), preview: [] };
 
   const rawRows = parsed.data as Record<string, unknown>[];

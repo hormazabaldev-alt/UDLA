@@ -25,7 +25,29 @@ export function reviveDataset(ds: Dataset): Dataset {
     r.fechaMc = parseLooseDate(r.fechaMc) ?? null;
     r.semana = resolveSemanaLabel(r.fechaGestion, r.semana);
 
-    // Recompute derived fields from Fecha Gestion to keep filters/charts consistent.
+    if (r.fechaGestion) {
+      r.mes = getMonth(r.fechaGestion) + 1;
+      r.diaNumero = getDate(r.fechaGestion);
+      r.diaSemana = DIAS_SEMANA[getDay(r.fechaGestion)] ?? null;
+    } else {
+      r.mes = null;
+      r.diaNumero = null;
+      r.diaSemana = null;
+    }
+  }
+  return ds;
+}
+
+/** Variante sin clamp de fechas — para datasets fuera del periodo 2026 (ej. Diplomados). */
+export function reviveDatasetNoClamping(ds: Dataset): Dataset {
+  if (!ds || !ds.rows) return ds;
+  for (const r of ds.rows) {
+    r.fechaCarga = parseLooseDate(r.fechaCarga) ?? null;
+    r.fechaGestion = parseLooseDate(r.fechaGestion) ?? null;
+    r.fechaAf = parseLooseDate(r.fechaAf) ?? null;
+    r.fechaMc = parseLooseDate(r.fechaMc) ?? null;
+    r.semana = resolveSemanaLabel(r.fechaGestion, r.semana);
+
     if (r.fechaGestion) {
       r.mes = getMonth(r.fechaGestion) + 1;
       r.diaNumero = getDate(r.fechaGestion);

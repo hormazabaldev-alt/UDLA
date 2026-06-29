@@ -14,7 +14,7 @@ type UploadPhase =
   | { type: "completed"; rows: number }
   | { type: "error"; message: string };
 
-export function DiplomadoUploadPanel({ onDone }: { onDone: () => void | Promise<void> }) {
+export function DiplomadoUploadPanel({ onDone }: { onDone: (opts?: { force?: boolean }) => void | Promise<void> }) {
   const [file, setFile] = useState<File | null>(null);
   const [adminKey, setAdminKey] = useState<string>(() => {
     if (typeof window === "undefined") return "admin123";
@@ -110,7 +110,7 @@ export function DiplomadoUploadPanel({ onDone }: { onDone: () => void | Promise<
     }
 
     setPhase({ type: "completed", rows });
-    await onDone();
+    await onDone({ force: true });
   }, [file, adminKey, onDone]);
 
   const busy = phase.type === "uploading";

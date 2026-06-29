@@ -60,9 +60,13 @@ function getSheetHeaders(sheet: XLSX.WorkSheet) {
   return { range, headers, rowCount: Math.max(0, range.e.r - range.s.r) };
 }
 
+function normalizeForMatch(s: string): string {
+  return s.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "").replace(/\s+/g, " ").trim();
+}
+
 function scoreSheet(headers: string[], rowCount: number) {
-  const present = new Set(headers.filter((h) => !h.startsWith("__EMPTY_")));
-  const missing = REQUIRED_COLUMNS.filter((col) => !present.has(col));
+  const present = new Set(headers.filter((h) => !h.startsWith("__EMPTY_")).map(normalizeForMatch));
+  const missing = REQUIRED_COLUMNS.filter((col) => !present.has(normalizeForMatch(col)));
   return { missing, score: (missing.length === 0 ? 1_000_000 : 0) + rowCount };
 }
 

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { Dataset } from "@/lib/data-processing/types";
-import { reviveDataset } from "@/lib/persistence/dataset";
+import { reviveDatasetNoClamping } from "@/lib/persistence/dataset";
 import { useDiplomadoStore } from "@/store/diplomado-store";
 
 const MIN_REFRESH_INTERVAL_MS = 1_500;
@@ -20,10 +20,10 @@ export function useDataDiplomado() {
     datasetRef.current = dataset;
   }, [dataset]);
 
-  const refreshDataset = useCallback(async () => {
+  const refreshDataset = useCallback(async (opts?: { force?: boolean }) => {
     const now = Date.now();
     if (refreshInFlightRef.current) return refreshInFlightRef.current;
-    if (now - lastRefreshAtRef.current < MIN_REFRESH_INTERVAL_MS) return datasetRef.current;
+    if (!opts?.force && now - lastRefreshAtRef.current < MIN_REFRESH_INTERVAL_MS) return datasetRef.current;
 
     const promise = (async () => {
       lastRefreshAtRef.current = Date.now();
@@ -31,7 +31,7 @@ export function useDataDiplomado() {
       if (res.status === 204) { setDataset(null); return null; }
       if (!res.ok) return null;
       const rawDs = (await res.json()) as Dataset;
-      const ds = reviveDataset(rawDs);
+      const ds = reviveDatasetNoClamping(rawDs);
       setDataset(ds);
       return ds;
     })();
