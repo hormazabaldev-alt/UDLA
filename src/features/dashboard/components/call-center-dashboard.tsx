@@ -119,13 +119,11 @@ const TABS: Array<{ key: TabKey; label: string }> = [
 ];
 
 const PROJECTION_COMPARISON: ProjectionComparisonRow[] = [
-  { month: "Total", citas2025: 8039, afluencias2025: 1239, matriculas2025: 607, citas2026: 5571, afluencias2026: 1024, matriculas2026: 461, varCitas: -30.7, varAfluencias: -17.4, varMatriculas: -24.1 },
+  { month: "Total", citas2025: 8039, afluencias2025: 1239, matriculas2025: 607, citas2026: 10423, afluencias2026: 1817, matriculas2026: 950, varCitas: 29.7, varAfluencias: 46.7, varMatriculas: 56.5 },
   { month: "Marzo", citas2025: 1585, afluencias2025: 355, matriculas2025: 125, citas2026: 1051, afluencias2026: 181, matriculas2026: 93, varCitas: -33.7, varAfluencias: -49.0, varMatriculas: -25.6 },
   { month: "Abril", citas2025: 745, afluencias2025: 70, matriculas2025: 31, citas2026: 2463, afluencias2026: 440, matriculas2026: 214, varCitas: 230.6, varAfluencias: 528.6, varMatriculas: 590.3 },
   { month: "Mayo", citas2025: 1608, afluencias2025: 214, matriculas2025: 119, citas2026: 2057, afluencias2026: 403, matriculas2026: 154, varCitas: 27.9, varAfluencias: 88.3, varMatriculas: 29.4 },
-  { month: "Junio", citas2025: 1698, afluencias2025: 288, matriculas2025: 129, citas2026: 1276, afluencias2026: 222, matriculas2026: 101, varCitas: -24.9, varAfluencias: -22.9, varMatriculas: -21.7 },
-  { month: "Julio", citas2025: 2130, afluencias2025: 285, matriculas2025: 187, citas2026: 0, afluencias2026: 0, matriculas2026: 0, varCitas: 0, varAfluencias: 0, varMatriculas: 0 },
-  { month: "Agosto", citas2025: 273, afluencias2025: 27, matriculas2025: 16, citas2026: 0, afluencias2026: 0, matriculas2026: 0, varCitas: 0, varAfluencias: 0, varMatriculas: 0 },
+  { month: "Junio", citas2025: 1698, afluencias2025: 288, matriculas2025: 129, citas2026: 1736, afluencias2026: 335, matriculas2026: 171, varCitas: 2.2, varAfluencias: 16.3, varMatriculas: 32.6 },
 ];
 
 function pct(numerator: number, denominator: number) {
@@ -705,8 +703,10 @@ export function CallCenterDashboard() {
       series: [
         { name: "Citas 202520", type: "bar", data: rowsComparison.map((row) => row.citas2025), itemStyle: { color: "#b45309" } },
         { name: "Citas 202620", type: "bar", data: rowsComparison.map((row) => row.citas2026), itemStyle: { color: colors.amber } },
-        { name: "MC 202520", type: "line", data: rowsComparison.map((row) => row.matriculas2025), itemStyle: { color: "#166534" } },
-        { name: "MC 202620", type: "line", data: rowsComparison.map((row) => row.matriculas2026), itemStyle: { color: colors.green } },
+        { name: "AF 202520", type: "line", smooth: true, data: rowsComparison.map((row) => row.afluencias2025), itemStyle: { color: "#3b82f6" }, lineStyle: { color: "#3b82f6", width: 2 }, symbol: "circle", symbolSize: 6 },
+        { name: "AF 202620", type: "line", smooth: true, data: rowsComparison.map((row) => row.afluencias2026), itemStyle: { color: "#93c5fd" }, lineStyle: { color: "#93c5fd", width: 2, type: "dashed" }, symbol: "circle", symbolSize: 6 },
+        { name: "MC 202520", type: "line", smooth: true, data: rowsComparison.map((row) => row.matriculas2025), itemStyle: { color: "#166534" }, lineStyle: { color: "#166534", width: 2 }, symbol: "circle", symbolSize: 6 },
+        { name: "MC 202620", type: "line", smooth: true, data: rowsComparison.map((row) => row.matriculas2026), itemStyle: { color: colors.green }, lineStyle: { color: colors.green, width: 2, type: "dashed" }, symbol: "circle", symbolSize: 6 },
       ],
     };
   }, []);
