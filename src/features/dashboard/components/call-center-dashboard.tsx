@@ -416,6 +416,19 @@ export function CallCenterDashboard() {
     () => buildGroupRows(gestionRows, matriculaRows, (row) => normalizeLabel(row.agente, "Sin ejecutivo")),
     [gestionRows, matriculaRows],
   );
+
+  /** Semáforo por ejecutivo: top-tercio verde, medio amarillo, bajo rojo */
+  const agentSemaphore = useMemo(() => {
+    const sorted = [...agentRows].sort((a, b) => b.convFinal - a.convFinal);
+    const n = sorted.length;
+    const topEnd = Math.ceil(n / 3);
+    const midEnd = Math.ceil((2 * n) / 3);
+    const map = new Map<string, string>();
+    sorted.forEach((r, i) => {
+      map.set(r.name, i < topEnd ? "#4ade80" : i < midEnd ? "#facc15" : "#f87171");
+    });
+    return map;
+  }, [agentRows]);
   const regimenRows = useMemo(
     () => buildGroupRows(gestionRows, matriculaRows, (row) => normalizeLabel(row.regimen, "Sin régimen")),
     [gestionRows, matriculaRows],
@@ -904,15 +917,46 @@ export function CallCenterDashboard() {
               <div className="h-[390px]"><ReactECharts option={funnelOption} style={{ height: "100%", width: "100%" }} /></div>
             </SectionCard>
             <SectionCard title="Ranking Ejecutivos">
-              <div className="max-h-[390px] overflow-auto">
+              <div className="mb-2 flex items-center gap-4 text-[10px] text-[#9090b0]">
+                <span className="flex items-center gap-1"><span className="inline-block size-2 rounded-full bg-[#4ade80]" /> Alto desempeño</span>
+                <span className="flex items-center gap-1"><span className="inline-block size-2 rounded-full bg-[#facc15]" /> Desempeño medio</span>
+                <span className="flex items-center gap-1"><span className="inline-block size-2 rounded-full bg-[#f87171]" /> Bajo desempeño</span>
+              </div>
+              <div className="max-h-[360px] overflow-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="sticky top-0 bg-[#2d2d44] text-[#e8620a]"><tr><th className="px-3 py-2">Ejecutivo</th><th className="px-3 py-2">Rec.</th><th className="px-3 py-2">Citas</th><th className="px-3 py-2">AF</th><th className="px-3 py-2">MC</th><th className="px-3 py-2">Cont.</th><th className="px-3 py-2">Final</th></tr></thead>
+                  <thead className="sticky top-0 bg-[#2d2d44] text-[#e8620a]">
+                    <tr>
+                      <th className="px-3 py-2">Ejecutivo</th>
+                      <th className="px-3 py-2 text-right">Rec.</th>
+                      <th className="px-3 py-2 text-right">Citas</th>
+                      <th className="px-3 py-2 text-right">AF</th>
+                      <th className="px-3 py-2 text-right">MC</th>
+                      <th className="px-3 py-2 text-right">AF sin cita</th>
+                      <th className="px-3 py-2 text-right">MC sin cita</th>
+                      <th className="px-3 py-2 text-right">Final</th>
+                    </tr>
+                  </thead>
                   <tbody>
-                    {agentRows.map((row) => (
-                      <tr key={row.name} className="border-b border-[#2d2d44] hover:bg-[#2d2d44]/60">
-                        <td className="px-3 py-2 font-semibold">{row.name}</td><td className="px-3 py-2">{formatInt(row.recorrido)}</td><td className="px-3 py-2">{formatInt(row.citas)}</td><td className="px-3 py-2">{formatInt(row.afluencias)}</td><td className="px-3 py-2 text-[#4ade80]">{formatInt(row.matriculas)}</td><td className="px-3 py-2">{formatPct(row.contactabilidad)}</td><td className="px-3 py-2">{formatPct(row.convFinal)}</td>
-                      </tr>
-                    ))}
+                    {agentRows.map((row) => {
+                      const color = agentSemaphore.get(row.name) ?? "#facc15";
+                      return (
+                        <tr key={row.name} className="border-b border-[#2d2d44] hover:bg-[#2d2d44]/40" style={{ borderLeft: `3px solid ${color}` }}>
+                          <td className="px-3 py-2 font-semibold">
+                            <span className="flex items-center gap-1.5">
+                              <span className="inline-block size-2 shrink-0 rounded-full" style={{ background: color }} />
+                              {row.name}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 text-right">{formatInt(row.recorrido)}</td>
+                          <td className="px-3 py-2 text-right">{formatInt(row.citas)}</td>
+                          <td className="px-3 py-2 text-right">{formatInt(row.afluencias)}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-[#4ade80]">{formatInt(row.matriculas)}</td>
+                          <td className="px-3 py-2 text-right text-[#9090b0]">{formatInt(row.afluenciasSinCita)}</td>
+                          <td className="px-3 py-2 text-right text-[#9090b0]">{formatInt(row.matriculasSinCita)}</td>
+                          <td className="px-3 py-2 text-right font-bold" style={{ color }}>{formatPct(row.convFinal)}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
