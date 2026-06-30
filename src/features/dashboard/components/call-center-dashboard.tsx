@@ -929,17 +929,14 @@ export function CallCenterDashboard() {
         ) : null}
 
         {activeTab === "ejecutivos" ? (
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-            <SectionCard title="Recorridos vs Contactados vs Citas vs Matrículas">
-              <div className="h-[390px]"><ReactECharts option={funnelOption} style={{ height: "100%", width: "100%" }} /></div>
-            </SectionCard>
+          <div className="grid grid-cols-1 gap-4">
             <SectionCard title="Ranking Ejecutivos">
               <div className="mb-2 flex items-center gap-4 text-[10px] text-[#9090b0]">
                 <span className="flex items-center gap-1"><span className="inline-block size-2 rounded-full bg-[#4ade80]" /> Alto desempeño</span>
                 <span className="flex items-center gap-1"><span className="inline-block size-2 rounded-full bg-[#facc15]" /> Desempeño medio</span>
                 <span className="flex items-center gap-1"><span className="inline-block size-2 rounded-full bg-[#f87171]" /> Bajo desempeño</span>
               </div>
-              <div className="max-h-[360px] overflow-auto">
+              <div className="max-h-[520px] overflow-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="sticky top-0 bg-[#2d2d44] text-[#e8620a]">
                     <tr>
@@ -948,7 +945,9 @@ export function CallCenterDashboard() {
                       <th className="px-3 py-2 text-right">Cont.</th>
                       <th className="px-3 py-2 text-right">Citas</th>
                       <th className="px-3 py-2 text-right">AF cita</th>
+                      <th className="px-3 py-2 text-right">AF sin cita</th>
                       <th className="px-3 py-2 text-right">MC cita</th>
+                      <th className="px-3 py-2 text-right">MC sin cita</th>
                       <th className="px-3 py-2 text-right">%Cita/Cont</th>
                       <th className="px-3 py-2 text-right">%AF/Cont</th>
                       <th className="px-3 py-2 text-right">%MC/Cont</th>
@@ -974,7 +973,9 @@ export function CallCenterDashboard() {
                           <td className="px-3 py-2 text-right">{formatInt(row.contactados)}</td>
                           <td className="px-3 py-2 text-right">{formatInt(row.citas)}</td>
                           <td className="px-3 py-2 text-right">{formatInt(afConCita)}</td>
+                          <td className="px-3 py-2 text-right text-[#9090b0]">{formatInt(row.afluenciasSinCita)}</td>
                           <td className="px-3 py-2 text-right font-semibold text-[#4ade80]">{formatInt(mcConCita)}</td>
+                          <td className="px-3 py-2 text-right text-[#9090b0]">{formatInt(row.matriculasSinCita)}</td>
                           <td className="px-3 py-2 text-right text-[#60a5fa]">{formatPct(tasaCita)}</td>
                           <td className="px-3 py-2 text-right text-[#60a5fa]">{formatPct(tasaAf)}</td>
                           <td className="px-3 py-2 text-right font-bold" style={{ color }}>{formatPct(tasaMc)}</td>
