@@ -417,9 +417,13 @@ export function CallCenterDashboard() {
     [gestionRows, matriculaRows],
   );
 
-  /** Semáforo por ejecutivo: top-tercio verde, medio amarillo, bajo rojo */
+  /** Semáforo por ejecutivo: top-tercio verde, medio amarillo, bajo rojo (base: MC cita / Contactados) */
   const agentSemaphore = useMemo(() => {
-    const sorted = [...agentRows].sort((a, b) => b.convFinal - a.convFinal);
+    const withRate = agentRows.map((r) => ({
+      name: r.name,
+      rate: pct(r.matriculas - r.matriculasSinCita, r.contactados),
+    }));
+    const sorted = [...withRate].sort((a, b) => b.rate - a.rate);
     const n = sorted.length;
     const topEnd = Math.ceil(n / 3);
     const midEnd = Math.ceil((2 * n) / 3);
@@ -429,6 +433,19 @@ export function CallCenterDashboard() {
     });
     return map;
   }, [agentRows]);
+
+  /** Ranking ordenado: verdes primero, luego amarillos, luego rojos; dentro de cada grupo por MC cita/Cont desc */
+  const agentRowsRanked = useMemo(() => {
+    const colorOrder: Record<string, number> = { "#4ade80": 0, "#facc15": 1, "#f87171": 2 };
+    return [...agentRows].sort((a, b) => {
+      const ca = colorOrder[agentSemaphore.get(a.name) ?? "#facc15"] ?? 1;
+      const cb = colorOrder[agentSemaphore.get(b.name) ?? "#facc15"] ?? 1;
+      if (ca !== cb) return ca - cb;
+      const rateA = pct(a.matriculas - a.matriculasSinCita, a.contactados);
+      const rateB = pct(b.matriculas - b.matriculasSinCita, b.contactados);
+      return rateB - rateA || b.matriculas - a.matriculas;
+    });
+  }, [agentRows, agentSemaphore]);
   const regimenRows = useMemo(
     () => buildGroupRows(gestionRows, matriculaRows, (row) => normalizeLabel(row.regimen, "Sin régimen")),
     [gestionRows, matriculaRows],
@@ -928,17 +945,23 @@ export function CallCenterDashboard() {
                     <tr>
                       <th className="px-3 py-2">Ejecutivo</th>
                       <th className="px-3 py-2 text-right">Rec.</th>
+                      <th className="px-3 py-2 text-right">Cont.</th>
                       <th className="px-3 py-2 text-right">Citas</th>
-                      <th className="px-3 py-2 text-right">AF</th>
-                      <th className="px-3 py-2 text-right">MC</th>
-                      <th className="px-3 py-2 text-right">AF sin cita</th>
-                      <th className="px-3 py-2 text-right">MC sin cita</th>
-                      <th className="px-3 py-2 text-right">Final</th>
+                      <th className="px-3 py-2 text-right">AF cita</th>
+                      <th className="px-3 py-2 text-right">MC cita</th>
+                      <th className="px-3 py-2 text-right">%Cita/Cont</th>
+                      <th className="px-3 py-2 text-right">%AF/Cont</th>
+                      <th className="px-3 py-2 text-right">%MC/Cont</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {agentRows.map((row) => {
+                    {agentRowsRanked.map((row) => {
                       const color = agentSemaphore.get(row.name) ?? "#facc15";
+                      const afConCita = row.afluencias - row.afluenciasSinCita;
+                      const mcConCita = row.matriculas - row.matriculasSinCita;
+                      const tasaCita = pct(row.citas, row.contactados);
+                      const tasaAf = pct(afConCita, row.contactados);
+                      const tasaMc = pct(mcConCita, row.contactados);
                       return (
                         <tr key={row.name} className="border-b border-[#2d2d44] hover:bg-[#2d2d44]/40" style={{ borderLeft: `3px solid ${color}` }}>
                           <td className="px-3 py-2 font-semibold">
@@ -947,13 +970,14 @@ export function CallCenterDashboard() {
                               {row.name}
                             </span>
                           </td>
-                          <td className="px-3 py-2 text-right">{formatInt(row.recorrido)}</td>
+                          <td className="px-3 py-2 text-right text-[#9090b0]">{formatInt(row.recorrido)}</td>
+                          <td className="px-3 py-2 text-right">{formatInt(row.contactados)}</td>
                           <td className="px-3 py-2 text-right">{formatInt(row.citas)}</td>
-                          <td className="px-3 py-2 text-right">{formatInt(row.afluencias)}</td>
-                          <td className="px-3 py-2 text-right font-semibold text-[#4ade80]">{formatInt(row.matriculas)}</td>
-                          <td className="px-3 py-2 text-right text-[#9090b0]">{formatInt(row.afluenciasSinCita)}</td>
-                          <td className="px-3 py-2 text-right text-[#9090b0]">{formatInt(row.matriculasSinCita)}</td>
-                          <td className="px-3 py-2 text-right font-bold" style={{ color }}>{formatPct(row.convFinal)}</td>
+                          <td className="px-3 py-2 text-right">{formatInt(afConCita)}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-[#4ade80]">{formatInt(mcConCita)}</td>
+                          <td className="px-3 py-2 text-right text-[#60a5fa]">{formatPct(tasaCita)}</td>
+                          <td className="px-3 py-2 text-right text-[#60a5fa]">{formatPct(tasaAf)}</td>
+                          <td className="px-3 py-2 text-right font-bold" style={{ color }}>{formatPct(tasaMc)}</td>
                         </tr>
                       );
                     })}
