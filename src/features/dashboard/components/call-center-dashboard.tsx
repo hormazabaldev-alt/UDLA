@@ -192,8 +192,18 @@ function matchesSharedFilters(row: DataRow, filters: CallCenterFilters, opts?: {
   return true;
 }
 
+/** Ejecutivos excluidos por mes específico (datos incorrectos o ajuste manual). */
+function isAgentExcluded(row: DataRow): boolean {
+  const agente = (row.agente ?? "").toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+  const mes = getGestionMes(row).toLowerCase();
+  // LUISA ELIANA SARAG excluida en junio de todos los indicadores
+  if (agente.includes("LUISA ELIANA SARAG") && mes === "junio") return true;
+  return false;
+}
+
 function buildGestionRows(rows: DataRow[], filters: CallCenterFilters) {
   return rows.filter((row) => {
+    if (isAgentExcluded(row)) return false;
     if (filters.mes && getGestionMes(row) !== filters.mes) return false;
     if (filters.semana && row.semana !== filters.semana) return false;
     return matchesSharedFilters(row, filters, { includeSeguimiento: true });
@@ -202,6 +212,7 @@ function buildGestionRows(rows: DataRow[], filters: CallCenterFilters) {
 
 function buildMatriculaRows(rows: DataRow[], filters: CallCenterFilters) {
   return rows.filter((row) => {
+    if (isAgentExcluded(row)) return false;
     if (!isAfluenciaHtml(row)) return false;
     const mesMatFiltro = filters.mesMatricula || filters.mes;
     if (mesMatFiltro && getMatriculaMes(row) !== mesMatFiltro) return false;
@@ -274,7 +285,7 @@ function buildGroupRows(
       convFinal: pct(counts.matriculas, counts.recorrido),
     };
     })
-    .filter((row) => row.recorrido > 0 || row.matriculas > 0)
+    .filter((row) => row.recorrido > 0)
     .sort((a, b) => b.recorrido - a.recorrido || b.matriculas - a.matriculas || a.name.localeCompare(b.name, "es"));
 }
 
