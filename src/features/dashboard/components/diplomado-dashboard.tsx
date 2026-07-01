@@ -29,7 +29,7 @@ type GroupRow = Counts & {
   citaMatricula: number;
 };
 
-type TabKey = "kpis" | "ejecutivos" | "carreras" | "regimen" | "tipoBase" | "temporal" | "proyecciones" | "metas";
+type TabKey = "kpis" | "ejecutivos" | "carreras" | "regimen" | "tipoBase" | "temporal" | "proyecciones";
 
 type DiplomadoFilters = {
   mes: string;
@@ -65,7 +65,6 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "tipoBase", label: "Tipo Base" },
   { key: "temporal", label: "Temporal" },
   { key: "proyecciones", label: "Proyecciones" },
-  { key: "metas", label: "Metas" },
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -659,28 +658,6 @@ export function DiplomadoDashboard() {
           </>
         ) : null}
 
-        {/* Metas Tab */}
-        {activeTab === "metas" ? (
-          <SectionCard title="Semáforo Ejecutivos vs Metas">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {agentRows.slice(0, 12).map((row) => {
-                const okContact = row.contactabilidad >= 60;
-                const okMat = row.citaMatricula >= 50;
-                return (
-                  <div key={row.name} className="rounded-lg border border-[#2d2d44] bg-[#111120] p-3">
-                    <div className="mb-2 truncate text-sm font-semibold">{row.name}</div>
-                    <div className="space-y-2 text-xs text-[#9090b0]">
-                      <div className="flex justify-between"><span>Contactabilidad meta 60%</span><span className={okContact ? "text-[#4ade80]" : "text-[#f87171]"}>{formatPct(row.contactabilidad)}</span></div>
-                      {percentBar(row.contactabilidad, okContact ? "green" : "red")}
-                      <div className="flex justify-between"><span>Cita a matrícula meta 50%</span><span className={okMat ? "text-[#4ade80]" : "text-[#f87171]"}>{formatPct(row.citaMatricula)}</span></div>
-                      {percentBar(row.citaMatricula, okMat ? "green" : "red")}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </SectionCard>
-        ) : null}
       </main>
     </div>
   );
