@@ -28,7 +28,7 @@ type GroupRow = Counts & {
   matAfluencia: number;
 };
 
-type TabKey = "kpis" | "ejecutivos" | "carreras" | "regimen" | "tipoBase" | "temporal" | "causaRaiz" | "proyecciones" | "metas" | "conclusiones";
+type TabKey = "kpis" | "ejecutivos" | "carreras" | "regimen" | "tipoBase" | "temporal" | "causaRaiz" | "proyecciones" | "conclusiones";
 
 type ProjectionComparisonRow = {
   month: string;
@@ -115,7 +115,6 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "temporal", label: "Temporal" },
   { key: "causaRaiz", label: "Causa Raíz" },
   { key: "proyecciones", label: "Proyecciones" },
-  { key: "metas", label: "Metas" },
 ];
 
 const PROJECTION_COMPARISON: ProjectionComparisonRow[] = [
@@ -1086,27 +1085,6 @@ export function CallCenterDashboard() {
           </>
         ) : null}
 
-        {activeTab === "metas" ? (
-          <SectionCard title="Semáforo Ejecutivos vs Metas">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {agentRows.slice(0, 12).map((row) => {
-                const okContact = row.contactabilidad >= 60;
-                const okMat = pct(row.matriculas, row.afluencias) >= 50;
-                return (
-                  <div key={row.name} className="rounded-lg border border-[#2d2d44] bg-[#111120] p-3">
-                    <div className="mb-2 truncate text-sm font-semibold">{row.name}</div>
-                    <div className="space-y-2 text-xs text-[#9090b0]">
-                      <div className="flex justify-between"><span>Contactabilidad meta 60%</span><span className={okContact ? "text-[#4ade80]" : "text-[#f87171]"}>{formatPct(row.contactabilidad)}</span></div>
-                      {percentBar(row.contactabilidad, okContact ? "green" : "red")}
-                      <div className="flex justify-between"><span>Afluencia a matrícula meta 50%</span><span className={okMat ? "text-[#4ade80]" : "text-[#f87171]"}>{formatPct(pct(row.matriculas, row.afluencias))}</span></div>
-                      {percentBar(pct(row.matriculas, row.afluencias), okMat ? "green" : "red")}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </SectionCard>
-        ) : null}
 
         {activeTab === "conclusiones" ? (
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
