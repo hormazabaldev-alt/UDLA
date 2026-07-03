@@ -118,11 +118,11 @@ const TABS: Array<{ key: TabKey; label: string }> = [
 ];
 
 const PROJECTION_COMPARISON: ProjectionComparisonRow[] = [
-  { month: "Total", citas2025: 8039, afluencias2025: 1239, matriculas2025: 607, citas2026: 10423, afluencias2026: 1817, matriculas2026: 950, varCitas: 29.7, varAfluencias: 46.7, varMatriculas: 56.5 },
+  { month: "Total", citas2025: 5636, afluencias2025: 927, matriculas2025: 404, citas2026: 7364, afluencias2026: 1359, matriculas2026: 632, varCitas: 30.7, varAfluencias: 46.6, varMatriculas: 56.4 },
   { month: "Marzo", citas2025: 1585, afluencias2025: 355, matriculas2025: 125, citas2026: 1051, afluencias2026: 181, matriculas2026: 93, varCitas: -33.7, varAfluencias: -49.0, varMatriculas: -25.6 },
   { month: "Abril", citas2025: 745, afluencias2025: 70, matriculas2025: 31, citas2026: 2463, afluencias2026: 440, matriculas2026: 214, varCitas: 230.6, varAfluencias: 528.6, varMatriculas: 590.3 },
   { month: "Mayo", citas2025: 1608, afluencias2025: 214, matriculas2025: 119, citas2026: 2057, afluencias2026: 403, matriculas2026: 154, varCitas: 27.9, varAfluencias: 88.3, varMatriculas: 29.4 },
-  { month: "Junio", citas2025: 1698, afluencias2025: 288, matriculas2025: 129, citas2026: 1736, afluencias2026: 335, matriculas2026: 171, varCitas: 2.2, varAfluencias: 16.3, varMatriculas: 32.6 },
+  { month: "Junio", citas2025: 1698, afluencias2025: 288, matriculas2025: 129, citas2026: 1793, afluencias2026: 335, matriculas2026: 171, varCitas: 5.6, varAfluencias: 16.3, varMatriculas: 32.6 },
 ];
 
 function pct(numerator: number, denominator: number) {
