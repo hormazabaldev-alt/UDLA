@@ -43,6 +43,29 @@ type ProjectionComparisonRow = {
   varMatriculas: number;
 };
 
+type ProjectionDetailRow = {
+  mes: string;
+  recorrido2025: number;
+  contactado2025: number;
+  citas2025: number;
+  a2025: number;
+  mc2025: number;
+  recorrido2026: number;
+  contactado2026: number;
+  metaCitas2026: number;
+  realCitas2026: number;
+  metaA2026: number;
+  realA2026: number;
+  metaMc2026: number;
+  realMc2026: number;
+  pctCitas: number;
+  pctCitasReal: number;
+  pctA: number;
+  pctAReal: number;
+  pctMc: number;
+  pctMcReal: number;
+};
+
 const colors = {
   orange: "#e8620a",
   amber: "#facc15",
@@ -123,6 +146,14 @@ const PROJECTION_COMPARISON: ProjectionComparisonRow[] = [
   { month: "Abril", citas2025: 745, afluencias2025: 70, matriculas2025: 31, citas2026: 2463, afluencias2026: 440, matriculas2026: 214, varCitas: 230.6, varAfluencias: 528.6, varMatriculas: 590.3 },
   { month: "Mayo", citas2025: 1608, afluencias2025: 214, matriculas2025: 119, citas2026: 2057, afluencias2026: 403, matriculas2026: 154, varCitas: 27.9, varAfluencias: 88.3, varMatriculas: 29.4 },
   { month: "Junio", citas2025: 1698, afluencias2025: 288, matriculas2025: 129, citas2026: 1793, afluencias2026: 335, matriculas2026: 171, varCitas: 5.6, varAfluencias: 16.3, varMatriculas: 32.6 },
+];
+
+const PROJECTION_DETAIL: ProjectionDetailRow[] = [
+  { mes: "Total", recorrido2025: 94785, contactado2025: 49042, citas2025: 5636, a2025: 927, mc2025: 404, recorrido2026: 95249, contactado2026: 31467, metaCitas2026: 6763, realCitas2026: 7364, metaA2026: 1112, realA2026: 1359, metaMc2026: 485, realMc2026: 632, pctCitas: 20.0, pctCitasReal: 9.0, pctA: 20.0, pctAReal: 22.0, pctMc: 20.0, pctMcReal: 30.0 },
+  { mes: "Marzo", recorrido2025: 22121, contactado2025: 14457, citas2025: 1585, a2025: 355, mc2025: 125, recorrido2026: 19967, contactado2026: 5901, metaCitas2026: 1902, realCitas2026: 1051, metaA2026: 426, realA2026: 181, metaMc2026: 150, realMc2026: 93, pctCitas: 20.0, pctCitasReal: -44.7, pctA: 20.0, pctAReal: -57.5, pctMc: 20.0, pctMcReal: -38.0 },
+  { mes: "Abril", recorrido2025: 17232, contactado2025: 9823, citas2025: 745, a2025: 70, mc2025: 31, recorrido2026: 29849, contactado2026: 12174, metaCitas2026: 894, realCitas2026: 2463, metaA2026: 84, realA2026: 440, metaMc2026: 37, realMc2026: 214, pctCitas: 20.0, pctCitasReal: 175.5, pctA: 20.0, pctAReal: 423.8, pctMc: 20.0, pctMcReal: 475.3 },
+  { mes: "Mayo", recorrido2025: 27547, contactado2025: 10396, citas2025: 1608, a2025: 214, mc2025: 119, recorrido2026: 23716, contactado2026: 8278, metaCitas2026: 1930, realCitas2026: 2057, metaA2026: 257, realA2026: 403, metaMc2026: 143, realMc2026: 154, pctCitas: 20.0, pctCitasReal: 6.6, pctA: 20.0, pctAReal: 56.9, pctMc: 20.0, pctMcReal: 7.8 },
+  { mes: "Junio", recorrido2025: 27885, contactado2025: 14366, citas2025: 1698, a2025: 288, mc2025: 129, recorrido2026: 21717, contactado2026: 5114, metaCitas2026: 2038, realCitas2026: 1793, metaA2026: 346, realA2026: 335, metaMc2026: 155, realMc2026: 171, pctCitas: 20.0, pctCitasReal: -12.0, pctA: 20.0, pctAReal: -3.1, pctMc: 20.0, pctMcReal: 10.5 },
 ];
 
 function pct(numerator: number, denominator: number) {
@@ -1077,8 +1108,61 @@ export function CallCenterDashboard() {
             <SectionCard title="Tabla Comparativa desde Excel">
               <div className="overflow-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-[#2d2d44] text-[#e8620a]"><tr><th className="px-3 py-2">Mes</th><th className="px-3 py-2">Citas 25</th><th className="px-3 py-2">Citas 26</th><th className="px-3 py-2">Var Citas</th><th className="px-3 py-2">AF 25</th><th className="px-3 py-2">AF 26</th><th className="px-3 py-2">Var AF</th><th className="px-3 py-2">MC 25</th><th className="px-3 py-2">MC 26</th><th className="px-3 py-2">Var MC</th></tr></thead>
-                  <tbody>{PROJECTION_COMPARISON.map((row) => (<tr key={row.month} className="border-b border-[#2d2d44] hover:bg-[#2d2d44]/60"><td className="px-3 py-2 font-semibold">{row.month}</td><td className="px-3 py-2">{formatInt(row.citas2025)}</td><td className="px-3 py-2">{formatInt(row.citas2026)}</td><td className={`px-3 py-2 ${row.varCitas >= 0 ? "text-[#4ade80]" : "text-[#f87171]"}`}>{formatSignedPct(row.varCitas)}</td><td className="px-3 py-2">{formatInt(row.afluencias2025)}</td><td className="px-3 py-2">{formatInt(row.afluencias2026)}</td><td className={`px-3 py-2 ${row.varAfluencias >= 0 ? "text-[#4ade80]" : "text-[#f87171]"}`}>{formatSignedPct(row.varAfluencias)}</td><td className="px-3 py-2">{formatInt(row.matriculas2025)}</td><td className="px-3 py-2">{formatInt(row.matriculas2026)}</td><td className={`px-3 py-2 ${row.varMatriculas >= 0 ? "text-[#4ade80]" : "text-[#f87171]"}`}>{formatSignedPct(row.varMatriculas)}</td></tr>))}</tbody>
+                  <thead className="text-[#e8620a]">
+                    <tr className="bg-[#2d2d44]">
+                      <th rowSpan={2} className="px-3 py-2 align-bottom">Mes</th>
+                      <th colSpan={5} className="border-l border-[#1a1a2e] px-3 py-2 text-center">202520</th>
+                      <th colSpan={8} className="border-l border-[#1a1a2e] px-3 py-2 text-center">202620</th>
+                      <th colSpan={6} className="border-l border-[#1a1a2e] px-3 py-2 text-center">Variación 25/26</th>
+                    </tr>
+                    <tr className="bg-[#2d2d44]/70 text-[#c0c0d8]">
+                      <th className="border-l border-[#1a1a2e] px-3 py-2">Recorrido</th>
+                      <th className="px-3 py-2">Contactado</th>
+                      <th className="px-3 py-2">Citas</th>
+                      <th className="px-3 py-2">A</th>
+                      <th className="px-3 py-2">Mc</th>
+                      <th className="border-l border-[#1a1a2e] px-3 py-2">Recorrido</th>
+                      <th className="px-3 py-2">Contactado</th>
+                      <th className="px-3 py-2">Meta Citas</th>
+                      <th className="px-3 py-2">Real Citas</th>
+                      <th className="px-3 py-2">Meta A</th>
+                      <th className="px-3 py-2">Real A</th>
+                      <th className="px-3 py-2">Meta Mc</th>
+                      <th className="px-3 py-2">Real Mc</th>
+                      <th className="border-l border-[#1a1a2e] px-3 py-2">% Citas</th>
+                      <th className="px-3 py-2">% Citas Real</th>
+                      <th className="px-3 py-2">% A</th>
+                      <th className="px-3 py-2">% A Real</th>
+                      <th className="px-3 py-2">% Mc</th>
+                      <th className="px-3 py-2">% Mc Real</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {PROJECTION_DETAIL.map((row) => (
+                      <tr key={row.mes} className={`border-b border-[#2d2d44] hover:bg-[#2d2d44]/60 ${row.mes === "Total" ? "bg-[#2d2d44]/40 font-semibold" : ""}`}>
+                        <td className="px-3 py-2 font-semibold">{row.mes}</td>
+                        <td className="border-l border-[#2d2d44] px-3 py-2">{formatInt(row.recorrido2025)}</td>
+                        <td className="px-3 py-2">{formatInt(row.contactado2025)}</td>
+                        <td className="px-3 py-2">{formatInt(row.citas2025)}</td>
+                        <td className="px-3 py-2">{formatInt(row.a2025)}</td>
+                        <td className="px-3 py-2">{formatInt(row.mc2025)}</td>
+                        <td className="border-l border-[#2d2d44] px-3 py-2">{formatInt(row.recorrido2026)}</td>
+                        <td className="px-3 py-2">{formatInt(row.contactado2026)}</td>
+                        <td className="px-3 py-2">{formatInt(row.metaCitas2026)}</td>
+                        <td className="px-3 py-2">{formatInt(row.realCitas2026)}</td>
+                        <td className="px-3 py-2">{formatInt(row.metaA2026)}</td>
+                        <td className="px-3 py-2">{formatInt(row.realA2026)}</td>
+                        <td className="px-3 py-2">{formatInt(row.metaMc2026)}</td>
+                        <td className="px-3 py-2">{formatInt(row.realMc2026)}</td>
+                        <td className="border-l border-[#2d2d44] px-3 py-2 text-[#9090b0]">{formatSignedPct(row.pctCitas)}</td>
+                        <td className={`px-3 py-2 ${row.pctCitasReal >= 0 ? "text-[#4ade80]" : "text-[#f87171]"}`}>{formatSignedPct(row.pctCitasReal)}</td>
+                        <td className="px-3 py-2 text-[#9090b0]">{formatSignedPct(row.pctA)}</td>
+                        <td className={`px-3 py-2 ${row.pctAReal >= 0 ? "text-[#4ade80]" : "text-[#f87171]"}`}>{formatSignedPct(row.pctAReal)}</td>
+                        <td className="px-3 py-2 text-[#9090b0]">{formatSignedPct(row.pctMc)}</td>
+                        <td className={`px-3 py-2 ${row.pctMcReal >= 0 ? "text-[#4ade80]" : "text-[#f87171]"}`}>{formatSignedPct(row.pctMcReal)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
                 </table>
               </div>
             </SectionCard>
