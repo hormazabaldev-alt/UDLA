@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import ReactECharts from "echarts-for-react";
-import { ArrowLeft, BarChart3, CalendarDays, Database, PhoneCall, Route, Target } from "lucide-react";
+import { ArrowLeft, CalendarDays, Database, PhoneCall, Route, Target } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import type { DataRow } from "@/lib/data-processing/types";
@@ -30,6 +30,24 @@ type GroupRow = Counts & {
 };
 
 type TabKey = "kpis" | "ejecutivos" | "carreras" | "regimen" | "tipoBase" | "temporal" | "proyecciones";
+
+type ProjectionComparisonRow = {
+  month: string;
+  recorrido2025: number;
+  contactados2025: number;
+  citas2025: number;
+  matriculas2025: number;
+  recorrido2026: number;
+  contactados2026: number;
+  metaCitas2026: number;
+  citasReal2026: number;
+  metaMatriculas2026: number;
+  matriculasReal2026: number;
+  pctCitas: number;
+  pctCitasReal: number;
+  pctMatriculas: number;
+  pctMatriculasReal: number;
+};
 
 type DiplomadoFilters = {
   mes: string;
@@ -65,6 +83,41 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "tipoBase", label: "Tipo Base" },
   { key: "temporal", label: "Temporal" },
   { key: "proyecciones", label: "Proyecciones" },
+];
+
+const PROJECTION_COMPARISON: ProjectionComparisonRow[] = [
+  { month: "Total", recorrido2025: 9550, contactados2025: 6569, citas2025: 2415, matriculas2025: 114, recorrido2026: 15250, contactados2026: 7289, metaCitas2026: 2898, citasReal2026: 2202, metaMatriculas2026: 137, matriculasReal2026: 117, pctCitas: 20.0, pctCitasReal: -24.0, pctMatriculas: 20.0, pctMatriculasReal: -14.0 },
+  { month: "Mayo", recorrido2025: 5592, contactados2025: 3723, citas2025: 1018, matriculas2025: 33, recorrido2026: 6763, contactados2026: 3112, metaCitas2026: 1222, citasReal2026: 717, metaMatriculas2026: 40, matriculasReal2026: 25, pctCitas: 20.0, pctCitasReal: -41.3, pctMatriculas: 20.0, pctMatriculasReal: -36.9 },
+  { month: "Junio", recorrido2025: 3958, contactados2025: 2846, citas2025: 1397, matriculas2025: 81, recorrido2026: 8487, contactados2026: 4177, metaCitas2026: 1676, citasReal2026: 1485, metaMatriculas2026: 97, matriculasReal2026: 92, pctCitas: 20.0, pctCitasReal: -11.4, pctMatriculas: 20.0, pctMatriculasReal: -5.3 },
+  { month: "Julio", recorrido2025: 613, contactados2025: 385, citas2025: 219, matriculas2025: 16, recorrido2026: 586, contactados2026: 310, metaCitas2026: 263, citasReal2026: 220, metaMatriculas2026: 19, matriculasReal2026: 22, pctCitas: 20.0, pctCitasReal: -16.3, pctMatriculas: 20.0, pctMatriculasReal: 14.6 },
+];
+
+const PROJECTION_TOTAL = PROJECTION_COMPARISON[0];
+
+type ProjectionTableColumn = {
+  key: string;
+  label: string;
+  className?: string;
+  isPercentage?: boolean;
+  value: (row: ProjectionComparisonRow) => string;
+};
+
+const projectionTableColumns: ProjectionTableColumn[] = [
+  { key: "month", label: "Mes", className: "text-left font-semibold", value: (row) => row.month },
+  { key: "recorrido2025", label: "Rec. 25", value: (row) => formatInt(row.recorrido2025) },
+  { key: "contactados2025", label: "Cont. 25", value: (row) => formatInt(row.contactados2025) },
+  { key: "citas2025", label: "Citas 25", value: (row) => formatInt(row.citas2025) },
+  { key: "matriculas2025", label: "Mc 25", value: (row) => formatInt(row.matriculas2025) },
+  { key: "recorrido2026", label: "Rec. 26", value: (row) => formatInt(row.recorrido2026) },
+  { key: "contactados2026", label: "Cont. 26", value: (row) => formatInt(row.contactados2026) },
+  { key: "metaCitas2026", label: "Meta Citas", value: (row) => formatInt(row.metaCitas2026) },
+  { key: "citasReal2026", label: "Real Citas", className: "font-semibold text-[#60a5fa]", value: (row) => formatInt(row.citasReal2026) },
+  { key: "metaMatriculas2026", label: "Meta Mc", value: (row) => formatInt(row.metaMatriculas2026) },
+  { key: "matriculasReal2026", label: "Real Mc", className: "font-semibold text-[#4ade80]", value: (row) => formatInt(row.matriculasReal2026) },
+  { key: "pctCitas", label: "% Citas Meta", isPercentage: true, value: (row) => formatSignedPct(row.pctCitas) },
+  { key: "pctCitasReal", label: "% Citas Real", isPercentage: true, value: (row) => formatSignedPct(row.pctCitasReal) },
+  { key: "pctMatriculas", label: "% Mc", isPercentage: true, value: (row) => formatSignedPct(row.pctMatriculas) },
+  { key: "pctMatriculasReal", label: "Real Mc", isPercentage: true, value: (row) => formatSignedPct(row.pctMatriculasReal) },
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -362,6 +415,40 @@ export function DiplomadoDashboard() {
     };
   }, [projectionRows]);
 
+  const comparisonOptions = useMemo(() => {
+    const rowsComparison = PROJECTION_COMPARISON.filter((row) => row.month !== "Total");
+    const baseOption = {
+      backgroundColor: "transparent",
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, backgroundColor: "rgba(15,15,26,0.96)", borderColor: "#3d3d5c", textStyle: { color: "#e8e8f0" } },
+      legend: { top: 0, textStyle: { color: "#c0c0d8", fontSize: 11 } },
+      grid: { left: 42, right: 18, top: 54, bottom: 32 },
+      xAxis: { type: "category", data: rowsComparison.map((row) => row.month), axisLabel: { color: "#9090b0", fontSize: 10 }, axisLine: { lineStyle: { color: "#2d2d44" } }, axisTick: { show: false } },
+      yAxis: { type: "value", splitLine: { lineStyle: { color: "#2d2d44" } }, axisLabel: { color: "#9090b0" } },
+    };
+    const makeOption = (series: Array<{ name: string; data: number[]; color: string }>) => ({
+      ...baseOption,
+      series: series.map((item) => ({
+        name: item.name,
+        type: "bar",
+        data: item.data,
+        itemStyle: { color: item.color },
+      })),
+    });
+
+    return {
+      citas: makeOption([
+        { name: "Citas 2025", data: rowsComparison.map((row) => row.citas2025), color: "#b45309" },
+        { name: "Meta Citas 2026", data: rowsComparison.map((row) => row.metaCitas2026), color: colors.amber },
+        { name: "Real Citas", data: rowsComparison.map((row) => row.citasReal2026), color: colors.blue },
+      ]),
+      matriculas: makeOption([
+        { name: "Matrículas 2025", data: rowsComparison.map((row) => row.matriculas2025), color: "#166534" },
+        { name: "Meta Matrículas 2026", data: rowsComparison.map((row) => row.metaMatriculas2026), color: "#86efac" },
+        { name: "Real Matrículas", data: rowsComparison.map((row) => row.matriculasReal2026), color: colors.green },
+      ]),
+    };
+  }, []);
+
   // ── States ───────────────────────────────────────────────────────────────────
 
   if (hydrating) {
@@ -650,11 +737,51 @@ export function DiplomadoDashboard() {
         {/* Proyecciones Tab */}
         {activeTab === "proyecciones" ? (
           <>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <KpiCard label="Proyección mensual citas" value={formatInt(projectionRows.monthly.citas * 4)} detail="Promedio últimas 4 semanas x 4" tone="amber" icon={CalendarDays} />
-              <KpiCard label="Proyección mensual matrículas" value={formatInt(projectionRows.monthly.matriculas * 4)} detail="Promedio últimas 4 semanas x 4" tone="green" icon={Target} />
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <KpiCard label="Recorridos 202620" value={formatInt(PROJECTION_TOTAL.recorrido2026)} detail={`202520: ${formatInt(PROJECTION_TOTAL.recorrido2025)}`} tone="blue" icon={Database} />
+              <KpiCard label="Contactados 202620" value={formatInt(PROJECTION_TOTAL.contactados2026)} detail={`202520: ${formatInt(PROJECTION_TOTAL.contactados2025)}`} tone="cyan" icon={PhoneCall} />
+              <KpiCard label="Citas reales 202620" value={formatInt(PROJECTION_TOTAL.citasReal2026)} detail={`Meta Excel: ${formatInt(PROJECTION_TOTAL.metaCitas2026)}`} tone="amber" icon={CalendarDays} />
+              <KpiCard label="Matrículas reales 202620" value={formatInt(PROJECTION_TOTAL.matriculasReal2026)} detail={`Meta Excel: ${formatInt(PROJECTION_TOTAL.metaMatriculas2026)}`} tone="green" icon={Target} />
             </div>
-            <SectionCard title="Proyección Semanal Detallada"><div className="h-[390px]"><ReactECharts option={projectionOption} style={{ height: "100%", width: "100%" }} /></div></SectionCard>
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+              <SectionCard title="Proyección Semanal Detallada"><div className="h-[390px]"><ReactECharts option={projectionOption} style={{ height: "100%", width: "100%" }} /></div></SectionCard>
+              <SectionCard title="Citas: 2025 vs Meta 2026 vs Real"><div className="h-[390px]"><ReactECharts option={comparisonOptions.citas} style={{ height: "100%", width: "100%" }} /></div></SectionCard>
+            </div>
+            <SectionCard title="Matrículas: 2025 vs Meta 2026 vs Real"><div className="h-[360px]"><ReactECharts option={comparisonOptions.matriculas} style={{ height: "100%", width: "100%" }} /></div></SectionCard>
+            <SectionCard title="Tabla Comparativa desde Excel Diplomado">
+              <div className="overflow-auto">
+                <table className="min-w-[1400px] w-full whitespace-nowrap text-left text-xs">
+                  <thead className="bg-[#2d2d44] text-[#e8620a]">
+                    <tr>
+                      {projectionTableColumns.map((column) => (
+                        <th key={column.key} className={`px-3 py-2 ${column.key === "month" ? "text-left" : "text-right"}`}>
+                          {column.label}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {PROJECTION_COMPARISON.map((row) => (
+                      <tr key={row.month} className={`border-b border-[#2d2d44] hover:bg-[#2d2d44]/60 ${row.month === "Total" ? "bg-[#2d2d44]/40 font-semibold" : ""}`}>
+                        {projectionTableColumns.map((column) => {
+                          const displayValue = column.value(row);
+                          const percentageClass = column.isPercentage
+                            ? Number.parseFloat(displayValue) >= 0 ? "text-[#4ade80]" : "text-[#f87171]"
+                            : "";
+                          const alignmentClass = column.key === "month" ? "text-left" : "text-right";
+
+                          return (
+                            <td key={column.key} className={`px-3 py-2 ${alignmentClass} ${column.className ?? ""} ${percentageClass}`}>
+                              {displayValue}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </SectionCard>
           </>
         ) : null}
 
