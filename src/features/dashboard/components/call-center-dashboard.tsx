@@ -154,6 +154,7 @@ const PROJECTION_DETAIL: ProjectionDetailRow[] = [
   { mes: "Abril", recorrido2025: 17232, contactado2025: 9823, citas2025: 745, a2025: 70, mc2025: 31, recorrido2026: 29849, contactado2026: 12174, metaCitas2026: 894, realCitas2026: 2463, metaA2026: 84, realA2026: 440, metaMc2026: 37, realMc2026: 214, pctCitas: 20.0, pctCitasReal: 175.5, pctA: 20.0, pctAReal: 423.8, pctMc: 20.0, pctMcReal: 475.3 },
   { mes: "Mayo", recorrido2025: 27547, contactado2025: 10396, citas2025: 1608, a2025: 214, mc2025: 119, recorrido2026: 23716, contactado2026: 8278, metaCitas2026: 1930, realCitas2026: 2057, metaA2026: 257, realA2026: 403, metaMc2026: 143, realMc2026: 154, pctCitas: 20.0, pctCitasReal: 6.6, pctA: 20.0, pctAReal: 56.9, pctMc: 20.0, pctMcReal: 7.8 },
   { mes: "Junio", recorrido2025: 27885, contactado2025: 14366, citas2025: 1698, a2025: 288, mc2025: 129, recorrido2026: 21717, contactado2026: 5114, metaCitas2026: 2038, realCitas2026: 1881, metaA2026: 346, realA2026: 370, metaMc2026: 155, realMc2026: 198, pctCitas: 20.0, pctCitasReal: -7.7, pctA: 20.0, pctAReal: 7.1, pctMc: 20.0, pctMcReal: 27.9 },
+  { mes: "Julio", recorrido2025: 4055, contactado2025: 2655, citas2025: 301, a2025: 33, mc2025: 15, recorrido2026: 6401, contactado2026: 1998, metaCitas2026: 361, realCitas2026: 285, metaA2026: 39.6, realA2026: 59, metaMc2026: 18, realMc2026: 22, pctCitas: 20.0, pctCitasReal: -21.0, pctA: 20.0, pctAReal: 49.0, pctMc: 20.0, pctMcReal: 22.0 },
 ];
 
 function pct(numerator: number, denominator: number) {
