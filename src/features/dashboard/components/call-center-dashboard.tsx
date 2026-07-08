@@ -137,7 +137,7 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "tipoBase", label: "Tipo Base" },
   { key: "temporal", label: "Temporal" },
   { key: "causaRaiz", label: "Causa Raíz" },
-  { key: "proyecciones", label: "Proyecciones" },
+  { key: "proyecciones", label: "Resumen – Comparativo Admisión 202520 vs. 202620" },
 ];
 
 const PROJECTION_COMPARISON: ProjectionComparisonRow[] = [
