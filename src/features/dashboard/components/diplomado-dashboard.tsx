@@ -86,10 +86,10 @@ const TABS: Array<{ key: TabKey; label: string }> = [
 ];
 
 const PROJECTION_COMPARISON: ProjectionComparisonRow[] = [
-  { month: "Total", recorrido2025: 9550, contactados2025: 6569, citas2025: 2415, matriculas2025: 114, recorrido2026: 15250, contactados2026: 7289, metaCitas2026: 2898, citasReal2026: 2202, metaMatriculas2026: 137, matriculasReal2026: 117, pctCitas: 20.0, pctCitasReal: -24.0, pctMatriculas: 20.0, pctMatriculasReal: -14.0 },
+  { month: "Total", recorrido2025: 11442, contactados2025: 7694, citas2025: 2965, matriculas2025: 162, recorrido2026: 17330, contactados2026: 8511, metaCitas2026: 3558, citasReal2026: 2854, metaMatriculas2026: 194, matriculasReal2026: 176, pctCitas: 20.0, pctCitasReal: -20.0, pctMatriculas: 20.0, pctMatriculasReal: -9.0 },
   { month: "Mayo", recorrido2025: 5592, contactados2025: 3723, citas2025: 1018, matriculas2025: 33, recorrido2026: 6763, contactados2026: 3112, metaCitas2026: 1222, citasReal2026: 717, metaMatriculas2026: 40, matriculasReal2026: 25, pctCitas: 20.0, pctCitasReal: -41.3, pctMatriculas: 20.0, pctMatriculasReal: -36.9 },
   { month: "Junio", recorrido2025: 3958, contactados2025: 2846, citas2025: 1397, matriculas2025: 81, recorrido2026: 8487, contactados2026: 4177, metaCitas2026: 1676, citasReal2026: 1485, metaMatriculas2026: 97, matriculasReal2026: 92, pctCitas: 20.0, pctCitasReal: -11.4, pctMatriculas: 20.0, pctMatriculasReal: -5.3 },
-  { month: "Julio", recorrido2025: 613, contactados2025: 385, citas2025: 219, matriculas2025: 16, recorrido2026: 586, contactados2026: 310, metaCitas2026: 263, citasReal2026: 220, metaMatriculas2026: 19, matriculasReal2026: 22, pctCitas: 20.0, pctCitasReal: -16.3, pctMatriculas: 20.0, pctMatriculasReal: 14.6 },
+  { month: "Julio", recorrido2025: 1892, contactados2025: 1125, citas2025: 550, matriculas2025: 48, recorrido2026: 2080, contactados2026: 1222, metaCitas2026: 660, citasReal2026: 652, metaMatriculas2026: 58, matriculasReal2026: 59, pctCitas: 20.0, pctCitasReal: -1.2, pctMatriculas: 20.0, pctMatriculasReal: 2.4 },
 ];
 
 const PROJECTION_TOTAL = PROJECTION_COMPARISON[0];
